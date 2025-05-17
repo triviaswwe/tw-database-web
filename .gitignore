@@ -1,8 +1,6 @@
-# Dependencias de Node
+# Dependencias y build
 node_modules/
-
-# Compilados de Next.js
 .next/
 
-# Variables de entorno (no las subas al repo)
+# Configuración local
 .env.local
