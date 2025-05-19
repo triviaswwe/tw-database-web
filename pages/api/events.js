@@ -3,7 +3,7 @@ import pool from '../../lib/db';
 export default async function handler(req, res) {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = 10; // sugerencia: usar 10 para paginación más manejable
+    const limit = Math.min(99, parseInt(req.query.limit) || 99); // máximo 99
     const offset = (page - 1) * limit;
 
     const [[{ total }]] = await pool.query('SELECT COUNT(*) AS total FROM events');
@@ -17,9 +17,10 @@ export default async function handler(req, res) {
     );
 
     res.status(200).json({
-      events: rows,
+      total,
+      page,
       totalPages: Math.ceil(total / limit),
-      currentPage: page,
+      events: rows,
     });
   } catch (error) {
     console.error(error);

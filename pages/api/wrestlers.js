@@ -1,23 +1,29 @@
 import pool from '../../lib/db';
 
 export default async function handler(req, res) {
-  const page = Math.max(1, parseInt(req.query.page) || 1);
-  const limit = 33;
-  const offset = (page - 1) * limit;
-
   try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(33, parseInt(req.query.limit) || 33);
+    const offset = (page - 1) * limit;
+
     const [[{ total }]] = await pool.query('SELECT COUNT(*) AS total FROM wrestlers');
 
-    const [wrestlers] = await pool.query(
-      'SELECT id, wrestler, country FROM wrestlers ORDER BY wrestler LIMIT ? OFFSET ?',
+    const [rows] = await pool.query(
+      `SELECT id, wrestler
+       FROM wrestlers
+       ORDER BY wrestler ASC
+       LIMIT ? OFFSET ?`,
       [limit, offset]
     );
 
-    const totalPages = Math.ceil(total / limit);
-
-    res.status(200).json({ wrestlers, totalPages, total });
+    res.status(200).json({
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      wrestlers: rows,
+    });
   } catch (error) {
-    console.error('Error loading wrestlers:', error);
+    console.error(error);
     res.status(500).json({ error: 'Error loading wrestlers' });
   }
 }
