@@ -1,38 +1,129 @@
-import { useRouter } from 'next/router';
-import useSWR from 'swr';
 import Link from 'next/link';
+import pool from '../../lib/db';
 
-const fetcher = (url) => fetch(url).then((res) => res.json());
+export async function getServerSideProps({ params }) {
+  const wrestlerId = parseInt(params.id, 10);
+  if (isNaN(wrestlerId)) return { notFound: true };
 
-export default function WrestlerDetail() {
-  const router = useRouter();
-  const { id } = router.query;
+  // 1) Luchador
+  const [[wrestlerRow]] = await pool.query(
+    `SELECT w.*, GROUP_CONCAT(i.interpreter SEPARATOR ', ') AS interpreters
+     FROM wrestlers w
+     LEFT JOIN wrestler_interpreter wi ON w.id = wi.wrestler_id
+     LEFT JOIN interpreters i ON wi.interpreter_id = i.id
+     WHERE w.id = ? GROUP BY w.id`,
+    [wrestlerId]
+  );
+  if (!wrestlerRow) return { notFound: true };
 
-  const { data: wrestler, error: wrestlerError } = useSWR(
-    id ? `/api/wrestlers/${id}` : null,
-    fetcher
+  // Serializamos debut_date
+  const wrestler = {
+    ...wrestlerRow,
+    debut_date: wrestlerRow.debut_date
+      ? wrestlerRow.debut_date.toISOString()
+      : null,
+    interpreters: wrestlerRow.interpreters
+      ? wrestlerRow.interpreters.split(', ')
+      : [],
+  };
+
+  // 2) Stats
+  const [[statsRow]] = await pool.query(
+    `SELECT
+       COUNT(*) AS total,
+       SUM(CASE WHEN mp.result = 'WIN'  THEN 1 ELSE 0 END) AS wins,
+       SUM(CASE WHEN mp.result = 'DRAW' THEN 1 ELSE 0 END) AS draws,
+       SUM(CASE WHEN mp.result = 'LOSS' THEN 1 ELSE 0 END) AS losses,
+       MIN(e.event_date) AS firstMatch,
+       MAX(e.event_date) AS lastMatch
+     FROM match_participants mp
+     JOIN matches m ON mp.match_id = m.id
+     JOIN events e    ON m.event_id   = e.id
+     WHERE mp.wrestler_id = ?`,
+    [wrestlerId]
+  );
+  const stats = {
+    total:      statsRow?.total      || 0,
+    wins:       statsRow?.wins       || 0,
+    draws:      statsRow?.draws      || 0,
+    losses:     statsRow?.losses     || 0,
+    firstMatch: statsRow?.firstMatch ? statsRow.firstMatch.toISOString() : null,
+    lastMatch:  statsRow?.lastMatch  ? statsRow.lastMatch.toISOString()  : null,
+  };
+
+  // 3) Detalle de matches
+  const [rawMatches] = await pool.query(
+    `SELECT
+       m.id, m.event_id, e.name    AS event,
+       e.event_date, m.match_order,
+       mp.team_number, mp.result AS result,
+       (
+         SELECT JSON_ARRAYAGG(JSON_OBJECT(
+           'wrestler_id', mp2.wrestler_id,
+           'wrestler',    w2.wrestler,
+           'team_number', mp2.team_number
+         ))
+         FROM match_participants mp2
+         JOIN wrestlers w2 ON mp2.wrestler_id = w2.id
+         WHERE mp2.match_id = m.id
+       ) AS participants,
+       (
+         SELECT JSON_ARRAYAGG(JSON_OBJECT(
+           'team_number', mts.team_number,
+           'score',       mts.score
+         ))
+         FROM match_team_scores mts
+         WHERE mts.match_id = m.id
+       ) AS scores
+     FROM match_participants mp
+     JOIN matches m ON mp.match_id = m.id
+     JOIN events e    ON m.event_id   = e.id
+     WHERE mp.wrestler_id = ?
+     GROUP BY m.id, mp.team_number, mp.result, m.match_order, m.event_id, e.name, e.event_date
+     ORDER BY e.event_date DESC, m.match_order ASC`,
+    [wrestlerId]
   );
 
-  const { data: matches, error: matchesError } = useSWR(
-    id ? `/api/wrestlers/${id}/matches` : null,
-    fetcher
-  );
+  const matches = rawMatches.map((row) => ({
+    id:           row.id,
+    event_id:     row.event_id,
+    event:        row.event,
+    event_date:   row.event_date.toISOString(),
+    match_order:  row.match_order,
+    team_number:  row.team_number,
+    result:       row.result,
+    participants: row.participants || [],
+    scores:       row.scores       || [],
+  }));
 
-  if (wrestlerError) return <div>Error loading wrestler</div>;
-  if (!wrestler) return <div>Loading wrestler...</div>;
+  return {
+    props: {
+      wrestler,
+      matches: {
+        stats,
+        matches,
+      },
+    },
+  };
+}
 
-  if (matchesError) return <div>Error loading matches</div>;
-  if (!matches) return <div>Loading matches...</div>;
-
+export default function WrestlerDetail({ wrestler, matches }) {
   return (
     <div className="p-4 max-w-3xl mx-auto">
       <h1 className="text-3xl font-bold mb-2">{wrestler.wrestler}</h1>
-      <p className="text-gray-600 mb-1">Country: {wrestler.country || 'Desconocido'}</p>
       <p className="text-gray-600 mb-1">
-        Debut: {wrestler.debut_date ? new Date(wrestler.debut_date).toLocaleDateString() : 'N/A'}
+        Country: {wrestler.country || 'Desconocido'}
+      </p>
+      <p className="text-gray-600 mb-1">
+        Debut: {wrestler.debut_date
+          ? new Date(wrestler.debut_date).toLocaleDateString()
+          : 'N/A'}
       </p>
       <p className="text-gray-600 mb-4">
-        Interpreters: {wrestler.interpreters?.join(', ') || 'Ninguno'}
+        Interpreters:{' '}
+        {wrestler.interpreters.length > 0
+          ? wrestler.interpreters.join(', ')
+          : 'Ninguno'}
       </p>
 
       <h2 className="text-2xl font-semibold mt-6 mb-2">Stats</h2>
@@ -58,7 +149,6 @@ export default function WrestlerDetail() {
       <h2 className="text-2xl font-semibold mb-2">Matches</h2>
       <ul className="space-y-3">
         {matches.matches.map((match) => {
-          // separar participantes por equipo
           const teamSelf = match.participants.filter(
             (p) => p.team_number === match.team_number
           );
@@ -66,10 +156,9 @@ export default function WrestlerDetail() {
             (p) => p.team_number !== match.team_number
           );
 
-          // renderizar un equipo
           const renderTeam = (team, isSelf) =>
             team.map((p, i) => {
-              const isCurrent = p.wrestler_id === parseInt(id, 10);
+              const isCurrent = p.wrestler_id === wrestler.id;
               const nameNode = isCurrent || isSelf ? (
                 <strong key={p.wrestler_id}>{p.wrestler}</strong>
               ) : (
@@ -89,7 +178,6 @@ export default function WrestlerDetail() {
               );
             });
 
-          // obtener scores
           const scoreSelf =
             match.scores.find((s) => s.team_number === match.team_number)
               ?.score ?? 0;

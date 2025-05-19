@@ -1,29 +1,31 @@
-// pages/api/wrestlers/[id].js
 import pool from '../../../lib/db';
 
 export default async function handler(req, res) {
-  const { id } = req.query;
+  const {
+    query: { id },
+    method,
+  } = req;
+
+  if (method !== 'GET') {
+    res.setHeader('Allow', ['GET']);
+    return res.status(405).json({ message: `Method ${method} not allowed` });
+  }
 
   try {
-    const [[wrestler]] = await pool.query(
+    const [rows] = await pool.query(
       'SELECT id, wrestler, debut_date, country FROM wrestlers WHERE id = ?',
       [id]
     );
 
-    if (!wrestler) return res.status(404).json({ error: 'Luchador no encontrado' });
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Wrestler not found' });
+    }
 
-    const [interpreters] = await pool.query(
-      `SELECT i.interpreter 
-       FROM wrestler_interpreter wi
-       JOIN interpreters i ON wi.interpreter_id = i.id
-       WHERE wi.wrestler_id = ?`,
-      [id]
-    );
-
-    wrestler.interpreters = interpreters.map((i) => i.interpreter);
+    // Podés agregar aquí consultas para traer interpreters si querés
+    const wrestler = rows[0];
     res.status(200).json(wrestler);
   } catch (error) {
-    console.error('Error en API wrestler:', error);
-    res.status(500).json({ error: 'Error cargando luchador' });
+    console.error(error);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 }

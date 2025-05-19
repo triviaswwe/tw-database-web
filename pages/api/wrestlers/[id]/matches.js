@@ -3,69 +3,87 @@ import pool from '../../../../lib/db';
 export default async function handler(req, res) {
   const { id } = req.query;
 
+  if (!id) {
+    return res.status(400).json({ message: 'Missing wrestler id' });
+  }
+
   try {
-    // 1) Traemos la lista base de combates del luchador
-    const [baseMatches] = await pool.query(
-      `SELECT 
-         m.id,
-         m.event_id,
-         e.name AS event,
-         e.event_date,
-         mp.result,
-         mp.team_number
-       FROM match_participants mp
-       JOIN matches m        ON mp.match_id    = m.id
-       JOIN events e         ON m.event_id     = e.id
-       WHERE mp.wrestler_id = ?
-       ORDER BY e.event_date DESC, m.match_order ASC`,
+    const [rows] = await pool.query(
+      `
+      SELECT
+        m.id,
+        m.event_id,
+        e.name AS event,
+        e.event_date,
+        m.match_order,
+        mp.team_number,
+        mp.result,
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'wrestler_id', mp2.wrestler_id,
+            'wrestler', w.wrestler,
+            'team_number', mp2.team_number
+          )
+        ) AS participants,
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'team_number', mts.team_number,
+            'score', mts.score
+          )
+        ) AS scores
+      FROM matches m
+      JOIN events e ON m.event_id = e.id
+      JOIN match_participants mp ON m.id = mp.match_id
+      JOIN match_participants mp2 ON m.id = mp2.match_id
+      JOIN wrestlers w ON mp2.wrestler_id = w.id
+      LEFT JOIN match_team_scores mts ON m.id = mts.match_id
+      WHERE mp.wrestler_id = ?
+      GROUP BY m.id, mp.team_number, mp.result, m.match_order, m.event_id, e.name, e.event_date
+      ORDER BY e.event_date DESC, m.match_order ASC
+      `,
       [id]
     );
 
-    // 2) Calculamos stats rápidamente
-    const total  = baseMatches.length;
-    const wins   = baseMatches.filter((m) => m.result === 'WIN').length;
-    const losses = baseMatches.filter((m) => m.result === 'LOSS').length;
-    const draws  = baseMatches.filter((m) => m.result === 'DRAW').length;
-    const firstMatch = baseMatches[total - 1]?.event_date || null;
-    const lastMatch  = baseMatches[0]?.event_date       || null;
-
-    // 3) Para cada combate, obtenemos participantes y scores
-    const matches = [];
-    for (const base of baseMatches) {
-      // 3a) Participantes
-      const [participants] = await pool.query(
-        `SELECT
-           w.id         AS wrestler_id,
-           w.wrestler,
-           mp.team_number
-         FROM match_participants mp
-         JOIN wrestlers w ON mp.wrestler_id = w.id
-         WHERE mp.match_id = ?`,
-        [base.id]
-      );
-
-      // 3b) Scores
-      const [scores] = await pool.query(
-        `SELECT team_number, score
-         FROM match_team_scores
-         WHERE match_id = ?`,
-        [base.id]
-      );
-
-      matches.push({
-        ...base,
-        participants,
-        scores
-      });
+    if (!rows.length) {
+      return res.status(404).json({ message: 'No matches found for wrestler' });
     }
 
-    // 4) Enviamos stats y matches
-    res.status(200).json({
-      stats: { total, wins, losses, draws, firstMatch, lastMatch },
-      matches
-    });
+    const matchesMap = new Map();
+
+    for (const row of rows) {
+      if (!matchesMap.has(row.id)) {
+        matchesMap.set(row.id, {
+          id: row.id,
+          event_id: row.event_id,
+          event: row.event,
+          event_date: row.event_date,
+          match_order: row.match_order,
+          result: row.result, // resultado para el luchador consultado
+          participants: row.participants,
+          scores: row.scores,
+          team_number: row.team_number,
+        });
+      } else {
+        const match = matchesMap.get(row.id);
+        match.participants = match.participants.concat(row.participants);
+        match.scores = match.scores.concat(row.scores);
+      }
+    }
+
+    const matches = Array.from(matchesMap.values());
+
+    const stats = {
+      total: matches.length,
+      wins: matches.filter((m) => m.result === 'win').length,
+      draws: matches.filter((m) => m.result === 'draw').length,
+      losses: matches.filter((m) => m.result === 'loss').length,
+      firstMatch: matches.length > 0 ? matches[matches.length - 1].event_date : null,
+      lastMatch: matches.length > 0 ? matches[0].event_date : null,
+    };
+
+    res.status(200).json({ matches, stats });
   } catch (error) {
-    console.error('Error cargando combates detallados:', error);
-    res.status(500).json({ error: 'Error cargando combates del luchador' });
+    console.error(error);
+    res.status(500).json({ message: error.message, stack: error.stack });
   }
 }
