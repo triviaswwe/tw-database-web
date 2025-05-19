@@ -1,8 +1,12 @@
-// pages/api/events/[id].js
 import pool from '../../../lib/db';
 
 export default async function handler(req, res) {
   const { id } = req.query;
+
+  // Validar que id sea un número válido para evitar SQL Injection o errores
+  if (!id || isNaN(Number(id))) {
+    return res.status(400).json({ error: 'ID inválido' });
+  }
 
   try {
     const [rows] = await pool.query(
