@@ -7,46 +7,43 @@ const fetcher = (url) => fetch(url).then((res) => res.json());
 export default function WrestlersPage() {
   const limit = 33;
   const [page, setPage] = useState(1);
-  const [wrestlers, setWrestlers] = useState([]);
 
-  const { data, error } = useSWR(`/api/wrestlers?page=${page}&limit=${limit}`, fetcher, {
-    revalidateOnFocus: false,
-  });
-
-  if (data && data.wrestlers) {
-    if (wrestlers.length < page * limit) {
-      setWrestlers((prev) => [...prev, ...data.wrestlers]);
-    }
-  }
+  const { data, error, isLoading } = useSWR(`/api/wrestlers?page=${page}&limit=${limit}`, fetcher);
 
   if (error) return <div>Error loading wrestlers.</div>;
-  if (!data && wrestlers.length === 0) return <div>Loading wrestlers...</div>;
+  if (isLoading) return <div>Loading wrestlers...</div>;
 
-  const loadMore = () => {
-    if (page < data.totalPages) setPage(page + 1);
-  };
+  const totalPages = data?.totalPages || 1;
+  const wrestlers = data?.wrestlers || [];
 
   return (
-    <div className="p-4">
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-6">Wrestlers</h1>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {wrestlers.map((wrestler) => (
-          <div key={wrestler.id} className="p-4 border rounded shadow bg-white">
-            <Link href={`/wrestlers/${wrestler.id}`}>
-              <h2 className="text-xl font-bold hover:underline cursor-pointer">{wrestler.wrestler}</h2>
-            </Link>
-            {/* Otros datos si quieres */}
-          </div>
+          <Link key={wrestler.id} href={`/wrestlers/${wrestler.id}`}>
+            <div className="p-4 border rounded shadow bg-white hover:shadow-lg transition-shadow duration-200 cursor-pointer">
+              <h2 className="text-xl font-bold">{wrestler.wrestler}</h2>
+            </div>
+          </Link>
         ))}
       </div>
 
-      {page < data?.totalPages && (
-        <button
-          onClick={loadMore}
-          className="mt-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          Load More
-        </button>
-      )}
+      {/* Paginación */}
+      <div className="flex justify-center mt-8 space-x-2">
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+          <button
+            key={pageNum}
+            onClick={() => setPage(pageNum)}
+            className={`px-3 py-1 rounded ${
+              page === pageNum ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            {pageNum}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
