@@ -7,7 +7,7 @@ const eventTypeOptions = [
   { label: 'Todos', value: '' },
   { label: 'Weekly', value: 'weekly' },
   { label: 'PLE', value: 'ple' },
-  { label: 'Takeover', value: 'takeover' },
+  { label: 'TakeOver', value: 'takeover' },
   { label: 'Special', value: 'special' },
 ];
 
