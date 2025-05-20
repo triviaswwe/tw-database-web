@@ -4,7 +4,7 @@ import Link from 'next/link';
 const EVENTS_PER_PAGE = 33;
 
 const eventTypeOptions = [
-  { label: 'Todos', value: '' },
+  { label: 'All', value: '' },
   { label: 'Weekly', value: 'weekly' },
   { label: 'PLE', value: 'ple' },
   { label: 'TakeOver', value: 'takeover' },
@@ -61,6 +61,36 @@ export default function EventsPage() {
     });
   };
 
+  // Función para renderizar botones de página, máximo 3 visibles
+  const renderPageButtons = () => {
+    const buttons = [];
+    let start = Math.max(1, page - 1);
+    let end = Math.min(totalPages, start + 2);
+
+    // Ajustar start si quedan menos de 3 páginas al final
+    if (end - start < 2) {
+      start = Math.max(1, end - 2);
+    }
+
+    for (let i = start; i <= end; i++) {
+      buttons.push(
+        <button
+          key={i}
+          onClick={() => setPage(i)}
+          className={`px-3 py-1 rounded ${
+            page === i
+              ? 'bg-blue-600 text-white shadow'
+              : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+          }`}
+        >
+          {i}
+        </button>
+      );
+    }
+
+    return buttons;
+  };
+
   return (
     <div className="p-4 max-w-5xl mx-auto">
       {/* Botones filtro por tipo */}
@@ -110,20 +140,35 @@ export default function EventsPage() {
       </div>
 
       {/* Paginación */}
-      <div className="mt-8 flex justify-center space-x-2">
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
-          <button
-            key={num}
-            onClick={() => setPage(num)}
-            className={`px-3 py-1 rounded ${
-              num === page
-                ? 'bg-blue-600 text-white shadow'
-                : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-            }`}
-          >
-            {num}
-          </button>
-        ))}
+      <div className="mt-8 flex justify-center space-x-2 items-center">
+        {/* Botón Anterior */}
+        <button
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={page === 1}
+          className={`px-3 py-1 rounded ${
+            page === 1
+              ? 'bg-gray-300 cursor-not-allowed'
+              : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+          }`}
+        >
+          &lt;
+        </button>
+
+        {/* Botones numéricos (máximo 3) */}
+        {renderPageButtons()}
+
+        {/* Botón Siguiente */}
+        <button
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          disabled={page === totalPages}
+          className={`px-3 py-1 rounded ${
+            page === totalPages
+              ? 'bg-gray-300 cursor-not-allowed'
+              : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+          }`}
+        >
+          &gt;
+        </button>
       </div>
     </div>
   );

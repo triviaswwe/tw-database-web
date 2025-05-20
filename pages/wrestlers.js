@@ -1,28 +1,40 @@
-// pages/wrestlers.js
-
-import { useState } from 'react';
-import useSWR from 'swr';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-const fetcher = (url) => fetch(url).then((res) => res.json());
+const WRESTLERS_PER_PAGE = 33;
 
 export default function WrestlersPage() {
-  const limit = 33;
+  const [wrestlers, setWrestlers] = useState([]);
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const { data, error, isLoading } = useSWR(`/api/wrestlers?page=${page}&limit=${limit}`, fetcher);
+  useEffect(() => {
+    async function fetchWrestlers() {
+      try {
+        const params = new URLSearchParams();
+        params.append('page', page);
+        params.append('limit', WRESTLERS_PER_PAGE);
 
-  if (error) return <div>Error loading wrestlers.</div>;
-  if (isLoading) return <div>Loading wrestlers...</div>;
+        const res = await fetch(`/api/wrestlers?${params.toString()}`);
+        const data = await res.json();
 
-  const totalPages = data?.totalPages || 1;
-  const wrestlers = data?.wrestlers || [];
+        setWrestlers(data.wrestlers || []);
+        setTotalPages(data.totalPages || 1);
+      } catch (error) {
+        console.error('Error fetching wrestlers:', error);
+        setWrestlers([]);
+        setTotalPages(1);
+      }
+    }
+    fetchWrestlers();
+  }, [page]);
 
   return (
-    <div className="p-6">
+    <div className="p-6 max-w-5xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Wrestlers</h1>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        {wrestlers.length === 0 && <p>No wrestlers found.</p>}
         {wrestlers.map((wrestler) => (
           <Link key={wrestler.id} href={`/wrestlers/${wrestler.id}`}>
             <div className="p-4 border rounded shadow bg-white hover:shadow-lg transition-shadow duration-200 cursor-pointer">
