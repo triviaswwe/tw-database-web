@@ -1,5 +1,8 @@
+// pages/events.js
+
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Spinner from '../components/Spinner';
 
 const EVENTS_PER_PAGE = 33;
 
@@ -18,12 +21,13 @@ export default function EventsPage() {
   const [eventType, setEventType] = useState('');
   const [filter, setFilter] = useState('');
   const [debouncedFilter, setDebouncedFilter] = useState(filter);
+  const [loading, setLoading] = useState(false);
 
-  // Debounce del filtro (500ms)
+  // Debounce del filtro
   useEffect(() => {
     const timeout = setTimeout(() => {
       setDebouncedFilter(filter);
-      setPage(1); // Reinicia paginación al escribir
+      setPage(1);
     }, 500);
     return () => clearTimeout(timeout);
   }, [filter]);
@@ -31,6 +35,7 @@ export default function EventsPage() {
   // Fetch de eventos
   useEffect(() => {
     async function fetchEvents() {
+      setLoading(true);
       try {
         const params = new URLSearchParams();
         params.append('page', page);
@@ -46,6 +51,8 @@ export default function EventsPage() {
         console.error('Error fetching events:', error);
         setEvents([]);
         setTotalPages(1);
+      } finally {
+        setLoading(false);
       }
     }
 
@@ -61,16 +68,11 @@ export default function EventsPage() {
     });
   };
 
-  // Función para renderizar botones de página, máximo 3 visibles
   const renderPageButtons = () => {
     const buttons = [];
     let start = Math.max(1, page - 1);
     let end = Math.min(totalPages, start + 2);
-
-    // Ajustar start si quedan menos de 3 páginas al final
-    if (end - start < 2) {
-      start = Math.max(1, end - 2);
-    }
+    if (end - start < 2) start = Math.max(1, end - 2);
 
     for (let i = start; i <= end; i++) {
       buttons.push(
@@ -93,7 +95,7 @@ export default function EventsPage() {
 
   return (
     <div className="p-4 max-w-5xl mx-auto">
-      {/* Botones filtro por tipo */}
+      {/* Filtro tipo de evento */}
       <div className="mb-4 flex flex-wrap gap-2">
         {eventTypeOptions.map(({ label, value }) => (
           <button
@@ -113,7 +115,7 @@ export default function EventsPage() {
         ))}
       </div>
 
-      {/* Input filtro por nombre */}
+      {/* Filtro por nombre */}
       <input
         type="text"
         placeholder="Filter by event name"
@@ -122,26 +124,32 @@ export default function EventsPage() {
         className="mb-6 w-full md:w-1/2 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
       />
 
-      {/* Lista eventos */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-        {events.length === 0 && <p>No events found.</p>}
-        {events.map((event) => (
-          <Link
-            key={event.id}
-            href={`/events/${event.id}`}
-            className="block p-4 border rounded shadow bg-white hover:shadow-lg transition-shadow cursor-pointer"
-          >
-            <h2 className="font-semibold text-lg mb-1">{event.name}</h2>
-            <p className="text-sm text-gray-600 mb-0.5">
-              {event.event_type} — {formatDate(event.event_date)}
-            </p>
-          </Link>
-        ))}
-      </div>
+      {/* Eventos */}
+      {loading ? (
+        <Spinner />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+          {events.length === 0 ? (
+            <p>No events found.</p>
+          ) : (
+            events.map((event) => (
+              <Link
+                key={event.id}
+                href={`/events/${event.id}`}
+                className="block p-4 border rounded shadow bg-white hover:shadow-lg transition-shadow cursor-pointer"
+              >
+                <h2 className="font-semibold text-lg mb-1">{event.name}</h2>
+                <p className="text-sm text-gray-600 mb-0.5">
+                  {event.event_type} — {formatDate(event.event_date)}
+                </p>
+              </Link>
+            ))
+          )}
+        </div>
+      )}
 
       {/* Paginación */}
       <div className="mt-8 flex justify-center space-x-2 items-center">
-        {/* Botón Anterior */}
         <button
           onClick={() => setPage((p) => Math.max(1, p - 1))}
           disabled={page === 1}
@@ -153,11 +161,7 @@ export default function EventsPage() {
         >
           &lt;
         </button>
-
-        {/* Botones numéricos (máximo 3) */}
         {renderPageButtons()}
-
-        {/* Botón Siguiente */}
         <button
           onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           disabled={page === totalPages}
