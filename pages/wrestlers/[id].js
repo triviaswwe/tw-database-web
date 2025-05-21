@@ -1,3 +1,5 @@
+// pages/wrestlers/[id].js
+
 import Link from 'next/link';
 import pool from '../../lib/db';
 

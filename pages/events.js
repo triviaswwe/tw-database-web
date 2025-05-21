@@ -79,11 +79,10 @@ export default function EventsPage() {
         <button
           key={i}
           onClick={() => setPage(i)}
-          className={`px-3 py-1 rounded ${
-            page === i
+          className={`px-3 py-1 rounded ${page === i
               ? 'bg-blue-600 text-white shadow'
               : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-          }`}
+            }`}
         >
           {i}
         </button>
@@ -94,7 +93,9 @@ export default function EventsPage() {
   };
 
   return (
-    <div className="p-4 max-w-5xl mx-auto">
+    <div className="p-6 max-w-5xl mx-auto">
+      <title data-next-head="">Events - TriviasWWE</title>
+      <h1 className="text-3xl font-bold mb-6">Events</h1>
       {/* Filtro tipo de evento */}
       <div className="mb-4 flex flex-wrap gap-2">
         {eventTypeOptions.map(({ label, value }) => (
@@ -104,11 +105,10 @@ export default function EventsPage() {
               setEventType(value);
               setPage(1);
             }}
-            className={`px-4 py-2 rounded font-semibold ${
-              eventType === value
+            className={`px-4 py-2 rounded font-semibold ${eventType === value
                 ? 'bg-blue-600 text-white shadow'
                 : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-            }`}
+              }`}
           >
             {label}
           </button>
@@ -153,11 +153,10 @@ export default function EventsPage() {
         <button
           onClick={() => setPage((p) => Math.max(1, p - 1))}
           disabled={page === 1}
-          className={`px-3 py-1 rounded ${
-            page === 1
+          className={`px-3 py-1 rounded ${page === 1
               ? 'bg-gray-300 cursor-not-allowed'
               : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-          }`}
+            }`}
         >
           &lt;
         </button>
@@ -165,11 +164,10 @@ export default function EventsPage() {
         <button
           onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           disabled={page === totalPages}
-          className={`px-3 py-1 rounded ${
-            page === totalPages
+          className={`px-3 py-1 rounded ${page === totalPages
               ? 'bg-gray-300 cursor-not-allowed'
               : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-          }`}
+            }`}
         >
           &gt;
         </button>

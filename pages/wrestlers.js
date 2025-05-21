@@ -39,6 +39,7 @@ export default function WrestlersPage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
+      <title data-next-head="">Wrestlers - TriviasWWE</title>
       <h1 className="text-3xl font-bold mb-6">Wrestlers</h1>
 
       {loading ? (
@@ -65,11 +66,10 @@ export default function WrestlersPage() {
           <button
             key={pageNum}
             onClick={() => setPage(pageNum)}
-            className={`px-3 py-1 rounded ${
-              page === pageNum
+            className={`px-3 py-1 rounded ${page === pageNum
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
+              }`}
           >
             {pageNum}
           </button>
