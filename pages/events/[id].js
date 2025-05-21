@@ -27,7 +27,7 @@ export default function EventDetail() {
   if (!matches) return <div>Loading matches...</div>;
 
   const isNumberedList = (type) =>
-    ['Royal Rumble', 'Elimination Chamber'].includes(type);
+    type === 'Royal Rumble' || type === 'Elimination Chamber';
 
   return (
     <div className="p-4 max-w-3xl mx-auto">
@@ -39,7 +39,7 @@ export default function EventDetail() {
 
       <h2 className="text-2xl font-semibold mb-4">Matches</h2>
 
-      {(!matches || matches.length === 0) ? (
+      {matches.length === 0 ? (
         <p>There are no matches registered for this event yet.</p>
       ) : (
         <ul className="space-y-6">
@@ -60,19 +60,21 @@ export default function EventDetail() {
                 </p>
 
                 <ul
-                  className={`pl-4 ${useNumberedList ? 'list-decimal' : 'list-disc'}`}
+                  className={`pl-4 ${useNumberedList ? 'list-decimal' : 'list-disc'
+                    }`}
                 >
-                  {match.participants.map((p) => (
-                    <li key={p.wrestler_id} className="mb-1">
+                  {match.participants.map((p, i) => (
+                    <li key={i} className="mb-1">
                       <Link
                         href={`/wrestlers/${p.wrestler_id}`}
                         className="text-blue-600 hover:underline"
                       >
                         {p.wrestler}
                       </Link>{' '}
-                      {/* Aquí interpreter solo si lo traes en la API */}
                       ({p.interpreter || 'Sin intérprete'}) —{' '}
-                      {/* p.result y p.score no están en participantes, corregir si querés */}
+                      <strong>
+                        {p.result} {p.score !== null ? `(${p.score})` : ''}
+                      </strong>
                     </li>
                   ))}
                 </ul>
