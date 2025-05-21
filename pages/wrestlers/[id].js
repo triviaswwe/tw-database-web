@@ -78,7 +78,7 @@ export async function getServerSideProps({ params }) {
      JOIN events e ON m.event_id = e.id
      WHERE mp.wrestler_id = ?
      GROUP BY m.id, mp.team_number, mp.result, m.match_order, m.event_id, e.name, e.event_date
-     ORDER BY e.event_date DESC, m.match_order ASC`,
+     ORDER BY e.event_date DESC, m.match_order DESC`,
     [wrestlerId]
   );
 
