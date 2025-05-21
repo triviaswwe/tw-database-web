@@ -14,7 +14,7 @@ export default async function handler(req, res) {
        FROM matches m
        LEFT JOIN match_types mt ON m.match_type_id = mt.id
        WHERE m.event_id = ?
-       ORDER BY m.match_order ASC`,
+       ORDER BY m.match_order DESC`,
       [id]
     );
 
