@@ -7,7 +7,6 @@ export async function getServerSideProps({ params }) {
   const wrestlerId = parseInt(params.id, 10);
   if (isNaN(wrestlerId)) return { notFound: true };
 
-  // 1) Luchador + intérpretes concatenados
   const [[wrestlerRow]] = await pool.query(
     `SELECT w.*, GROUP_CONCAT(i.interpreter SEPARATOR ', ') AS interpreters
      FROM wrestlers w
@@ -24,7 +23,6 @@ export async function getServerSideProps({ params }) {
     interpreters: wrestlerRow.interpreters ? wrestlerRow.interpreters.split(', ') : [],
   };
 
-  // 2) Estadísticas
   const [[statsRow]] = await pool.query(
     `SELECT
        COUNT(*) AS total,
@@ -49,7 +47,6 @@ export async function getServerSideProps({ params }) {
     lastMatch: statsRow?.lastMatch ? statsRow.lastMatch.toISOString() : null,
   };
 
-  // 3) Detalle de matches
   const [rawMatches] = await pool.query(
     `SELECT
        m.id, m.event_id, e.name AS event,
@@ -59,7 +56,8 @@ export async function getServerSideProps({ params }) {
          SELECT JSON_ARRAYAGG(JSON_OBJECT(
            'wrestler_id', mp2.wrestler_id,
            'wrestler', w2.wrestler,
-           'team_number', mp2.team_number
+           'team_number', mp2.team_number,
+           'result', mp2.result
          ))
          FROM match_participants mp2
          JOIN wrestlers w2 ON mp2.wrestler_id = w2.id
@@ -137,14 +135,28 @@ export default function WrestlerDetail({ wrestler, matches }) {
       <h2 className="text-2xl font-semibold mb-2">Matches</h2>
       <ul className="space-y-3">
         {matches.matches.map((match) => {
-          const teamSelf = match.participants.filter((p) => p.team_number === match.team_number);
-          const teamOpp = match.participants.filter((p) => p.team_number !== match.team_number);
+          const teamsMap = match.participants.reduce((acc, p) => {
+            if (!acc[p.team_number]) acc[p.team_number] = [];
+            acc[p.team_number].push(p);
+            return acc;
+          }, {});
 
-          const renderTeam = (team, isSelf) =>
+          const allTeamNumbers = Object.keys(teamsMap);
+          const mainTeamNumber = match.team_number.toString();
+          const mainTeam = teamsMap[mainTeamNumber] || [];
+          const rivalTeams = allTeamNumbers.filter((tn) => tn !== mainTeamNumber);
+          const allRivals = rivalTeams.flatMap((tn) => teamsMap[tn]);
+
+          const scoreMap = (match.scores || []).reduce((acc, s) => {
+            acc[s.team_number.toString()] = s.score;
+            return acc;
+          }, {});
+
+          const renderTeam = (team, highlightFirst = false) =>
             team.map((p, i) => {
               const isCurrent = p.wrestler_id === wrestler.id;
               const nameNode =
-                isCurrent || isSelf ? (
+                isCurrent || highlightFirst ? (
                   <strong key={p.wrestler_id}>{p.wrestler}</strong>
                 ) : (
                   <Link
@@ -163,12 +175,15 @@ export default function WrestlerDetail({ wrestler, matches }) {
               );
             });
 
-          const scoreSelf =
-            match.scores.find((s) => s.team_number === match.team_number)?.score ?? 0;
-          const otherTeamNumber = match.scores.find((s) => s.team_number !== match.team_number)
-            ?.team_number;
-          const scoreOpp =
-            match.scores.find((s) => s.team_number === otherTeamNumber)?.score ?? 0;
+          const getPhrase = (result) => {
+            if (result === 'WIN') return 'defeats';
+            if (result === 'LOSS') return 'defeated by';
+            if (result === 'DRAW') return 'draw with';
+            return '';
+          };
+
+          const isMultiMan = allTeamNumbers.length > 4;
+          const hasScore = Object.keys(scoreMap).length > 0;
 
           return (
             <li key={match.id} className="border p-3 rounded shadow bg-white">
@@ -180,10 +195,74 @@ export default function WrestlerDetail({ wrestler, matches }) {
               </p>
 
               <p className="mt-1">
-                {renderTeam(teamSelf, true)} {scoreSelf}–{scoreOpp} {renderTeam(teamOpp, false)}
-              </p>
+                {renderTeam(mainTeam, true)}{' '}
+                {isMultiMan && !hasScore ? (
+                  <>
+                    {match.result === 'LOSS' ? (() => {
+                      // 1. Encontrar los equipos ganadores (puede ser más de uno en multi-tag)
+                      const winningTeams = rivalTeams.filter((tn) => {
+                        // Al menos un integrante con resultado 'WIN' en ese equipo
+                        return teamsMap[tn].some((p) => p.result === 'WIN');
+                      });
 
-              <p className="mt-1 text-gray-700">
+                      // 2. Obtener todos los participantes de los equipos ganadores concatenados
+                      const winnersParticipants = winningTeams.flatMap((tn) => teamsMap[tn]);
+
+                      // 3. Otros equipos rivales que no ganaron
+                      const otherTeams = rivalTeams.filter((tn) => !winningTeams.includes(tn));
+
+                      return (
+                        <>
+                          defeated by {renderTeam(winnersParticipants)}
+
+                          {otherTeams.length > 0 && (
+                            <>
+                              {' '}
+                              (Other participants:{' '}
+                              {otherTeams
+                                .map((tn) => renderTeam(teamsMap[tn]))
+                                .reduce((prev, curr) => [prev, ', ', curr])}
+                              )
+                            </>
+                          )}
+                        </>
+                      );
+                    })() : (
+                      <>
+                        {getPhrase(match.result)}{' '}
+                        {rivalTeams
+                          .map((tn) => renderTeam(teamsMap[tn]))
+                          .reduce((prev, curr) => [prev, ', ', curr])}
+
+                      </>
+                    )}
+                  </>
+                ) : rivalTeams.length === 1 ? (
+                  <>
+                    {scoreMap[mainTeamNumber] != null && scoreMap[rivalTeams[0]] != null ? (
+                      <>
+                        {scoreMap[mainTeamNumber]}–{scoreMap[rivalTeams[0]]}{' '}
+                        {renderTeam(teamsMap[rivalTeams[0]])}
+                      </>
+                    ) : (
+                      <>
+                        {getPhrase(match.result)} {renderTeam(teamsMap[rivalTeams[0]])}
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <span>
+  {[<span key="main">{scoreMap[mainTeamNumber] ?? 0}</span>, 
+    ...rivalTeams.map((teamNumber) => {
+      const team = renderTeam(teamsMap[teamNumber]);
+      const score = scoreMap[teamNumber] ?? 0;
+      return <span key={teamNumber}>{team} {score}</span>;
+    })
+  ].reduce((prev, curr) => [prev, ' - ', curr])}
+</span>
+                )}
+              </p>
+              <p className="mt-2 font-semibold text-gray-800">
                 Result: <strong>{match.result}</strong>
               </p>
             </li>
