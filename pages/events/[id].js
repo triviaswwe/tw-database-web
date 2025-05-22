@@ -71,7 +71,7 @@ export default function EventDetail() {
                       >
                         {p.wrestler}
                       </Link>{' '}
-                      ({p.interpreter || 'Sin intérprete'}) —{' '}
+                      ({p.interpreter || 'No interpreter'}) —{' '}
                       <strong>
                         {p.result} {p.score !== null ? `(${p.score})` : ''}
                       </strong>

@@ -109,13 +109,13 @@ export default function WrestlerDetail({ wrestler, matches }) {
   return (
     <div className="p-4 max-w-3xl mx-auto">
       <h1 className="text-3xl font-bold mb-2">{wrestler.wrestler}</h1>
-      <p className="text-gray-600 mb-1">Country: {wrestler.country || 'Desconocido'}</p>
+      <p className="text-gray-600 mb-1">Country: {wrestler.country || 'Unknown'}</p>
       <p className="text-gray-600 mb-1">
         Debut: {wrestler.debut_date ? new Date(wrestler.debut_date).toLocaleDateString() : 'N/A'}
       </p>
       <p className="text-gray-600 mb-4">
         Interpreters:{' '}
-        {wrestler.interpreters.length > 0 ? wrestler.interpreters.join(', ') : 'Ninguno'}
+        {wrestler.interpreters.length > 0 ? wrestler.interpreters.join(', ') : 'No one'}
       </p>
 
       <h2 className="text-2xl font-semibold mt-6 mb-2">Stats</h2>
