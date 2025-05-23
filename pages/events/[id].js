@@ -10,21 +10,28 @@ export default function EventDetail() {
   const router = useRouter();
   const { id } = router.query;
 
+  // 1) Datos del evento
   const { data: event, error: eventError } = useSWR(
     id ? `/api/events/${id}` : null,
     fetcher
   );
 
-  const { data: matches, error: matchesError } = useSWR(
+  // 2) Datos de los matches
+  const { data: matchesData, error: matchesError } = useSWR(
     id ? `/api/events/${id}/matches` : null,
     fetcher
   );
 
   if (eventError) return <div>Error loading event</div>;
-  if (!event) return <div>Loading event...</div>;
+  if (!event)   return <div>Loading event...</div>;
 
   if (matchesError) return <div>Error loading matches</div>;
-  if (!matches) return <div>Loading matches...</div>;
+  if (!matchesData) return <div>Loading matches...</div>;
+
+  // 3) Asegurarnos de que 'matches' sea un array
+  const matches = Array.isArray(matchesData)
+    ? matchesData
+    : matchesData.matches || [];
 
   const isNumberedList = (type) =>
     type === 'Royal Rumble' || type === 'Elimination Chamber';
@@ -44,7 +51,7 @@ export default function EventDetail() {
       ) : (
         <ul className="space-y-6">
           {matches.map((match, idx) => {
-            const isOpener = idx === 0;
+            const isOpener    = idx === 0;
             const isMainEvent = idx === matches.length - 1;
             const useNumberedList = isNumberedList(match.match_type);
 
@@ -59,12 +66,9 @@ export default function EventDetail() {
                   {match.match_type}
                 </p>
 
-                <ul
-                  className={`pl-4 ${useNumberedList ? 'list-decimal' : 'list-disc'
-                    }`}
-                >
-                  {match.participants.map((p, i) => (
-                    <li key={i} className="mb-1">
+                <ul className={`pl-4 ${useNumberedList ? 'list-decimal' : 'list-disc'}`}>
+                  {match.participants.map((p) => (
+                    <li key={p.wrestler_id} className="mb-1">
                       <Link
                         href={`/wrestlers/${p.wrestler_id}`}
                         className="text-blue-600 hover:underline"
@@ -73,7 +77,7 @@ export default function EventDetail() {
                       </Link>{' '}
                       ({p.interpreter || 'No interpreter'}) —{' '}
                       <strong>
-                        {p.result} {p.score !== null ? `(${p.score})` : ''}
+                        {p.result}{p.score != null ? ` (${p.score})` : ''}
                       </strong>
                     </li>
                   ))}
