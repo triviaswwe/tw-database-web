@@ -252,17 +252,17 @@ export default function WrestlerDetail({ wrestler, matches }) {
                   </>
                 ) : (
                   <span>
-  {[<span key="main">{scoreMap[mainTeamNumber] ?? 0}</span>, 
-    ...rivalTeams.map((teamNumber) => {
-      const team = renderTeam(teamsMap[teamNumber]);
-      const score = scoreMap[teamNumber] ?? 0;
-      return <span key={teamNumber}>{team} {score}</span>;
-    })
-  ].reduce((prev, curr) => [prev, ' - ', curr])}
-</span>
+                    {[<span key="main">{scoreMap[mainTeamNumber] ?? 0}</span>,
+                    ...rivalTeams.map((teamNumber) => {
+                      const team = renderTeam(teamsMap[teamNumber]);
+                      const score = scoreMap[teamNumber] ?? 0;
+                      return <span key={teamNumber}>{team} {score}</span>;
+                    })
+                    ].reduce((prev, curr) => [prev, ' - ', curr])}
+                  </span>
                 )}
               </p>
-              <p className="mt-2 font-semibold text-gray-800">
+              <p className="mt-2 font-semibold text-gray-700">
                 Result: <strong>{match.result}</strong>
               </p>
             </li>

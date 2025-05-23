@@ -4,18 +4,45 @@ import pool from '../../lib/db';
 
 export default async function handler(req, res) {
   try {
-    const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(33, parseInt(req.query.limit) || 33);
+    const page   = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit  = Math.min(33, parseInt(req.query.limit)|| 33);
     const offset = (page - 1) * limit;
 
-    const [[{ total }]] = await pool.query('SELECT COUNT(*) AS total FROM wrestlers');
+    const status = req.query.status || '';
+    const filter = req.query.filter || '';
 
+    // construir WHERE dinámico
+    const where = [];
+    const params = [];
+
+    if (status) {
+      where.push('w.status = ?');
+      params.push(status.charAt(0).toUpperCase() + status.slice(1));
+    }
+
+    if (filter) {
+      where.push('LOWER(w.wrestler) LIKE ?');
+      params.push(`%${filter.toLowerCase()}%`);
+    }
+
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    // total de registros
+    const [[{ total }]] = await pool.query(
+      `SELECT COUNT(*) AS total
+       FROM wrestlers w
+       ${whereSql}`,
+      params
+    );
+
+    // datos paginados
     const [rows] = await pool.query(
-      `SELECT id, wrestler
-       FROM wrestlers
+      `SELECT id, wrestler, status
+       FROM wrestlers w
+       ${whereSql}
        ORDER BY wrestler ASC
        LIMIT ? OFFSET ?`,
-      [limit, offset]
+      [...params, limit, offset]
     );
 
     res.status(200).json({
@@ -24,8 +51,8 @@ export default async function handler(req, res) {
       totalPages: Math.ceil(total / limit),
       wrestlers: rows,
     });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error loading wrestlers' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 }

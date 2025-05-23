@@ -7,32 +7,39 @@ import Spinner from '../components/Spinner';
 const EVENTS_PER_PAGE = 33;
 
 const eventTypeOptions = [
-  { label: 'All', value: '' },
-  { label: 'Weekly', value: 'weekly' },
-  { label: 'PLE', value: 'ple' },
+  { label: 'All',      value: '' },
+  { label: 'Weekly',   value: 'weekly' },
+  { label: 'PLE',      value: 'ple' },
   { label: 'TakeOver', value: 'takeover' },
-  { label: 'Special', value: 'special' },
+  { label: 'Special',  value: 'special' },
+];
+
+const dateOptions = [
+  { label: 'All',          value: '' },
+  { label: 'Past events',  value: 'past' },
+  { label: 'Upcoming events', value: 'upcoming' },
 ];
 
 export default function EventsPage() {
-  const [events, setEvents] = useState([]);
-  const [page, setPage] = useState(1);
+  const [events, setEvents]       = useState([]);
+  const [page, setPage]           = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [eventType, setEventType] = useState('');
-  const [filter, setFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
+  const [filter, setFilter]       = useState('');
   const [debouncedFilter, setDebouncedFilter] = useState(filter);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]     = useState(false);
 
-  // Debounce del filtro
+  // Debounce del nombre
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      setDebouncedFilter(filter);
+    const t = setTimeout(() => {
+      setDebouncedFilter(filter.trim());
       setPage(1);
     }, 500);
-    return () => clearTimeout(timeout);
+    return () => clearTimeout(t);
   }, [filter]);
 
-  // Fetch de eventos
+  // Fetch de eventos con tipo + nombre + date
   useEffect(() => {
     async function fetchEvents() {
       setLoading(true);
@@ -40,75 +47,89 @@ export default function EventsPage() {
         const params = new URLSearchParams();
         params.append('page', page);
         params.append('limit', EVENTS_PER_PAGE);
-        if (eventType) params.append('event_type', eventType);
-        if (debouncedFilter.trim()) params.append('filter', debouncedFilter.trim());
+        if (eventType)  params.append('event_type', eventType);
+        if (debouncedFilter) params.append('filter', debouncedFilter);
+        if (dateFilter) params.append('date', dateFilter);
 
-        const res = await fetch(`/api/events?${params.toString()}`);
+        const res  = await fetch(`/api/events?${params.toString()}`);
         const data = await res.json();
         setEvents(data.events || []);
         setTotalPages(data.totalPages || 1);
-      } catch (error) {
-        console.error('Error fetching events:', error);
+      } catch (e) {
+        console.error(e);
         setEvents([]);
         setTotalPages(1);
       } finally {
         setLoading(false);
       }
     }
-
     fetchEvents();
-  }, [page, eventType, debouncedFilter]);
+  }, [page, eventType, debouncedFilter, dateFilter]);
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
     return new Date(dateString).toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
+      year: 'numeric', month: '2-digit', day: '2-digit'
     });
   };
 
   const renderPageButtons = () => {
-    const buttons = [];
     let start = Math.max(1, page - 1);
-    let end = Math.min(totalPages, start + 2);
+    let end   = Math.min(totalPages, start + 2);
     if (end - start < 2) start = Math.max(1, end - 2);
-
+    const buttons = [];
     for (let i = start; i <= end; i++) {
       buttons.push(
         <button
           key={i}
           onClick={() => setPage(i)}
-          className={`px-3 py-1 rounded ${page === i
+          className={`px-3 py-1 rounded ${
+            page === i
               ? 'bg-blue-600 text-white shadow'
               : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-            }`}
+          }`}
         >
           {i}
         </button>
       );
     }
-
     return buttons;
   };
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      <title data-next-head="">Events - TriviasWWE</title>
       <h1 className="text-3xl font-bold mb-6">Events</h1>
-      {/* Filtro tipo de evento */}
+
+      {/* Fila filtros */}
+
       <div className="mb-4 flex flex-wrap gap-2">
+        <p className="font-semibold py-2">Type:</p>
         {eventTypeOptions.map(({ label, value }) => (
           <button
             key={value}
-            onClick={() => {
-              setEventType(value);
-              setPage(1);
-            }}
-            className={`px-4 py-2 rounded font-semibold ${eventType === value
+            onClick={() => { setEventType(value); setPage(1); }}
+            className={`px-4 py-2 rounded font-semibold ${
+              eventType === value
                 ? 'bg-blue-600 text-white shadow'
                 : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-              }`}
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mb-6 flex flex-wrap gap-2">
+        <p className="font-semibold py-2">Date:</p>
+        {dateOptions.map(({ label, value }) => (
+          <button
+            key={value}
+            onClick={() => { setDateFilter(value); setPage(1); }}
+            className={`px-4 py-2 rounded font-semibold ${
+              dateFilter === value
+                ? 'bg-blue-600 text-white shadow'
+                : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+            }`}
           >
             {label}
           </button>
@@ -124,7 +145,7 @@ export default function EventsPage() {
         className="mb-6 w-full md:w-1/2 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
       />
 
-      {/* Eventos */}
+      {/* Lista de eventos */}
       {loading ? (
         <Spinner />
       ) : (
@@ -132,15 +153,15 @@ export default function EventsPage() {
           {events.length === 0 ? (
             <p>No events found.</p>
           ) : (
-            events.map((event) => (
+            events.map((ev) => (
               <Link
-                key={event.id}
-                href={`/events/${event.id}`}
+                key={ev.id}
+                href={`/events/${ev.id}`}
                 className="block p-4 border rounded shadow bg-white hover:shadow-lg transition-shadow cursor-pointer"
               >
-                <h2 className="font-semibold text-lg mb-1">{event.name}</h2>
+                <h2 className="font-semibold text-lg mb-1">{ev.name}</h2>
                 <p className="text-sm text-gray-600 mb-0.5">
-                  {event.event_type} — {formatDate(event.event_date)}
+                  {ev.event_type} — {formatDate(ev.event_date)}
                 </p>
               </Link>
             ))
@@ -153,10 +174,11 @@ export default function EventsPage() {
         <button
           onClick={() => setPage((p) => Math.max(1, p - 1))}
           disabled={page === 1}
-          className={`px-3 py-1 rounded ${page === 1
+          className={`px-3 py-1 rounded ${
+            page === 1
               ? 'bg-gray-300 cursor-not-allowed'
               : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-            }`}
+          }`}
         >
           &lt;
         </button>
@@ -164,14 +186,15 @@ export default function EventsPage() {
         <button
           onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           disabled={page === totalPages}
-          className={`px-3 py-1 rounded ${page === totalPages
+          className={`px-3 py-1 rounded ${
+            page === totalPages
               ? 'bg-gray-300 cursor-not-allowed'
               : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-            }`}
+          }`}
         >
           &gt;
         </button>
       </div>
     </div>
-  );
+);
 }
