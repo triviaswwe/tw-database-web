@@ -2,43 +2,59 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { Sun, Moon } from 'lucide-react';
 
-export default function Layout({ children }) {
+export default function Layout({ children, isDark, setIsDark }) {
   const router = useRouter();
 
   const navLinkClass = (path) => {
     const isActive = router.pathname.startsWith(path);
     return `
       px-3 py-1 rounded transition duration-150
-      ${isActive ? 'bg-gray-900 font-semibold' : 'hover:bg-gray-700'}
+      ${isActive
+        ? 'bg-gray-900 dark:bg-gray-200 dark:text-black font-semibold'
+        : 'hover:bg-gray-700 dark:hover:bg-gray-300 dark:hover:text-black'}
     `;
   };
 
   return (
-    <>
-      <nav className="bg-gray-800 p-4 text-white flex items-center space-x-4">
-        {/* Logo a la izquierda */}
-        <Link href="/">
-          <img
-            src="/logo.png"
-            alt="Logo"
-            className="h-10 w-auto mr-4 cursor-pointer"
-          />
-        </Link>
+    <div className="min-h-screen bg-white text-black dark:bg-gray-900 dark:text-white transition-colors duration-300">
+      <nav className="bg-gray-800 dark:bg-gray-700 p-4 text-white flex items-center justify-between">
+        {/* Logo + Links */}
+        <div className="flex items-center space-x-4">
+          <Link href="/">
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="h-10 w-auto mr-4 cursor-pointer"
+            />
+          </Link>
+          <Link href="/wrestlers" className={navLinkClass('/wrestlers')}>
+            Wrestlers
+          </Link>
+          <Link href="/interpreters" className={navLinkClass('/interpreters')}>
+            Interpreters
+          </Link>
+          <Link href="/events" className={navLinkClass('/events')}>
+            Events
+          </Link>
+        </div>
 
-        {/* Links de navegación */}
-        <Link href="/wrestlers" className={navLinkClass('/wrestlers')}>
-          Wrestlers
-        </Link>
-        <Link href="/interpreters" className={navLinkClass('/interpreters')}>
-          Interpreters
-        </Link>
-        <Link href="/events" className={navLinkClass('/events')}>
-          Events
-        </Link>
+        {/* Toggle dark mode: icon only */}
+        <button
+          onClick={() => setIsDark(!isDark)}
+          className="p-2 rounded-full transition-colors duration-200 hover:bg-gray-700 dark:hover:bg-gray-600"
+          aria-label="Toggle dark mode"
+        >
+          {isDark ? (
+            <Sun size={20} className="text-yellow-400" />
+          ) : (
+            <Moon size={20} className="text-white" />
+          )}
+        </button>
       </nav>
 
-      <main>{children}</main>
-    </>
+      <main className="p-4">{children}</main>
+    </div>
   );
 }

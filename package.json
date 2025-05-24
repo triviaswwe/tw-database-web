@@ -7,9 +7,10 @@
     "start": "next start"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.4",
     "@shadcn/ui": "latest",
     "autoprefixer": "^10.0.0",
-    "lucide-react": "latest",
+    "lucide-react": "^0.511.0",
     "mysql2": "^3.0.0",
     "next": "latest",
     "postcss": "^8.0.0",

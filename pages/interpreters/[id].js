@@ -24,9 +24,9 @@ export async function getServerSideProps({ params }) {
 
   const wrestlerLinks = interpreterRow.wrestlerLinks
     ? interpreterRow.wrestlerLinks.split(',').map((item) => {
-      const [id, name] = item.split(':');
-      return { id: Number(id), name };
-    })
+        const [id, name] = item.split(':');
+        return { id: Number(id), name };
+      })
     : [];
 
   const interpreter = {
@@ -106,8 +106,8 @@ export async function getServerSideProps({ params }) {
     match_order: row.match_order,
     team_number: row.team_number,
     result: row.result,
-    participants: row.participants ? JSON.parse(row.participants) : [],
-    scores: row.scores ? JSON.parse(row.scores) : [],
+    participants: row.participants || [],
+    scores: row.scores || [],
   }));
 
   return {
