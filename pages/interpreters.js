@@ -1,68 +1,70 @@
-// pages/wrestlers.js
+// pages/interpreters.js
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Spinner from '../components/Spinner';
 
-const WRESTLERS_PER_PAGE = 33;
+const INTERPRETERS_PER_PAGE = 33;
 
-const wrestlerTypeOptions = [
-  { label: 'All', value: '' },
-  { label: 'Active', value: 'active' },
+// Opciones de filtro de status
+const statusOptions = [
+  { label: 'All',      value: '' },
+  { label: 'Active',   value: 'active' },
   { label: 'Inactive', value: 'inactive' },
 ];
 
-export default function WrestlersPage() {
-  const [wrestlers, setWrestlers] = useState([]);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(false);
+export default function InterpretersPage() {
+  const [interpreters, setInterpreters] = useState([]);
+  const [page, setPage]                 = useState(1);
+  const [totalPages, setTotalPages]     = useState(1);
+  const [loading, setLoading]           = useState(false);
 
-  // filtros
+  // nuevo estado para status
   const [statusFilter, setStatusFilter] = useState('');
-  const [nameFilter, setNameFilter] = useState('');
+  const [nameFilter, setNameFilter]     = useState('');
 
   useEffect(() => {
-    async function fetchWrestlers() {
+    async function fetchInterpreters() {
       setLoading(true);
       try {
         const params = new URLSearchParams();
         params.append('page', page);
-        params.append('limit', WRESTLERS_PER_PAGE);
+        params.append('limit', INTERPRETERS_PER_PAGE);
         if (statusFilter) params.append('status', statusFilter);
-        if (nameFilter) params.append('filter', nameFilter);
+        if (nameFilter.trim()) params.append('filter', nameFilter.trim());
 
-        const res = await fetch(`/api/wrestlers?${params.toString()}`);
+        const res  = await fetch(`/api/interpreters?${params.toString()}`);
         const data = await res.json();
 
-        setWrestlers(data.wrestlers || []);
+        setInterpreters(data.interpreters || []);
         setTotalPages(data.totalPages || 1);
       } catch (err) {
         console.error(err);
-        setWrestlers([]);
+        setInterpreters([]);
         setTotalPages(1);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchWrestlers();
+    fetchInterpreters();
   }, [page, statusFilter, nameFilter]);
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Wrestlers</h1>
+      <h1 className="text-3xl font-bold mb-6">Interpreters</h1>
 
       {/* filtro por status */}
       <div className="mb-4 flex flex-wrap gap-2">
-        {wrestlerTypeOptions.map(({ label, value }) => (
+        {statusOptions.map(({ label, value }) => (
           <button
             key={value}
             onClick={() => { setStatusFilter(value); setPage(1); }}
-            className={`px-4 py-2 rounded font-semibold ${statusFilter === value
+            className={`px-4 py-2 rounded font-semibold ${
+              statusFilter === value
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-              }`}
+            }`}
           >
             {label}
           </button>
@@ -72,7 +74,7 @@ export default function WrestlersPage() {
       {/* filtro por nombre */}
       <input
         type="text"
-        placeholder="Filter by wrestler name"
+        placeholder="Filter by interpreter name"
         value={nameFilter}
         onChange={(e) => { setNameFilter(e.target.value); setPage(1); }}
         className="mb-6 w-full md:w-1/2 border rounded px-3 py-2 focus:ring-2 focus:ring-blue-600"
@@ -82,14 +84,19 @@ export default function WrestlersPage() {
         <Spinner />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {wrestlers.length === 0 ? (
-            <p>No wrestlers found.</p>
+          {interpreters.length === 0 ? (
+            <p>No interpreters found.</p>
           ) : (
-            wrestlers.map((w) => (
-              <Link key={w.id} href={`/wrestlers/${w.id}`}>
+            interpreters.map((i) => (
+              <Link key={i.id} href={`/interpreters/${i.id}`}>
                 <div className="p-4 border rounded shadow hover:shadow-lg transition cursor-pointer">
-                  <h2 className="text-xl font-bold">{w.wrestler}</h2>
-                  <p className="text-sm text-gray-600">Status: {w.status}</p>
+                  <h2 className="text-xl font-bold">{i.interpreter}</h2>
+                  <p className="text-sm text-gray-600">
+                    Nationality: {i.nationality || '—'}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Status: {i.status || 'Unknown'}
+                  </p>
                 </div>
               </Link>
             ))
@@ -103,10 +110,11 @@ export default function WrestlersPage() {
           <button
             key={num}
             onClick={() => setPage(num)}
-            className={`px-3 py-1 rounded ${page === num
+            className={`px-3 py-1 rounded ${
+              page === num
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
+            }`}
           >
             {num}
           </button>

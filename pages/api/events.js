@@ -1,20 +1,18 @@
-// pages/api/events.js
-
 import pool from '../../lib/db';
 
 export default async function handler(req, res) {
   try {
-    const page      = Math.max(1, parseInt(req.query.page)  || 1);
-    const limit     = Math.min(100, parseInt(req.query.limit)|| 33);
+    const page      = Math.max(1, parseInt(req.query.page)   || 1);
+    const limit     = Math.min(100, parseInt(req.query.limit) || 33);
     const offset    = (page - 1) * limit;
     const eventType = req.query.event_type || '';
     const filter    = req.query.filter     || '';
     const dateFilt  = req.query.date       || '';
 
-    const where = [];
+    const where  = [];
     const params = [];
 
-    // event_type
+    // 1) Filtro por tipo de evento
     if (eventType) {
       switch (eventType) {
         case 'weekly':
@@ -35,15 +33,13 @@ export default async function handler(req, res) {
       }
     }
 
-    // name filter
+    // 2) Filtro por nombre (case-insensitive)
     if (filter) {
       where.push(`LOWER(events.name) LIKE ?`);
       params.push(`%${filter.toLowerCase()}%`);
     }
 
-    // date filter
-    // past: event_date <= today's date
-    // upcoming: event_date > today's date
+    // 3) Filtro por fecha: pasado vs futuro
     if (dateFilt === 'past') {
       where.push(`events.event_date <= CURDATE()`);
     } else if (dateFilt === 'upcoming') {
@@ -52,7 +48,7 @@ export default async function handler(req, res) {
 
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
-    // total count
+    // 4) Contar total
     const [cnt] = await pool.query(
       `SELECT COUNT(*) AS count
        FROM events
@@ -63,13 +59,23 @@ export default async function handler(req, res) {
     const totalCount = cnt[0].count;
     const totalPages = Math.ceil(totalCount / limit);
 
-    // paginated data
+    // 5) Elegir ORDER BY dinámico
+    //    - upcoming  : ascendente (próximo primero)
+    //    - past/all  : descendente (más reciente primero)
+    let orderClause;
+    if (dateFilt === 'upcoming') {
+      orderClause = `ORDER BY events.event_date ASC, events.id ASC`;
+    } else {
+      orderClause = `ORDER BY events.event_date DESC, events.id DESC`;
+    }
+
+    // 6) Obtener página de resultados
     const [rows] = await pool.query(
       `SELECT events.*, shows.name AS show_name
        FROM events
        LEFT JOIN shows ON events.show_id = shows.id
        ${whereSql}
-       ORDER BY events.event_date DESC, events.id DESC
+       ${orderClause}
        LIMIT ? OFFSET ?`,
       [...params, limit, offset]
     );
