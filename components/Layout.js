@@ -18,15 +18,15 @@ export default function Layout({ children, isDark, setIsDark }) {
   };
 
   return (
-    <div className="min-h-screen bg-white text-black dark:bg-gray-900 dark:text-white transition-colors duration-300">
-      <nav className="bg-gray-800 dark:bg-gray-700 p-4 text-white flex items-center justify-between">
+    <div className="min-h-screen bg-background-light text-black dark:bg-zinc-950 dark:text-white">
+      <nav className="bg-gray-900 dark:bg-gray-700 p-4 text-white flex items-center justify-between">
         {/* Logo + Links */}
         <div className="flex items-center space-x-4">
           <Link href="/">
             <img
               src="/logo.png"
               alt="Logo"
-              className="h-10 w-auto mr-4 cursor-pointer"
+              className="h-10 w-auto cursor-pointer"
             />
           </Link>
           <Link href="/wrestlers" className={navLinkClass('/wrestlers')}>
@@ -40,7 +40,7 @@ export default function Layout({ children, isDark, setIsDark }) {
           </Link>
         </div>
 
-        {/* Toggle dark mode: icon only */}
+        {/* Toggle dark mode */}
         <button
           onClick={() => setIsDark(!isDark)}
           className="p-2 rounded-full transition-colors duration-200 hover:bg-gray-700 dark:hover:bg-gray-600"
@@ -54,7 +54,9 @@ export default function Layout({ children, isDark, setIsDark }) {
         </button>
       </nav>
 
-      <main className="p-4">{children}</main>
+      <main className="p-4">
+        {children}
+      </main>
     </div>
   );
 }

@@ -61,7 +61,7 @@ export default function WrestlersPage() {
             onClick={() => { setStatusFilter(value); setPage(1); }}
             className={`px-4 py-2 rounded font-semibold ${statusFilter === value
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                : 'bg-gray-200 text-gray-800  dark:bg-gray-900 dark:text-white hover:bg-gray-300'
               }`}
           >
             {label}
@@ -75,7 +75,7 @@ export default function WrestlersPage() {
         placeholder="Filter by wrestler name"
         value={nameFilter}
         onChange={(e) => { setNameFilter(e.target.value); setPage(1); }}
-        className="mb-6 w-full md:w-1/2 border rounded px-3 py-2 focus:ring-2 focus:ring-blue-600"
+        className="mb-6 w-full md:w-1/2  dark:bg-zinc-950 border rounded px-3 py-2 focus:ring-2 focus:ring-blue-600"
       />
 
       {loading ? (
@@ -87,9 +87,9 @@ export default function WrestlersPage() {
           ) : (
             wrestlers.map((w) => (
               <Link key={w.id} href={`/wrestlers/${w.id}`}>
-                <div className="p-4 border rounded shadow hover:shadow-lg transition cursor-pointer">
+                <div className="p-4 dark:bg-zinc-950 border rounded shadow hover:shadow-lg transition cursor-pointer">
                   <h2 className="text-xl font-bold">{w.wrestler}</h2>
-                  <p className="text-sm text-gray-600">Status: {w.status}</p>
+                  <p className="text-sm text-gray-600 dark:text-white">Status: {w.status}</p>
                 </div>
               </Link>
             ))
@@ -97,7 +97,7 @@ export default function WrestlersPage() {
         </div>
       )}
 
-      {/* paginación */}
+      {/* Paginación */}
       <div className="flex justify-center mt-8 space-x-2">
         {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
           <button
@@ -105,7 +105,7 @@ export default function WrestlersPage() {
             onClick={() => setPage(num)}
             className={`px-3 py-1 rounded ${page === num
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                : 'bg-gray-200 text-gray-700 dark:bg-gray-900 dark:text-white hover:bg-gray-300'
               }`}
           >
             {num}

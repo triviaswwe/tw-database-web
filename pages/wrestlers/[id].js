@@ -107,17 +107,17 @@ export default function WrestlerDetail({ wrestler, matches }) {
   return (
     <div className="p-4 max-w-3xl mx-auto">
       <h1 className="text-3xl font-bold mb-2">{wrestler.wrestler}</h1>
-      <p className="text-gray-600 mb-1">Country: {wrestler.country || 'Unknown'}</p>
-      <p className="text-gray-600 mb-1">
+      <p className="text-gray-600 mb-1 dark:text-white">Country: {wrestler.country || 'Unknown'}</p>
+      <p className="text-gray-600 mb-1 dark:text-white">
         Debut: {wrestler.debut_date ? new Date(wrestler.debut_date).toLocaleDateString() : 'N/A'}
       </p>
-      <p className="text-gray-600 mb-4">
+      <p className="text-gray-600 mb-4 dark:text-white">
         Interpreters:{' '}
         {wrestler.interpreters.length > 0 ? wrestler.interpreters.join(', ') : 'No one'}
       </p>
 
       <h2 className="text-2xl font-semibold mt-6 mb-2">Stats</h2>
-      <ul className="mb-4 text-gray-700 space-y-1">
+      <ul className="mb-4 text-gray-700 space-y-1 dark:text-white">
         <li>Total matches: {matches.stats.total}</li>
         <li>Wins: {matches.stats.wins}</li>
         <li>Draws: {matches.stats.draws}</li>
@@ -162,7 +162,7 @@ export default function WrestlerDetail({ wrestler, matches }) {
                   <Link
                     key={p.wrestler_id}
                     href={`/wrestlers/${p.wrestler_id}`}
-                    className="text-blue-600 hover:underline"
+                    className="text-blue-600 hover:underline dark:text-sky-300"
                   >
                     {p.wrestler}
                   </Link>
@@ -186,10 +186,10 @@ export default function WrestlerDetail({ wrestler, matches }) {
           const hasScore = Object.keys(scoreMap).length > 0;
 
           return (
-            <li key={match.id} className="border p-3 rounded shadow bg-white">
+            <li key={match.id} className="border p-3 rounded shadow bg-white dark:bg-zinc-950">
               <p className="font-medium">
                 {new Date(match.event_date).toLocaleDateString()} —{' '}
-                <Link href={`/events/${match.event_id}`} className="text-blue-600 hover:underline">
+                <Link href={`/events/${match.event_id}`} className="text-blue-600 hover:underline dark:text-sky-300">
                   {match.event}
                 </Link>
               </p>
@@ -262,7 +262,7 @@ export default function WrestlerDetail({ wrestler, matches }) {
                   </span>
                 )}
               </p>
-              <p className="mt-2 font-semibold text-gray-700">
+              <p className="mt-2 font-semibold text-gray-700 dark:text-white">
                 Result: <strong>{match.result}</strong>
               </p>
             </li>

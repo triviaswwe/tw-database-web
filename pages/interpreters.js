@@ -63,7 +63,7 @@ export default function InterpretersPage() {
             className={`px-4 py-2 rounded font-semibold ${
               statusFilter === value
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                : 'bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300'
             }`}
           >
             {label}
@@ -77,7 +77,7 @@ export default function InterpretersPage() {
         placeholder="Filter by interpreter name"
         value={nameFilter}
         onChange={(e) => { setNameFilter(e.target.value); setPage(1); }}
-        className="mb-6 w-full md:w-1/2 border rounded px-3 py-2 focus:ring-2 focus:ring-blue-600"
+        className="mb-6 w-full md:w-1/2  dark:bg-zinc-950 border rounded px-3 py-2 focus:ring-2 focus:ring-blue-600"
       />
 
       {loading ? (
@@ -89,12 +89,12 @@ export default function InterpretersPage() {
           ) : (
             interpreters.map((i) => (
               <Link key={i.id} href={`/interpreters/${i.id}`}>
-                <div className="p-4 border rounded shadow hover:shadow-lg transition cursor-pointer">
+                <div className="p-4 dark:bg-zinc-950 border rounded shadow hover:shadow-lg transition cursor-pointer">
                   <h2 className="text-xl font-bold">{i.interpreter}</h2>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-white">
                     Nationality: {i.nationality || '—'}
                   </p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-white">
                     Status: {i.status || 'Unknown'}
                   </p>
                 </div>
@@ -104,7 +104,7 @@ export default function InterpretersPage() {
         </div>
       )}
 
-      {/* paginación */}
+      {/* Paginación */}
       <div className="flex justify-center mt-8 space-x-2">
         {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
           <button
@@ -113,7 +113,7 @@ export default function InterpretersPage() {
             className={`px-3 py-1 rounded ${
               page === num
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                : 'bg-gray-200 text-gray-700  dark:bg-gray-900 dark:text-white hover:bg-gray-300'
             }`}
           >
             {num}

@@ -37,56 +37,79 @@ export default function EventDetail() {
     type === 'Royal Rumble' || type === 'Elimination Chamber';
 
   return (
-    <div className="p-4 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold mb-2">{event.name}</h1>
-      <p className="text-gray-600 mb-1">Type: {event.event_type}</p>
-      <p className="text-gray-600 mb-4">
-        Date: {new Date(event.event_date).toLocaleDateString()}
-      </p>
+    <div
+      className="
+        min-h-screen
+        bg-white text-black
+        dark:bg-zinc-950 dark:text-white
+        transition-colors duration-300
+      "
+    >
+      <div className="p-4 max-w-3xl mx-auto">
+        {/* Header */}
+        <h1 className="text-3xl font-bold mb-2">{event.name}</h1>
+        <p className="mb-1 text-gray-600 dark:text-gray-300">
+          Type: {event.event_type}
+        </p>
+        <p className="mb-4 text-gray-600 dark:text-gray-300">
+          Date: {new Date(event.event_date).toLocaleDateString()}
+        </p>
 
-      <h2 className="text-2xl font-semibold mb-4">Matches</h2>
+        {/* Matches */}
+        <h2 className="text-2xl font-semibold mb-4">Matches</h2>
 
-      {matches.length === 0 ? (
-        <p>There are no matches registered for this event yet.</p>
-      ) : (
-        <ul className="space-y-6">
-          {matches.map((match, idx) => {
-            const isOpener    = idx === 0;
-            const isMainEvent = idx === matches.length - 1;
-            const useNumberedList = isNumberedList(match.match_type);
+        {matches.length === 0 ? (
+          <p>No matches registered for this event yet.</p>
+        ) : (
+          <ul className="space-y-6">
+            {matches.map((match, idx) => {
+              const isOpener = idx === 0;
+              const isMainEvent = idx === matches.length - 1;
+              const listStyle = isNumberedList(match.match_type)
+                ? 'list-decimal'
+                : 'list-disc';
 
-            return (
-              <li key={match.id} className="border p-4 rounded shadow bg-white">
-                <p className="font-semibold text-lg mb-2">
-                  {isOpener
-                    ? 'Opener:'
-                    : isMainEvent
+              return (
+                <li
+                  key={match.id}
+                  className="
+                    border border-gray-200 bg-white p-4 rounded shadow
+                    dark:border-gray-700 dark:bg-zinc-950
+                    transition-colors duration-300
+                  "
+                >
+                  <p className="font-semibold text-lg mb-2">
+                    {isOpener
+                      ? 'Opener:'
+                      : isMainEvent
                       ? 'Main Event:'
                       : `${match.match_order}.`}{' '}
-                  {match.match_type}
-                </p>
+                    {match.match_type}
+                  </p>
 
-                <ul className={`pl-4 ${useNumberedList ? 'list-decimal' : 'list-disc'}`}>
-                  {match.participants.map((p) => (
-                    <li key={p.wrestler_id} className="mb-1">
-                      <Link
-                        href={`/wrestlers/${p.wrestler_id}`}
-                        className="text-blue-600 hover:underline"
-                      >
-                        {p.wrestler}
-                      </Link>{' '}
-                      ({p.interpreter || 'No interpreter'}) —{' '}
-                      <strong>
-                        {p.result}{p.score != null ? ` (${p.score})` : ''}
-                      </strong>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+                  <ul className={`pl-4 ${listStyle} space-y-1`}>
+                    {match.participants.map((p) => (
+                      <li key={p.wrestler_id}>
+                        <Link
+                          href={`/wrestlers/${p.wrestler_id}`}
+                          className="text-blue-600 hover:underline dark:text-sky-300 dark:text-blue-400"
+                        >
+                          {p.wrestler}
+                        </Link>{' '}
+                        ({p.interpreter || 'No interpreter'}) —{' '}
+                        <strong>
+                          {p.result}
+                          {p.score != null ? ` (${p.score})` : ''}
+                        </strong>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

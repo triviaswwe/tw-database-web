@@ -1,3 +1,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Aseguramos fondo y color de texto global */
+html, body {
+  @apply bg-background-light text-black transition-colors duration-300;
+}
+
+.dark html,
+.dark body {
+  @apply bg-zinc-950 text-white;
+}

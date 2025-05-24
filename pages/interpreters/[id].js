@@ -125,17 +125,17 @@ export default function InterpreterDetail({ interpreter, matches }) {
   return (
     <div className="p-4 max-w-3xl mx-auto">
       <h1 className="text-3xl font-bold mb-2">{interpreter.interpreter}</h1>
-      <p className="text-gray-600 mb-1">Nationality: {interpreter.nationality || 'Unknown'}</p>
-      <p className="text-gray-600 mb-1">
+      <p className="text-gray-600 mb-1 dark:text-white">Nationality: {interpreter.nationality || 'Unknown'}</p>
+      <p className="text-gray-600 mb-1 dark:text-white">
         Debut:{' '}
         {matches.stats.firstMatch ? new Date(matches.stats.firstMatch).toLocaleDateString() : '—'}
       </p>
-      <p className="text-gray-600 mb-4">
+      <p className="text-gray-600 mb-4 dark:text-white">
         Wrestlers:{' '}
         {interpreter.wrestlerLinks.length > 0 ? (
           interpreter.wrestlerLinks.map((wrestler, index) => (
             <span key={wrestler.id}>
-              <Link href={`/wrestlers/${wrestler.id}`} className="text-blue-600 hover:underline">
+              <Link href={`/wrestlers/${wrestler.id}`} className="text-blue-600 hover:underline dark:text-sky-300">
                 {wrestler.name}
               </Link>
 
@@ -148,7 +148,7 @@ export default function InterpreterDetail({ interpreter, matches }) {
       </p>
 
       <h2 className="text-2xl font-semibold mt-6 mb-2">Stats</h2>
-      <ul className="mb-4 text-gray-700 space-y-1">
+      <ul className="mb-4 text-gray-700 space-y-1 dark:text-white">
         <li>Total matches: {matches.stats.total}</li>
         <li>Wins: {matches.stats.wins}</li>
         <li>Draws: {matches.stats.draws}</li>
@@ -192,7 +192,7 @@ export default function InterpreterDetail({ interpreter, matches }) {
                 <Link
                   key={p.wrestler_id}
                   href={`/wrestlers/${p.wrestler_id}`}
-                  className="text-blue-600 hover:underline"
+                  className="text-blue-600 hover:underline dark:text-sky-300"
                 >
                   {p.wrestler}
                 </Link>
@@ -218,12 +218,12 @@ export default function InterpreterDetail({ interpreter, matches }) {
           const hasScore = Object.keys(scoreMap).length > 0;
 
           return (
-            <li key={`${match.id}-${mainTeamNumber}`} className="border p-3 rounded shadow bg-white">
+            <li key={`${match.id}-${mainTeamNumber}`} className="border p-3 rounded shadow bg-white  dark:bg-zinc-950">
               <p className="font-medium">
                 {match.event_date ? new Date(match.event_date).toLocaleDateString() : 'Unknown date'} —{' '}
                 <Link
                   href={`/events/${match.event_id}`}
-                  className="text-blue-600 hover:underline"
+                  className="text-blue-600 hover:underline dark:text-sky-300"
                 >
                   {match.event}
                 </Link>
@@ -299,7 +299,7 @@ export default function InterpreterDetail({ interpreter, matches }) {
                   </span>
                 )}
               </p>
-              <p className="mt-2 font-semibold text-gray-700">
+              <p className="mt-2 font-semibold text-gray-700 dark:text-white">
                 Result: <strong>{match.result}</strong>
               </p>
             </li>

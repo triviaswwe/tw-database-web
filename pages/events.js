@@ -7,28 +7,28 @@ import Spinner from '../components/Spinner';
 const EVENTS_PER_PAGE = 33;
 
 const eventTypeOptions = [
-  { label: 'All',      value: '' },
-  { label: 'Weekly',   value: 'weekly' },
-  { label: 'PLE',      value: 'ple' },
+  { label: 'All', value: '' },
+  { label: 'Weekly', value: 'weekly' },
+  { label: 'PLE', value: 'ple' },
   { label: 'TakeOver', value: 'takeover' },
-  { label: 'Special',  value: 'special' },
+  { label: 'Special', value: 'special' },
 ];
 
 const dateOptions = [
-  { label: 'All',          value: '' },
-  { label: 'Past events',  value: 'past' },
+  { label: 'All', value: '' },
+  { label: 'Past events', value: 'past' },
   { label: 'Upcoming events', value: 'upcoming' },
 ];
 
 export default function EventsPage() {
-  const [events, setEvents]       = useState([]);
-  const [page, setPage]           = useState(1);
+  const [events, setEvents] = useState([]);
+  const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [eventType, setEventType] = useState('');
   const [dateFilter, setDateFilter] = useState('');
-  const [filter, setFilter]       = useState('');
+  const [filter, setFilter] = useState('');
   const [debouncedFilter, setDebouncedFilter] = useState(filter);
-  const [loading, setLoading]     = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // Debounce del nombre
   useEffect(() => {
@@ -47,11 +47,11 @@ export default function EventsPage() {
         const params = new URLSearchParams();
         params.append('page', page);
         params.append('limit', EVENTS_PER_PAGE);
-        if (eventType)  params.append('event_type', eventType);
+        if (eventType) params.append('event_type', eventType);
         if (debouncedFilter) params.append('filter', debouncedFilter);
         if (dateFilter) params.append('date', dateFilter);
 
-        const res  = await fetch(`/api/events?${params.toString()}`);
+        const res = await fetch(`/api/events?${params.toString()}`);
         const data = await res.json();
         setEvents(data.events || []);
         setTotalPages(data.totalPages || 1);
@@ -75,7 +75,7 @@ export default function EventsPage() {
 
   const renderPageButtons = () => {
     let start = Math.max(1, page - 1);
-    let end   = Math.min(totalPages, start + 2);
+    let end = Math.min(totalPages, start + 2);
     if (end - start < 2) start = Math.max(1, end - 2);
     const buttons = [];
     for (let i = start; i <= end; i++) {
@@ -83,11 +83,10 @@ export default function EventsPage() {
         <button
           key={i}
           onClick={() => setPage(i)}
-          className={`px-3 py-1 rounded ${
-            page === i
+          className={`px-3 py-1 rounded ${page === i
               ? 'bg-blue-600 text-white shadow'
-              : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-          }`}
+              : 'bg-gray-200 text-gray-800  dark:bg-gray-900 dark:text-white hover:bg-gray-300'
+            }`}
         >
           {i}
         </button>
@@ -108,11 +107,10 @@ export default function EventsPage() {
           <button
             key={value}
             onClick={() => { setEventType(value); setPage(1); }}
-            className={`px-4 py-2 rounded font-semibold ${
-              eventType === value
+            className={`px-4 py-2 rounded font-semibold ${eventType === value
                 ? 'bg-blue-600 text-white shadow'
-                : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-            }`}
+                : 'bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300'
+              }`}
           >
             {label}
           </button>
@@ -125,11 +123,10 @@ export default function EventsPage() {
           <button
             key={value}
             onClick={() => { setDateFilter(value); setPage(1); }}
-            className={`px-4 py-2 rounded font-semibold ${
-              dateFilter === value
+            className={`px-4 py-2 rounded font-semibold ${dateFilter === value
                 ? 'bg-blue-600 text-white shadow'
-                : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-            }`}
+                : 'bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300'
+              }`}
           >
             {label}
           </button>
@@ -142,7 +139,7 @@ export default function EventsPage() {
         placeholder="Filter by event name"
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
-        className="mb-6 w-full md:w-1/2 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
+        className="mb-6 w-full md:w-1/2 border dark:bg-zinc-950 border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
       />
 
       {/* Lista de eventos */}
@@ -157,10 +154,10 @@ export default function EventsPage() {
               <Link
                 key={ev.id}
                 href={`/events/${ev.id}`}
-                className="block p-4 border rounded shadow bg-white hover:shadow-lg transition-shadow cursor-pointer"
+                className="block p-4 border rounded shadow bg-white dark:bg-zinc-950 hover:shadow-lg transition-shadow cursor-pointer"
               >
                 <h2 className="font-semibold text-lg mb-1">{ev.name}</h2>
-                <p className="text-sm text-gray-600 mb-0.5">
+                <p className="text-sm text-gray-600 dark:text-white mb-0.5">
                   {ev.event_type} — {formatDate(ev.event_date)}
                 </p>
               </Link>
@@ -174,27 +171,32 @@ export default function EventsPage() {
         <button
           onClick={() => setPage((p) => Math.max(1, p - 1))}
           disabled={page === 1}
-          className={`px-3 py-1 rounded ${
-            page === 1
-              ? 'bg-gray-300 cursor-not-allowed'
-              : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-          }`}
+          className={`
+      px-3 py-1 rounded transition-colors
+      ${page === 1
+              ? 'bg-gray-300 dark:bg-gray-900 dark:text-white cursor-not-allowed'
+              : 'bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700'}
+    `}
         >
           &lt;
         </button>
+
         {renderPageButtons()}
+
         <button
           onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           disabled={page === totalPages}
-          className={`px-3 py-1 rounded ${
-            page === totalPages
-              ? 'bg-gray-300 cursor-not-allowed'
-              : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-          }`}
+          className={`
+      px-3 py-1 rounded transition-colors
+      ${page === totalPages
+              ? 'bg-gray-300 dark:bg-gray-900 dark:text-white cursor-not-allowed'
+              : 'bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700'}
+    `}
         >
           &gt;
         </button>
       </div>
+
     </div>
-);
+  );
 }
