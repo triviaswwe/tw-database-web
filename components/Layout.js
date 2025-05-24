@@ -36,9 +36,6 @@ export default function Layout({ children }) {
         <Link href="/events" className={navLinkClass('/events')}>
           Events
         </Link>
-        <Link href="/championships" className={navLinkClass('/championships')}>
-          Championships
-        </Link>
       </nav>
 
       <main>{children}</main>
