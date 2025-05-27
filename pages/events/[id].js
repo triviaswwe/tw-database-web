@@ -52,7 +52,7 @@ export default function EventDetail() {
           Type: {event.event_type}
         </p>
         <p className="mb-4 text-gray-600 dark:text-gray-300">
-          Date: {new Date(event.event_date).toLocaleDateString()}
+          Date: {formatDate(event.event_date)}
         </p>
 
         {/* Matches */}

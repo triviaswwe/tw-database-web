@@ -69,7 +69,7 @@ export default function EventsPage() {
   const formatDate = (dateString) => {
     if (!dateString) return '';
     return new Date(dateString).toLocaleDateString(undefined, {
-      year: 'numeric', month: '2-digit', day: '2-digit'
+      year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'UTC'
     });
   };
 
