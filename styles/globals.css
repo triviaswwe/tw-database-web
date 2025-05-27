@@ -11,3 +11,12 @@ html, body {
 .dark body {
   @apply bg-zinc-950 text-white;
 }
+
+/* Oculta scrollbar en WebKit */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+/* Oculta scrollbar en Firefox */
+.hide-scrollbar {
+  scrollbar-width: none;
+}
