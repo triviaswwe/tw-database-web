@@ -12,7 +12,7 @@ export default function Layout({ children, isDark, setIsDark }) {
     return `
       px-3 py-1 rounded transition duration-150 whitespace-nowrap
       ${isActive
-        ? 'bg-gray-900 dark:bg-gray-200 dark:text-black font-semibold'
+        ? 'bg-gray-900 dark:bg-gray-700 font-semibold'
         : 'hover:bg-gray-700 dark:hover:bg-gray-300 dark:hover:text-black'}
     `;
   };

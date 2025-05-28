@@ -84,8 +84,8 @@ export default function EventsPage() {
           key={i}
           onClick={() => setPage(i)}
           className={`px-3 py-1 rounded ${page === i
-              ? 'bg-blue-600 text-white shadow'
-              : 'bg-gray-200 text-gray-800  dark:bg-gray-900 dark:text-white hover:bg-gray-300'
+            ? 'bg-blue-600 text-white shadow'
+            : 'bg-gray-200 text-gray-800  dark:bg-gray-900 dark:text-white hover:bg-gray-300'
             }`}
         >
           {i}
@@ -108,8 +108,8 @@ export default function EventsPage() {
             key={value}
             onClick={() => { setEventType(value); setPage(1); }}
             className={`px-4 py-2 rounded font-semibold ${eventType === value
-                ? 'bg-blue-600 text-white shadow'
-                : 'bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300'
+              ? 'bg-blue-600 text-white shadow'
+              : 'bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300'
               }`}
           >
             {label}
@@ -124,8 +124,8 @@ export default function EventsPage() {
             key={value}
             onClick={() => { setDateFilter(value); setPage(1); }}
             className={`px-4 py-2 rounded font-semibold ${dateFilter === value
-                ? 'bg-blue-600 text-white shadow'
-                : 'bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300'
+              ? 'bg-blue-600 text-white shadow'
+              : 'bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300'
               }`}
           >
             {label}

@@ -23,7 +23,7 @@ export default function EventDetail() {
   );
 
   if (eventError) return <div>Error loading event</div>;
-  if (!event)   return <div>Loading event...</div>;
+  if (!event) return <div>Loading event...</div>;
 
   if (matchesError) return <div>Error loading matches</div>;
   if (!matchesData) return <div>Loading matches...</div>;
@@ -82,8 +82,8 @@ export default function EventDetail() {
                     {isOpener
                       ? 'Opener:'
                       : isMainEvent
-                      ? 'Main Event:'
-                      : `${match.match_order}.`}{' '}
+                        ? 'Main Event:'
+                        : `${match.match_order}.`}{' '}
                     {match.match_type}
                   </p>
 
@@ -92,7 +92,7 @@ export default function EventDetail() {
                       <li key={p.wrestler_id}>
                         <Link
                           href={`/wrestlers/${p.wrestler_id}`}
-                          className="text-blue-600 hover:underline dark:text-sky-300 dark:text-blue-400"
+                          className="text-blue-600 hover:underline dark:text-blue-400"
                         >
                           {p.wrestler}
                         </Link>{' '}

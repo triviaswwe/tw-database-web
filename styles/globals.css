@@ -3,7 +3,8 @@
 @tailwind utilities;
 
 /* Aseguramos fondo y color de texto global */
-html, body {
+html,
+body {
   @apply bg-background-light text-black transition-colors duration-300;
 }
 
@@ -16,6 +17,7 @@ html, body {
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 /* Oculta scrollbar en Firefox */
 .hide-scrollbar {
   scrollbar-width: none;
