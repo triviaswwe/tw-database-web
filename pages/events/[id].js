@@ -1,8 +1,8 @@
 // pages/events/[id].js
 
-import { useRouter } from 'next/router';
-import useSWR from 'swr';
-import Link from 'next/link';
+import { useRouter } from "next/router";
+import useSWR from "swr";
+import Link from "next/link";
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
@@ -34,7 +34,7 @@ export default function EventDetail() {
     : matchesData.matches || [];
 
   const isNumberedList = (type) =>
-    type === 'Royal Rumble' || type === 'Elimination Chamber';
+    type === "Royal Rumble" || type === "Elimination Chamber";
 
   return (
     <div
@@ -66,8 +66,8 @@ export default function EventDetail() {
               const isOpener = idx === 0;
               const isMainEvent = idx === matches.length - 1;
               const listStyle = isNumberedList(match.match_type)
-                ? 'list-decimal'
-                : 'list-disc';
+                ? "list-decimal"
+                : "list-disc";
 
               return (
                 <li
@@ -80,10 +80,10 @@ export default function EventDetail() {
                 >
                   <p className="font-semibold text-lg mb-2">
                     {isOpener
-                      ? 'Opener:'
+                      ? "Opener:"
                       : isMainEvent
-                        ? 'Main Event:'
-                        : `${match.match_order}.`}{' '}
+                      ? "Main Event:"
+                      : `${match.match_order}.`}{" "}
                     {match.match_type}
                   </p>
 
@@ -95,11 +95,11 @@ export default function EventDetail() {
                           className="text-blue-600 hover:underline dark:text-blue-400"
                         >
                           {p.wrestler}
-                        </Link>{' '}
-                        ({p.interpreter || 'No interpreter'}) —{' '}
+                        </Link>{" "}
+                        ({p.interpreter || "No interpreter"}) —{" "}
                         <strong>
                           {p.result}
-                          {p.score != null ? ` (${p.score})` : ''}
+                          {p.score != null ? ` (${p.score})` : ""}
                         </strong>
                       </li>
                     ))}
