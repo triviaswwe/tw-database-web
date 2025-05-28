@@ -52,7 +52,13 @@ export default function EventDetail() {
           Type: {event.event_type}
         </p>
         <p className="mb-4 text-gray-600 dark:text-gray-300">
-          Date: {new Date(event.event_date).toLocaleDateString()}
+          Date:{" "}
+          {new Date(event.event_date).toLocaleDateString(undefined, {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            timeZone: "UTC",
+          })}
         </p>
 
         {/* Matches */}

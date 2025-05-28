@@ -1,32 +1,32 @@
 // pages/events.js
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import Spinner from '../components/Spinner';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import Spinner from "../components/Spinner";
 
 const EVENTS_PER_PAGE = 33;
 
 const eventTypeOptions = [
-  { label: 'All', value: '' },
-  { label: 'Weekly', value: 'weekly' },
-  { label: 'PLE', value: 'ple' },
-  { label: 'TakeOver', value: 'takeover' },
-  { label: 'Special', value: 'special' },
+  { label: "All", value: "" },
+  { label: "Weekly", value: "weekly" },
+  { label: "PLE", value: "ple" },
+  { label: "TakeOver", value: "takeover" },
+  { label: "Special", value: "special" },
 ];
 
 const dateOptions = [
-  { label: 'All', value: '' },
-  { label: 'Past events', value: 'past' },
-  { label: 'Upcoming events', value: 'upcoming' },
+  { label: "All", value: "" },
+  { label: "Past events", value: "past" },
+  { label: "Upcoming events", value: "upcoming" },
 ];
 
 export default function EventsPage() {
   const [events, setEvents] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [eventType, setEventType] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
-  const [filter, setFilter] = useState('');
+  const [eventType, setEventType] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
+  const [filter, setFilter] = useState("");
   const [debouncedFilter, setDebouncedFilter] = useState(filter);
   const [loading, setLoading] = useState(false);
 
@@ -45,11 +45,11 @@ export default function EventsPage() {
       setLoading(true);
       try {
         const params = new URLSearchParams();
-        params.append('page', page);
-        params.append('limit', EVENTS_PER_PAGE);
-        if (eventType) params.append('event_type', eventType);
-        if (debouncedFilter) params.append('filter', debouncedFilter);
-        if (dateFilter) params.append('date', dateFilter);
+        params.append("page", page);
+        params.append("limit", EVENTS_PER_PAGE);
+        if (eventType) params.append("event_type", eventType);
+        if (debouncedFilter) params.append("filter", debouncedFilter);
+        if (dateFilter) params.append("date", dateFilter);
 
         const res = await fetch(`/api/events?${params.toString()}`);
         const data = await res.json();
@@ -67,9 +67,12 @@ export default function EventsPage() {
   }, [page, eventType, debouncedFilter, dateFilter]);
 
   const formatDate = (dateString) => {
-    if (!dateString) return '';
+    if (!dateString) return "";
     return new Date(dateString).toLocaleDateString(undefined, {
-      year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'UTC'
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "UTC",
     });
   };
 
@@ -83,10 +86,11 @@ export default function EventsPage() {
         <button
           key={i}
           onClick={() => setPage(i)}
-          className={`px-3 py-1 rounded ${page === i
-            ? 'bg-blue-600 text-white shadow'
-            : 'bg-gray-200 text-gray-800  dark:bg-gray-900 dark:text-white hover:bg-gray-300'
-            }`}
+          className={`px-3 py-1 rounded ${
+            page === i
+              ? "bg-blue-600 text-white shadow"
+              : "bg-gray-200 text-gray-800  dark:bg-gray-900 dark:text-white hover:bg-gray-300"
+          }`}
         >
           {i}
         </button>
@@ -106,11 +110,15 @@ export default function EventsPage() {
         {eventTypeOptions.map(({ label, value }) => (
           <button
             key={value}
-            onClick={() => { setEventType(value); setPage(1); }}
-            className={`px-4 py-2 rounded font-semibold ${eventType === value
-              ? 'bg-blue-600 text-white shadow'
-              : 'bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300'
-              }`}
+            onClick={() => {
+              setEventType(value);
+              setPage(1);
+            }}
+            className={`px-4 py-2 rounded font-semibold ${
+              eventType === value
+                ? "bg-blue-600 text-white shadow"
+                : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"
+            }`}
           >
             {label}
           </button>
@@ -122,11 +130,15 @@ export default function EventsPage() {
         {dateOptions.map(({ label, value }) => (
           <button
             key={value}
-            onClick={() => { setDateFilter(value); setPage(1); }}
-            className={`px-4 py-2 rounded font-semibold ${dateFilter === value
-              ? 'bg-blue-600 text-white shadow'
-              : 'bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300'
-              }`}
+            onClick={() => {
+              setDateFilter(value);
+              setPage(1);
+            }}
+            className={`px-4 py-2 rounded font-semibold ${
+              dateFilter === value
+                ? "bg-blue-600 text-white shadow"
+                : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"
+            }`}
           >
             {label}
           </button>
@@ -173,9 +185,11 @@ export default function EventsPage() {
           disabled={page === 1}
           className={`
       px-3 py-1 rounded transition-colors
-      ${page === 1
-              ? 'bg-gray-300 dark:bg-gray-900 dark:text-white cursor-not-allowed'
-              : 'bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700'}
+      ${
+        page === 1
+          ? "bg-gray-300 dark:bg-gray-900 dark:text-white cursor-not-allowed"
+          : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700"
+      }
     `}
         >
           &lt;
@@ -188,15 +202,16 @@ export default function EventsPage() {
           disabled={page === totalPages}
           className={`
       px-3 py-1 rounded transition-colors
-      ${page === totalPages
-              ? 'bg-gray-300 dark:bg-gray-900 dark:text-white cursor-not-allowed'
-              : 'bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700'}
+      ${
+        page === totalPages
+          ? "bg-gray-300 dark:bg-gray-900 dark:text-white cursor-not-allowed"
+          : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700"
+      }
     `}
         >
           &gt;
         </button>
       </div>
-
     </div>
   );
 }
