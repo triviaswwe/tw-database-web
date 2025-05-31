@@ -1,8 +1,8 @@
 // components/Layout.js
 
-import Link from 'next/link';
-import { useRouter } from 'next/router';
-import { Sun, Moon } from 'lucide-react';
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { Sun, Moon } from "lucide-react";
 
 export default function Layout({ children, isDark, setIsDark }) {
   const router = useRouter();
@@ -11,9 +11,11 @@ export default function Layout({ children, isDark, setIsDark }) {
     const isActive = router.pathname.startsWith(path);
     return `
       px-3 py-1 rounded transition duration-150 whitespace-nowrap
-      ${isActive
-        ? 'bg-gray-900 dark:bg-gray-700 font-semibold'
-        : 'hover:bg-gray-700 dark:hover:bg-gray-300 dark:hover:text-black'}
+      ${
+        isActive
+          ? "bg-gray-900 dark:bg-gray-700 font-semibold"
+          : "hover:bg-gray-700 dark:hover:bg-gray-300 dark:hover:text-black"
+      }
     `;
   };
 
@@ -34,17 +36,20 @@ export default function Layout({ children, isDark, setIsDark }) {
         {/* 2) Enlaces deslizables */}
         <div className="flex-1 overflow-x-auto hide-scrollbar">
           <div className="flex space-x-4">
-            <Link href="/wrestlers" className={navLinkClass('/wrestlers')}>
+            <Link href="/wrestlers" className={navLinkClass("/wrestlers")}>
               Wrestlers
             </Link>
             <Link
               href="/interpreters"
-              className={navLinkClass('/interpreters')}
+              className={navLinkClass("/interpreters")}
             >
               Interpreters
             </Link>
-            <Link href="/events" className={navLinkClass('/events')}>
+            <Link href="/events" className={navLinkClass("/events")}>
               Events
+            </Link>
+            <Link href="/championships" className={navLinkClass("/championships")}>
+              Championships
             </Link>
             {/* Añade más links aquí si los necesitas */}
           </div>
