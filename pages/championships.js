@@ -29,17 +29,35 @@ export default function ChampionshipsPage() {
     fetcher
   );
 
-  // Helper para calcular días entre dos fechas (loss si existe, sino hoy)
   const calculateDaysHeld = (wonDateStr, lostDateStr) => {
     const start = new Date(wonDateStr);
     const end = lostDateStr ? new Date(lostDateStr) : new Date();
-    const diffTime = end.getTime() - start.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const diffMs = end.getTime() - start.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     return lostDateStr ? diffDays : `${diffDays}+`;
+  };
+
+  const formatEnglishDate = (dateStr) => {
+    if (!dateStr) return "—";
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
   };
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
+      <style jsx global>{`
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+
       <h1 className="text-3xl font-bold mb-6">Championships</h1>
       <p className="mb-4 text-lg font-medium">
         Select a championship to view its stats:
@@ -69,27 +87,21 @@ export default function ChampionshipsPage() {
             <>
               <h2 className="text-2xl font-semibold">{champ.title_name}</h2>
               <p className="text-gray-600 dark:text-gray-300">
-                Established:{" "}
-                {new Date(champ.date_established).toLocaleDateString(
-                  undefined,
-                  { timeZone: "UTC" }
-                )}
+                Established: {formatEnglishDate(champ.date_established)}
               </p>
 
-              {/* Contenedor para permitir scroll horizontal en móvil */}
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto no-scrollbar">
                 <table className="table-auto w-full border-collapse text-sm min-w-[800px]">
-                  {/* min-w define un ancho mínimo para que no colapse demasiado en móvil */}
                   <thead>
                     <tr className="bg-gray-100 dark:bg-gray-700">
-                      <th className="border px-2 py-1 whitespace-nowrap">#</th>
-                      <th className="border px-2 py-1 whitespace-nowrap">Wrestler</th>
-                      <th className="border px-2 py-1 whitespace-nowrap">Interpreter</th>
-                      <th className="border px-2 py-1 whitespace-nowrap">Won Date</th>
-                      <th className="border px-2 py-1 whitespace-nowrap">Event</th>
-                      <th className="border px-2 py-1 whitespace-nowrap">Reign #</th>
-                      <th className="border px-2 py-1 whitespace-nowrap">Days Held</th>
-                      <th className="border px-2 py-1 whitespace-nowrap">Notes</th>
+                      <th className="border px-2 py-1">#</th>
+                      <th className="border px-2 py-1">Wrestler</th>
+                      <th className="border px-2 py-1">Interpreter</th>
+                      <th className="border px-2 py-1">Won Date</th>
+                      <th className="border px-2 py-1">Event</th>
+                      <th className="border px-2 py-1">Reign #</th>
+                      <th className="border px-2 py-1">Days Held</th>
+                      <th className="border px-2 py-1 w-[15%]">Notes</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -100,15 +112,14 @@ export default function ChampionshipsPage() {
                           key={r.id}
                           className="hover:bg-gray-50 dark:hover:bg-gray-800"
                         >
-                          <td className="border px-2 py-1 text-center whitespace-nowrap">
+                          <td className="border px-2 py-1 text-center">
                             {idx + 1}
                           </td>
-
-                          <td className="border px-2 py-1 whitespace-nowrap">
+                          <td className="border px-2 py-1">
                             {r.wrestler_id ? (
                               <Link
                                 href={`/wrestlers/${r.wrestler_id}`}
-                                className="text-blue-600 dark:text-blue-400 hover:underline"
+                                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
                               >
                                 <FlagWithName code={r.country} name={r.wrestler} />
                               </Link>
@@ -116,12 +127,11 @@ export default function ChampionshipsPage() {
                               "—"
                             )}
                           </td>
-
-                          <td className="border px-2 py-1 whitespace-nowrap">
+                          <td className="border px-2 py-1">
                             {r.interpreter_id ? (
                               <Link
                                 href={`/interpreters/${r.interpreter_id}`}
-                                className="text-blue-600 dark:text-blue-400 hover:underline"
+                                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
                               >
                                 <FlagWithName
                                   code={r.nationality}
@@ -132,14 +142,10 @@ export default function ChampionshipsPage() {
                               "—"
                             )}
                           </td>
-
-                          <td className="border px-2 py-1 text-center whitespace-nowrap">
-                            {new Date(r.won_date).toLocaleDateString(undefined, {
-                              timeZone: "UTC",
-                            })}
+                          <td className="border px-2 py-1 text-center">
+                            {formatEnglishDate(r.won_date)}
                           </td>
-
-                          <td className="border px-2 py-1 whitespace-nowrap">
+                          <td className="border px-2 py-1 text-center">
                             {r.event_id ? (
                               <Link
                                 href={`/events/${r.event_id}`}
@@ -151,16 +157,13 @@ export default function ChampionshipsPage() {
                               "—"
                             )}
                           </td>
-
-                          <td className="border px-2 py-1 text-center whitespace-nowrap">
+                          <td className="border px-2 py-1 text-center">
                             {r.reign_number}
                           </td>
-
-                          <td className="border px-2 py-1 text-center whitespace-nowrap">
+                          <td className="border px-2 py-1 text-center">
                             {daysHeld}
                           </td>
-
-                          <td className="border px-2 py-1 text-center whitespace-nowrap">
+                          <td className="border px-2 py-1 text-[12px] break-words">
                             {r.notes || "—"}
                           </td>
                         </tr>
@@ -169,7 +172,6 @@ export default function ChampionshipsPage() {
                   </tbody>
                 </table>
               </div>
-              {/* Fin del contenedor scroll */}
             </>
           )}
         </div>

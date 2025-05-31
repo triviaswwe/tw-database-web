@@ -1,8 +1,13 @@
 // components/FlagWithName.js
 
 export default function FlagWithName({ code, name }) {
-  if (!code) return name;
-
+  if (!code) {
+    return (
+      <span className="inline-flex items-center gap-1">
+        <span>{name}</span>
+      </span>
+    );
+  }
   return (
     <span className="inline-flex items-center gap-1">
       <img
