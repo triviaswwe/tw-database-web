@@ -33,10 +33,8 @@ export default function ChampionshipsPage() {
   const calculateDaysHeld = (wonDateStr, lostDateStr) => {
     const start = new Date(wonDateStr);
     const end = lostDateStr ? new Date(lostDateStr) : new Date();
-    // Redondear a días completos
     const diffTime = end.getTime() - start.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    // Si no hay lostDate, es el actual campeón → añadir '+'
     return lostDateStr ? diffDays : `${diffDays}+`;
   };
 
@@ -78,96 +76,100 @@ export default function ChampionshipsPage() {
                 )}
               </p>
 
-              <table className="table-auto w-full border-collapse text-sm">
-                <thead>
-                  <tr className="bg-gray-100 dark:bg-gray-700">
-                    <th className="border px-2 py-1">#</th>
-                    <th className="border px-2 py-1">Wrestler</th>
-                    <th className="border px-2 py-1">Interpreter</th>
-                    <th className="border px-2 py-1">Won Date</th>
-                    <th className="border px-2 py-1">Event</th>
-                    <th className="border px-2 py-1">Days Held</th>
-                    <th className="border px-2 py-1">Notes</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {reigns.map((r, idx) => {
-                    // Calcula dinámicamente los días sostenidos
-                    const daysHeld = calculateDaysHeld(r.won_date, r.lost_date);
+              {/* Contenedor para permitir scroll horizontal en móvil */}
+              <div className="overflow-x-auto">
+                <table className="table-auto w-full border-collapse text-sm min-w-[800px]">
+                  {/* min-w define un ancho mínimo para que no colapse demasiado en móvil */}
+                  <thead>
+                    <tr className="bg-gray-100 dark:bg-gray-700">
+                      <th className="border px-2 py-1 whitespace-nowrap">#</th>
+                      <th className="border px-2 py-1 whitespace-nowrap">Wrestler</th>
+                      <th className="border px-2 py-1 whitespace-nowrap">Interpreter</th>
+                      <th className="border px-2 py-1 whitespace-nowrap">Won Date</th>
+                      <th className="border px-2 py-1 whitespace-nowrap">Event</th>
+                      <th className="border px-2 py-1 whitespace-nowrap">Reign #</th>
+                      <th className="border px-2 py-1 whitespace-nowrap">Days Held</th>
+                      <th className="border px-2 py-1 whitespace-nowrap">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {reigns.map((r, idx) => {
+                      const daysHeld = calculateDaysHeld(r.won_date, r.lost_date);
+                      return (
+                        <tr
+                          key={r.id}
+                          className="hover:bg-gray-50 dark:hover:bg-gray-800"
+                        >
+                          <td className="border px-2 py-1 text-center whitespace-nowrap">
+                            {idx + 1}
+                          </td>
 
-                    return (
-                      <tr
-                        key={r.id}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-800"
-                      >
-                        {/* Contador global */}
-                        <td className="border px-2 py-1 text-center">
-                          {idx + 1}
-                        </td>
+                          <td className="border px-2 py-1 whitespace-nowrap">
+                            {r.wrestler_id ? (
+                              <Link
+                                href={`/wrestlers/${r.wrestler_id}`}
+                                className="text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                <FlagWithName code={r.country} name={r.wrestler} />
+                              </Link>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
 
-                        <td className="border px-2 py-1">
-                          {r.wrestler_id ? (
-                            <Link
-                              href={`/wrestlers/${r.wrestler_id}`}
-                              className="text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              <FlagWithName
-                                code={r.country}
-                                name={r.wrestler}
-                              />
-                            </Link>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
+                          <td className="border px-2 py-1 whitespace-nowrap">
+                            {r.interpreter_id ? (
+                              <Link
+                                href={`/interpreters/${r.interpreter_id}`}
+                                className="text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                <FlagWithName
+                                  code={r.nationality}
+                                  name={r.interpreter}
+                                />
+                              </Link>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
 
-                        <td className="border px-2 py-1">
-                          {r.interpreter_id ? (
-                            <Link
-                              href={`/interpreters/${r.interpreter_id}`}
-                              className="text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              <FlagWithName
-                                code={r.nationality}
-                                name={r.interpreter}
-                              />
-                            </Link>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
+                          <td className="border px-2 py-1 text-center whitespace-nowrap">
+                            {new Date(r.won_date).toLocaleDateString(undefined, {
+                              timeZone: "UTC",
+                            })}
+                          </td>
 
-                        <td className="border px-2 py-1 text-center">
-                          {new Date(r.won_date).toLocaleDateString(undefined, {
-                            timeZone: "UTC",
-                          })}
-                        </td>
+                          <td className="border px-2 py-1 whitespace-nowrap">
+                            {r.event_id ? (
+                              <Link
+                                href={`/events/${r.event_id}`}
+                                className="text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                {r.event_name}
+                              </Link>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
 
-                        <td className="border px-2 py-1">
-                          {r.event_id ? (
-                            <Link
-                              href={`/events/${r.event_id}`}
-                              className="text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              {r.event_name}
-                            </Link>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
+                          <td className="border px-2 py-1 text-center whitespace-nowrap">
+                            {r.reign_number}
+                          </td>
 
-                        <td className="border px-2 py-1 text-center">
-                          {daysHeld}
-                        </td>
+                          <td className="border px-2 py-1 text-center whitespace-nowrap">
+                            {daysHeld}
+                          </td>
 
-                        <td className="border px-2 py-1">
-                          {r.notes || "—"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          <td className="border px-2 py-1 text-center whitespace-nowrap">
+                            {r.notes || "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {/* Fin del contenedor scroll */}
             </>
           )}
         </div>
