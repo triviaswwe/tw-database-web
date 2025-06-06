@@ -1,6 +1,6 @@
-// pages/api/matches/[id]/participants.js
+// pages/api/championships/[id]/matches/participants.js
 
-import pool from '../../../../lib/db';
+import pool from '../../../../../lib/db';
 
 export default async function handler(req, res) {
   const {
