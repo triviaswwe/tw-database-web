@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Spinner from '../components/Spinner';
+import FlagWithName from '../components/FlagWithName';
 
 const INTERPRETERS_PER_PAGE = 33;
 
@@ -77,7 +78,7 @@ export default function InterpretersPage() {
         placeholder="Filter by interpreter name"
         value={nameFilter}
         onChange={(e) => { setNameFilter(e.target.value); setPage(1); }}
-        className="mb-6 w-full md:w-1/2  dark:bg-zinc-950 border rounded px-3 py-2 focus:ring-2 focus:ring-blue-600"
+        className="mb-6 w-full md:w-1/2 dark:bg-zinc-950 border rounded px-3 py-2 focus:ring-2 focus:ring-blue-600"
       />
 
       {loading ? (
@@ -89,11 +90,11 @@ export default function InterpretersPage() {
           ) : (
             interpreters.map((i) => (
               <Link key={i.id} href={`/interpreters/${i.id}`}>
-                <div className="p-4 dark:bg-zinc-950 border rounded shadow hover:shadow-lg transition cursor-pointer">
-                  <h2 className="text-xl font-bold">{i.interpreter}</h2>
-                  <p className="text-sm text-gray-600 dark:text-white">
-                    Nationality: {i.nationality || '—'}
-                  </p>
+                <div className="p-4 dark:bg-zinc-950 border rounded shadow hover:shadow-lg transform transition-transform duration-200 ease-in-out hover:scale-105 cursor-pointer">
+                  <div className="flex items-center">
+                    <FlagWithName code={i.nationality} />
+                    <h2 className="text-xl font-bold">{i.interpreter}</h2>
+                  </div>
                   <p className="text-sm text-gray-600 dark:text-white">
                     Status: {i.status || 'Unknown'}
                   </p>
@@ -113,7 +114,7 @@ export default function InterpretersPage() {
             className={`px-3 py-1 rounded ${
               page === num
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 text-gray-700  dark:bg-gray-900 dark:text-white hover:bg-gray-300'
+                : 'bg-gray-200 text-gray-700 dark:bg-gray-900 dark:text-white hover:bg-gray-300'
             }`}
           >
             {num}

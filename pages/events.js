@@ -20,6 +20,28 @@ const dateOptions = [
   { label: "Upcoming events", value: "upcoming" },
 ];
 
+// Mapea show_id a archivo de imagen en /public
+const showImageMap = {
+  1: "/raw.png",
+  2: "/sd.png",
+  3: "/nxt.png",
+  4: "/speed.png",
+  5: "/wwelive.png",
+};
+
+// Mapea ple_id a archivo de imagen en /public
+const pleImageMap = {
+  4: "/tlc.png",
+  6: "/noc.png",
+  7: "/mitb.png",
+  11: "/bb.png",
+  12: "/snme.png",
+  13: "/payback.png",
+  14: "/fastlane.png",
+  17: "/bib.png",
+  18: "/takeover.png",
+};
+
 export default function EventsPage() {
   const [events, setEvents] = useState([]);
   const [page, setPage] = useState(1);
@@ -89,7 +111,7 @@ export default function EventsPage() {
           className={`px-3 py-1 rounded ${
             page === i
               ? "bg-blue-600 text-white shadow"
-              : "bg-gray-200 text-gray-800  dark:bg-gray-900 dark:text-white hover:bg-gray-300"
+              : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"
           }`}
         >
           {i}
@@ -104,7 +126,6 @@ export default function EventsPage() {
       <h1 className="text-3xl font-bold mb-6">Events</h1>
 
       {/* Fila filtros */}
-
       <div className="mb-4 flex flex-wrap gap-2">
         <p className="font-semibold py-2">Type:</p>
         {eventTypeOptions.map(({ label, value }) => (
@@ -166,12 +187,44 @@ export default function EventsPage() {
               <Link
                 key={ev.id}
                 href={`/events/${ev.id}`}
-                className="block p-4 border rounded shadow bg-white dark:bg-zinc-950 hover:shadow-lg transition-shadow cursor-pointer"
+                className="flex items-center p-4 border rounded bg-white dark:bg-zinc-950 hover:shadow-lg transform transition-transform duration-200 ease-in-out hover:scale-105 cursor-pointer"
               >
-                <h2 className="font-semibold text-lg mb-1">{ev.name}</h2>
-                <p className="text-sm text-gray-600 dark:text-white mb-0.5">
-                  {ev.event_type} — {formatDate(ev.event_date)}
-                </p>
+                {/* 0) Logo propio del evento si existe */}
+                {ev.image_url ? (
+                  <img
+                    src={ev.image_url}
+                    alt="Event logo"
+                    className="w-16 h-16 object-contain mr-4"
+                  />
+                ) : /* 1) Logo de PLE si existe ple_image_url */
+                ev.ple_image_url ? (
+                  <img
+                    src={ev.ple_image_url}
+                    alt="PLE logo"
+                    className="w-16 h-16 object-contain mr-4"
+                  />
+                ) : /* 2) Si no hay ple_image_url pero ple_id tiene mapping en pleImageMap */
+                ev.ple_id && pleImageMap[ev.ple_id] ? (
+                  <img
+                    src={pleImageMap[ev.ple_id]}
+                    alt="PLE logo"
+                    className="w-16 h-16 object-contain mr-4"
+                  />
+                ) : /* 3) Finalmente, logo de show si existe */
+                ev.show_id && showImageMap[ev.show_id] ? (
+                  <img
+                    src={showImageMap[ev.show_id]}
+                    alt="Show logo"
+                    className="w-16 h-16 object-contain mr-4"
+                  />
+                ) : null}
+
+                <div>
+                  <h2 className="font-semibold text-lg mb-1">{ev.name}</h2>
+                  <p className="text-sm text-gray-600 dark:text-white mb-0.5">
+                    {ev.event_type} — {formatDate(ev.event_date)}
+                  </p>
+                </div>
               </Link>
             ))
           )}
@@ -183,31 +236,23 @@ export default function EventsPage() {
         <button
           onClick={() => setPage((p) => Math.max(1, p - 1))}
           disabled={page === 1}
-          className={`
-      px-3 py-1 rounded transition-colors
-      ${
-        page === 1
-          ? "bg-gray-300 dark:bg-gray-900 dark:text-white cursor-not-allowed"
-          : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700"
-      }
-    `}
+          className={`px-3 py-1 rounded transition-colors ${
+            page === 1
+              ? "bg-gray-300 dark:bg-gray-900 dark:text-white cursor-not-allowed"
+              : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700"
+          }`}
         >
           &lt;
         </button>
-
         {renderPageButtons()}
-
         <button
           onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           disabled={page === totalPages}
-          className={`
-      px-3 py-1 rounded transition-colors
-      ${
-        page === totalPages
-          ? "bg-gray-300 dark:bg-gray-900 dark:text-white cursor-not-allowed"
-          : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700"
-      }
-    `}
+          className={`px-3 py-1 rounded transition-colors ${
+            page === totalPages
+              ? "bg-gray-300 dark:bg-gray-900 dark:text-white cursor-not-allowed"
+              : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700"
+          }`}
         >
           &gt;
         </button>

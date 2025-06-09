@@ -35,12 +35,17 @@ export default async function handler(req, res) {
       params
     );
 
-    // datos paginados
+    // datos paginados (ahora incluyendo country e image_url)
     const [rows] = await pool.query(
-      `SELECT id, wrestler, status
+      `SELECT 
+         w.id, 
+         w.wrestler, 
+         w.status, 
+         w.country, 
+         w.image_url
        FROM wrestlers w
        ${whereSql}
-       ORDER BY wrestler ASC
+       ORDER BY w.wrestler ASC
        LIMIT ? OFFSET ?`,
       [...params, limit, offset]
     );

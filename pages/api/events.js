@@ -55,6 +55,7 @@ export default async function handler(req, res) {
       `SELECT COUNT(*) AS count
        FROM events
        LEFT JOIN shows ON events.show_id = shows.id
+       LEFT JOIN ples  ON events.ple_id   = ples.id
        ${whereSql}`,
       params
     );
@@ -62,20 +63,23 @@ export default async function handler(req, res) {
     const totalPages = Math.ceil(totalCount / limit);
 
     // 5) Elegir ORDER BY dinámico
-    //    - upcoming  : ascendente (próximo primero)
-    //    - past/all  : descendente (más reciente primero)
     let orderClause;
     if (dateFilt === 'upcoming') {
-      orderClause = `ORDER BY events.event_date ASC, events.id ASC`;
+      orderClause = `ORDER BY events.event_date ASC,  events.id ASC`;
     } else {
       orderClause = `ORDER BY events.event_date DESC, events.id DESC`;
     }
 
-    // 6) Obtener página de resultados
+    // 6) Obtener página de resultados, incluyendo ple.image_url y event.image_url
     const [rows] = await pool.query(
-      `SELECT events.*, shows.name AS show_name
+      `SELECT
+         events.*,
+         events.image_url     AS event_image_url,
+         shows.name           AS show_name,
+         ples.image_url       AS ple_image_url
        FROM events
        LEFT JOIN shows ON events.show_id = shows.id
+       LEFT JOIN ples  ON events.ple_id   = ples.id
        ${whereSql}
        ${orderClause}
        LIMIT ? OFFSET ?`,
