@@ -6,41 +6,104 @@ export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).end();
   const { id } = req.query;
 
-  const rows = await query(
-    `
-    SELECT
-      r.id,
-      r.reign_number,
-      r.won_date,
-      r.lost_date,
-      r.days_held,
-      r.wrestler_id,
-      w.wrestler    AS wrestler,
-      w.country     AS country,
-      r.interpreter_id,
-      i.interpreter AS interpreter,
-      i.nationality AS nationality,
-      r.tag_team_id,
-      r.event_id,
-      e.name        AS event_name,
-      -- Aquí traemos notes desde el match que inició el reinado:
-      m.notes       AS notes
-    FROM championship_reigns r
-    LEFT JOIN wrestlers    w ON w.id = r.wrestler_id
-    LEFT JOIN interpreters i ON i.id = r.interpreter_id
-    LEFT JOIN events       e ON e.id = r.event_id
+  try {
+    const rows = await query(
+      `
+      SELECT
+        r.id,
+        r.reign_number,
+        r.won_date,
+        r.lost_date,
+        r.days_held,
 
-    -- Hacemos LEFT JOIN con matches para capturar la nota del combate
-    LEFT JOIN matches      m
-      ON m.championship_id = r.championship_id
-     AND m.event_id       = r.event_id
-     AND m.title_changed  = 1
+        -- Datos de single
+        r.wrestler_id,
+        w.wrestler    AS wrestler,
+        w.country     AS country,
 
-    WHERE r.championship_id = ?
-    ORDER BY r.won_date
-    `,
-    [id]
-  );
+        -- Datos de intérprete
+        r.interpreter_id,
+        i.interpreter AS interpreter,
+        i.nationality AS nationality,
 
-  res.status(200).json(rows);
+        -- Datos de pareja
+        r.tag_team_id,
+        t.name        AS team_name,
+
+        -- Concatenamos los miembros del reinado de pareja
+        GROUP_CONCAT(
+          DISTINCT wrm.wrestler
+          ORDER BY wrm.wrestler
+          SEPARATOR ', '
+        ) AS team_members,
+
+        -- Datos del evento
+        r.event_id,
+        e.name        AS event_name,
+
+        -- Notas del match que inició el reinado
+        m.notes       AS notes,
+
+        -- Oponente inicial del reinado
+        mp_opp.wrestler_id   AS opponent_id,
+        w_opp.wrestler       AS opponent,
+        w_opp.country        AS opponent_country
+
+      FROM championship_reigns r
+
+      -- Single joins
+      LEFT JOIN wrestlers    w   ON w.id = r.wrestler_id
+      LEFT JOIN interpreters i   ON i.id = r.interpreter_id
+      LEFT JOIN events       e   ON e.id = r.event_id
+
+      -- Primer match que cambió el título en ese evento
+      LEFT JOIN (
+        SELECT m1.*
+        FROM matches m1
+        JOIN (
+          SELECT event_id, championship_id, MIN(id) AS min_id
+          FROM matches
+          WHERE title_changed = 1
+          GROUP BY event_id, championship_id
+        ) AS first_matches
+          ON m1.id = first_matches.min_id
+      ) AS m
+        ON m.championship_id = r.championship_id
+       AND m.event_id        = r.event_id
+
+      -- Participación campeón y oponente
+      LEFT JOIN match_participants mp_champ
+        ON mp_champ.match_id    = m.id
+       AND mp_champ.wrestler_id = r.wrestler_id
+
+      LEFT JOIN match_participants mp_opp
+        ON mp_opp.match_id      = m.id
+       AND mp_opp.wrestler_id  <> r.wrestler_id
+
+      LEFT JOIN wrestlers w_opp
+        ON w_opp.id = mp_opp.wrestler_id
+
+      -- Parejas
+      LEFT JOIN tag_teams t
+        ON t.id = r.tag_team_id
+
+      -- Miembros de reinados de pareja
+      LEFT JOIN reign_members rm
+        ON rm.reign_id = r.id
+      LEFT JOIN wrestlers wrm
+        ON wrm.id = rm.wrestler_id
+
+      WHERE r.championship_id = ?
+
+      GROUP BY r.id
+      ORDER BY r.won_date
+      `,
+      [id]
+    );
+
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error("Database error in /api/championships/[id]/reigns:", err);
+    res.status(500).json({ error: "Database error" });
+  }
 }

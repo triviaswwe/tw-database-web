@@ -29,10 +29,13 @@ export default function ChampionshipsPage() {
     fetcher
   );
   // <-- NEW: SWR for defenses endpoint
-  const { data: defenses } = useSWR(
+  const { data: defensesData } = useSWR(
     sel ? `/api/championships/${sel}/defenses` : null,
     fetcher
   );
+
+  const defenses = defensesData?.details || [];
+  const defenseSummary = defensesData?.summary || [];
 
   // Estado para ordenamiento de reinados
   const [sortKey, setSortKey] = useState(null);
@@ -116,32 +119,32 @@ export default function ChampionshipsPage() {
     { label: "Total days", sortable: true },
   ];
 
-  // Encontrar el reinado activo (sin lost_date) y generar texto de "Current champion"
+  // 1) Incluir reignId en currentReignText
   const currentReignText = useMemo(() => {
     if (!reigns || reigns.length === 0) return null;
     const current = reigns.find((r) => !r.lost_date);
     if (!current) return null;
 
-    const wrestlerName = current.wrestler;
-    const wrestlerId = current.wrestler_id;
-    const ordinalWord = getOrdinalWord(current.reign_number);
-    const defeatedOpponent = current.opponent || "—";
-    const defeatedOpponentId = current.opponent_id || null;
-    const formattedDate = formatEnglishDate(current.won_date);
-    const eventName = current.event_name || "—";
-    const eventId = current.event_id || null;
-
     return {
-      wrestlerName,
-      wrestlerId,
-      ordinalWord,
-      defeatedOpponent,
-      defeatedOpponentId,
-      formattedDate,
-      eventName,
-      eventId,
+      reignId: current.id, // agregado
+      wrestlerName: current.wrestler,
+      wrestlerId: current.wrestler_id,
+      wrestlerCountry: current.country,
+      ordinalWord: getOrdinalWord(current.reign_number),
+      defeatedOpponent: current.opponent || "—",
+      defeatedOpponentId: current.opponent_id || null,
+      defeatedOpponentCountry: current.opponent_country || null,
+      formattedDate: formatEnglishDate(current.won_date),
+      eventName: current.event_name || "—",
+      eventId: current.event_id || null,
     };
   }, [reigns]);
+
+  // 2) Filtrar defenses por reignId
+  const currentDefenses = useMemo(() => {
+    if (!defenses || !currentReignText) return [];
+    return defenses.filter((d) => d.reign_id === currentReignText.reignId);
+  }, [defenses, currentReignText]);
 
   // Ordenar reinados y agregar filas de Vacant para NXT Championship (id=6)
   const sortedReigns = useMemo(() => {
@@ -262,11 +265,11 @@ export default function ChampionshipsPage() {
   const aggregatedStats = useMemo(() => {
     if (!reigns) return [];
     // También necesitamos defenses, si aún no llegó, devolvemos vacío
-    if (!defenses) return [];
+    if (!defenseSummary) return [];
 
     // Construimos un Map<reign_id, count> a partir de defenses[]
     const defensesMap = new Map();
-    defenses.forEach((d) => {
+    defenseSummary.forEach((d) => {
       defensesMap.set(d.reign_id, d.count);
     });
 
@@ -432,21 +435,32 @@ export default function ChampionshipsPage() {
                     {currentReignText.wrestlerId ? (
                       <Link
                         href={`/wrestlers/${currentReignText.wrestlerId}`}
-                        className="text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                        className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
                       >
-                        {currentReignText.wrestlerName}
+                        <FlagWithName
+                          code={currentReignText.wrestlerCountry}
+                          name={currentReignText.wrestlerName}
+                        />
                       </Link>
                     ) : (
-                      <strong>{currentReignText.wrestlerName}</strong>
+                      <span className="inline-flex items-center gap-1 font-semibold">
+                        <FlagWithName
+                          code={currentReignText.wrestlerCountry}
+                          name={currentReignText.wrestlerName}
+                        />
+                      </span>
                     )}
-                    , who is in his {currentReignText.ordinalWord} reign.{" "}
-                    {currentReignText.wrestlerName} won the title after defeating{" "}
+                    , who is in his {currentReignText.ordinalWord} reign. He won
+                    the title after defeating{" "}
                     {currentReignText.defeatedOpponentId ? (
                       <Link
                         href={`/wrestlers/${currentReignText.defeatedOpponentId}`}
-                        className="text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                        className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
                       >
-                        {currentReignText.defeatedOpponent}
+                        <FlagWithName
+                          code={currentReignText.defeatedOpponentCountry}
+                          name={currentReignText.defeatedOpponent}
+                        />
                       </Link>
                     ) : (
                       <strong>{currentReignText.defeatedOpponent}</strong>
@@ -462,8 +476,50 @@ export default function ChampionshipsPage() {
                     ) : (
                       <strong>{currentReignText.eventName}</strong>
                     )}
-                    .
+                    {"."}
                   </p>
+
+                  {/* 3) Usar currentDefenses en lugar de defenses */}
+                  {currentDefenses.length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-sm mb-2">
+                        {currentReignText.wrestlerName} records the following
+                        televised defenses as of {todayString}:
+                      </p>
+                      <ol className="list-decimal list-inside ml-4 space-y-1 text-sm">
+                        {currentDefenses.map((d, i) => (
+                          <li key={i}>
+                            ({d.score}) vs{" "}
+                            <Link
+                              href={`/wrestlers/${d.opponent_id}`}
+                              className="inline-flex items-center gap-1 text-blue-600 hover:underline dark:text-sky-300"
+                            >
+                              {/* Aquí usamos FlagWithName */}
+                              <FlagWithName
+                                code={d.opponent_country}
+                                name={d.opponent}
+                              />
+                            </Link>{" "}
+                            on {/* Fecha sólo mes y día */}
+                            {new Date(d.event_date).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "long",
+                                day: "numeric",
+                              }
+                            )}
+                            {""},{" "}
+                            <Link
+                              href={`/events/${d.event_id}`}
+                              className="text-blue-600 hover:underline dark:text-sky-300"
+                            >
+                              {d.event_name}
+                            </Link>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -491,115 +547,118 @@ export default function ChampionshipsPage() {
                     </tr>
                   </thead>
 
-                  <tbody className="divide-y">
-                    {sortedReigns.map((r, idx) => {
-                      // Si es fila de Vacant, mostramos columnas específicas
-                      if (r.isVacant) {
-                        return (
-                          <tr
-                            key={r.id || `vacant-${idx}`}
-                            className="bg-gray-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
-                          >
-                            <td className="border px-2 py-1 text-center">
-                              {idx + 1}
-                            </td>
-                            <td className="border px-2 py-1 font-semibold">
-                              Vacant
-                            </td>
-                            <td className="border px-2 py-1 text-center">—</td>
-                            <td className="border px-2 py-1 text-center">
-                              {formatEnglishDate(r.won_date)}
-                            </td>
-                            <td className="border px-2 py-1 text-center">—</td>
-                            <td className="border px-2 py-1 text-center">—</td>
-                            <td className="border px-2 py-1 text-center">—</td>
-                            <td className="border px-2 py-1 text-[12px] break-words">
-                              —
-                            </td>
-                          </tr>
-                        );
-                      }
+                 <tbody className="divide-y">
+  {(() => {
+    let counter = 0;
+    return sortedReigns.map((r, idx) => {
+      const displayIndex = r.isVacant ? "—" : ++counter;
 
-                      // Fila normal
-                      const daysHeldRaw = calculateDaysHeld(
-                        r.won_date,
-                        r.lost_date
-                      );
-                      return (
-                        <tr
-                          key={r.id}
-                          className="hover:bg-gray-50 dark:hover:bg-gray-800"
-                        >
-                          <td className="border px-2 py-1 text-center">
-                            {idx + 1}
-                          </td>
+      if (r.isVacant) {
+        return (
+          <tr
+            key={r.id || `vacant-${idx}`}
+            className="bg-gray-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+          >
+            <td className="border px-2 py-1 text-center">{displayIndex}</td>
+            <td className="border px-2 py-1 font-semibold">Vacant</td>
+            <td className="border px-2 py-1 text-center">—</td>
+            <td className="border px-2 py-1 text-center">
+              {formatEnglishDate(r.won_date)}
+            </td>
+            <td className="border px-2 py-1 text-center">—</td>
+            <td className="border px-2 py-1 text-center">—</td>
+            <td className="border px-2 py-1 text-center">—</td>
+            <td className="border px-2 py-1 text-[12px] break-words">—</td>
+          </tr>
+        );
+      }
 
-                          <td className="border px-2 py-1">
-                            {r.wrestler_id ? (
-                              <Link
-                                href={`/wrestlers/${r.wrestler_id}`}
-                                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                              >
-                                <FlagWithName
-                                  code={r.country}
-                                  name={r.wrestler}
-                                />
-                              </Link>
-                            ) : (
-                              "—"
-                            )}
-                          </td>
+      const daysHeldRaw = calculateDaysHeld(r.won_date, r.lost_date);
 
-                          <td className="border px-2 py-1">
-                            {r.interpreter_id ? (
-                              <Link
-                                href={`/interpreters/${r.interpreter_id}`}
-                                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                              >
-                                <FlagWithName
-                                  code={r.nationality}
-                                  name={r.interpreter}
-                                />
-                              </Link>
-                            ) : (
-                              "—"
-                            )}
-                          </td>
+      return (
+        <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+          <td className="border px-2 py-1 text-center">{displayIndex}</td>
 
-                          <td className="border px-2 py-1 text-center">
-                            {formatEnglishDate(r.won_date)}
-                          </td>
+          {/* Champion */}
+          <td className="border px-2 py-1">
+            {r.tag_team_id ? (
+              <>
+                <span className="font-semibold">{r.team_name}</span>
+                <br />
+                <span className="text-xs text-gray-700 dark:text-gray-300">
+                  {r.team_members}
+                </span>
+              </>
+            ) : r.wrestler_id ? (
+              <Link
+                href={`/wrestlers/${r.wrestler_id}`}
+                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                <FlagWithName code={r.country} name={r.wrestler} />
+              </Link>
+            ) : (
+              "—"
+            )}
+          </td>
 
-                          <td className="border px-2 py-1 text-center">
-                            {r.event_id ? (
-                              <Link
-                                href={`/events/${r.event_id}`}
-                                className="text-blue-600 dark:text-blue-400 hover:underline"
-                              >
-                                {r.event_name}
-                              </Link>
-                            ) : (
-                              "—"
-                            )}
-                          </td>
+          {/* Interpreter */}
+          <td className="border px-2 py-1">
+            {r.interpreter_id ? (
+              <Link
+                href={`/interpreters/${r.interpreter_id}`}
+                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                <FlagWithName
+                  code={r.nationality}
+                  name={r.interpreter}
+                />
+              </Link>
+            ) : (
+              "—"
+            )}
+          </td>
 
-                          <td className="border px-2 py-1 text-center">
-                            {r.reign_number}
-                          </td>
+          {/* Won Date */}
+          <td className="border px-2 py-1 text-center">
+            {formatEnglishDate(r.won_date)}
+          </td>
 
-                          <td className="border px-2 py-1 text-center">
-                            {r.lost_date === null
-                              ? daysHeldRaw
-                              : daysHeldRaw.replace("+", "")}
-                          </td>
+          {/* Event */}
+          <td className="border px-2 py-1 text-center">
+            {r.event_id ? (
+              <Link
+                href={`/events/${r.event_id}`}
+                className="text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                {r.event_name}
+              </Link>
+            ) : (
+              "—"
+            )}
+          </td>
 
-                          <td className="border px-2 py-1 text-[12px] break-words">
-                            {translateNotesToEnglish(r.notes)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
+          {/* Reign # */}
+          <td className="border px-2 py-1 text-center">
+            {r.reign_number}
+          </td>
+
+          {/* Days Held */}
+          <td className="border px-2 py-1 text-center">
+            {r.lost_date === null
+              ? daysHeldRaw
+              : daysHeldRaw.replace("+", "")}
+          </td>
+
+          {/* Notes */}
+          <td className="border px-2 py-1 text-[12px] break-words">
+            {translateNotesToEnglish(r.notes)}
+          </td>
+        </tr>
+      );
+    });
+  })()}
+</tbody>
+
                 </table>
 
                 {/* ------------------------------- */}
@@ -637,9 +696,12 @@ export default function ChampionshipsPage() {
                                 : "hover:bg-gray-50 dark:hover:bg-gray-800"
                             }`}
                           >
+                            {/* 1) Número de posición */}
                             <td className="border px-2 py-1 text-center">
                               {idx + 1}
                             </td>
+
+                            {/* 2) Champion con bandera */}
                             <td className="border px-2 py-1">
                               <Link
                                 href={`/wrestlers/${row.wrestlerId}`}
@@ -651,6 +713,8 @@ export default function ChampionshipsPage() {
                                 />
                               </Link>
                             </td>
+
+                            {/* 3) Interpreter con bandera o guión */}
                             <td className="border px-2 py-1">
                               {row.interpreterId ? (
                                 <Link
@@ -666,12 +730,18 @@ export default function ChampionshipsPage() {
                                 "—"
                               )}
                             </td>
+
+                            {/* 4) Número de reinados */}
                             <td className="border px-2 py-1 text-center">
                               {row.reignCount}
                             </td>
+
+                            {/* 5) Defensas exitosas */}
                             <td className="border px-2 py-1 text-center">
                               {row.defenses}
                             </td>
+
+                            {/* 6) Días totales */}
                             <td className="border px-2 py-1 text-center">
                               {row.totalDaysLabel}
                             </td>
