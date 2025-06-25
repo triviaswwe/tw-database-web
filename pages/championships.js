@@ -34,6 +34,8 @@ export default function ChampionshipsPage() {
     fetcher
   );
 
+  console.log("reigns →", reigns);
+
   const defenses = defensesData?.details || [];
   const defenseSummary = defensesData?.summary || [];
 
@@ -98,15 +100,16 @@ export default function ChampionshipsPage() {
   };
 
   // Columnas definidas para reinados
+  // Mantenemos siempre todas las columnas, pero las ocultamos vía CSS cuando sel===5
   const columns = [
-    { label: "#", sortable: true },
-    { label: "Champion", sortable: true },
-    { label: "Interpreter", sortable: true },
-    { label: "Won Date", sortable: true },
-    { label: "Event", sortable: true },
-    { label: "Reign #", sortable: true },
-    { label: "Days Held", sortable: true },
-    { label: "Notes", sortable: false, widthClass: "w-[25%]" },
+    { label: "#", key: "index" },
+    { label: "Champion", key: "champion" },
+    { label: "Interpreter", key: "interpreter" },
+    { label: "Won Date", key: "won_date" },
+    { label: "Event", key: "event" },
+    { label: "Reign #", key: "reign_number" },
+    { label: "Days Held", key: "days_held" },
+    { label: "Notes", key: "notes", widthClass: "w-[25%]" },
   ];
 
   // Columnas definidas para "Total days with the title"
@@ -121,7 +124,7 @@ export default function ChampionshipsPage() {
 
   // 1) Incluir reignId en currentReignText
   const currentReignText = useMemo(() => {
-    if (!reigns || reigns.length === 0) return null;
+    if (!Array.isArray(reigns) || reigns.length === 0) return null;
     const current = reigns.find((r) => !r.lost_date);
     if (!current) return null;
 
@@ -532,133 +535,162 @@ export default function ChampionshipsPage() {
                 <table className="table-auto w-full border-collapse text-sm min-w-[800px]">
                   <thead>
                     <tr className="bg-gray-100 dark:bg-gray-700">
-                      {columns.map(({ label, sortable, widthClass }) => (
+                      {columns.map(({ label, key, widthClass }) => (
                         <th
-                          key={label}
+                          key={key}
+                          // Oculto toda la columna "Interpreter" cuando sel===5
                           className={`border px-2 py-1 text-center ${
                             widthClass || ""
-                          } ${sortable ? "cursor-pointer select-none" : ""}`}
-                          onClick={() => sortable && handleSort(label)}
+                          } ${
+                            key === "interpreter" && sel === 5 ? "hidden" : ""
+                          }`}
                         >
                           {label}
-                          {sortable && renderSortIcon(label)}
                         </th>
                       ))}
                     </tr>
                   </thead>
 
-                 <tbody className="divide-y">
-  {(() => {
-    let counter = 0;
-    return sortedReigns.map((r, idx) => {
-      const displayIndex = r.isVacant ? "—" : ++counter;
+                  <tbody className="divide-y">
+                    {(() => {
+                      let counter = 0;
+                      return sortedReigns.map((r, idx) => {
+                        const displayIndex = r.isVacant ? "—" : ++counter;
 
-      if (r.isVacant) {
-        return (
-          <tr
-            key={r.id || `vacant-${idx}`}
-            className="bg-gray-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
-          >
-            <td className="border px-2 py-1 text-center">{displayIndex}</td>
-            <td className="border px-2 py-1 font-semibold">Vacant</td>
-            <td className="border px-2 py-1 text-center">—</td>
-            <td className="border px-2 py-1 text-center">
-              {formatEnglishDate(r.won_date)}
-            </td>
-            <td className="border px-2 py-1 text-center">—</td>
-            <td className="border px-2 py-1 text-center">—</td>
-            <td className="border px-2 py-1 text-center">—</td>
-            <td className="border px-2 py-1 text-[12px] break-words">—</td>
-          </tr>
-        );
-      }
+                        if (r.isVacant) {
+                          return (
+                            <tr
+                              key={r.id || `vacant-${idx}`}
+                              className="bg-gray-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                            >
+                              <td className="border px-2 py-1 text-center">
+                                {displayIndex}
+                              </td>
+                              <td className="border px-2 py-1 font-semibold">
+                                Vacant
+                              </td>
+                              <td className="border px-2 py-1 text-center">
+                                —
+                              </td>
+                              <td className="border px-2 py-1 text-center">
+                                {formatEnglishDate(r.won_date)}
+                              </td>
+                              <td className="border px-2 py-1 text-center">
+                                —
+                              </td>
+                              <td className="border px-2 py-1 text-center">
+                                —
+                              </td>
+                              <td className="border px-2 py-1 text-center">
+                                —
+                              </td>
+                              <td className="border px-2 py-1 text-[12px] break-words">
+                                —
+                              </td>
+                            </tr>
+                          );
+                        }
 
-      const daysHeldRaw = calculateDaysHeld(r.won_date, r.lost_date);
+                        const daysHeldRaw = calculateDaysHeld(
+                          r.won_date,
+                          r.lost_date
+                        );
 
-      return (
-        <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-          <td className="border px-2 py-1 text-center">{displayIndex}</td>
+                        return (
+                          <tr
+                            key={r.id}
+                            className="hover:bg-gray-50 dark:hover:bg-gray-800"
+                          >
+                            <td className="border px-2 py-1 text-center">
+                              {displayIndex}
+                            </td>
 
-          {/* Champion */}
-          <td className="border px-2 py-1">
-            {r.tag_team_id ? (
-              <>
-                <span className="font-semibold">{r.team_name}</span>
-                <br />
-                <span className="text-xs text-gray-700 dark:text-gray-300">
-                  {r.team_members}
-                </span>
-              </>
-            ) : r.wrestler_id ? (
-              <Link
-                href={`/wrestlers/${r.wrestler_id}`}
-                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                <FlagWithName code={r.country} name={r.wrestler} />
-              </Link>
-            ) : (
-              "—"
-            )}
-          </td>
+                            {/* Champion */}
+                            <td className="border px-2 py-1">
+                              {r.tag_team_id ? (
+                                <>
+                                  <span className="font-semibold">
+                                    {r.team_name}
+                                  </span>
+                                  <br />
+                                  <span className="text-xs text-gray-700 dark:text-gray-300">
+                                    {r.team_members}
+                                  </span>
+                                </>
+                              ) : r.wrestler_id ? (
+                                <Link
+                                  href={`/wrestlers/${r.wrestler_id}`}
+                                  className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                >
+                                  <FlagWithName
+                                    code={r.country}
+                                    name={r.wrestler}
+                                  />
+                                </Link>
+                              ) : (
+                                "—"
+                              )}
+                            </td>
 
-          {/* Interpreter */}
-          <td className="border px-2 py-1">
-            {r.interpreter_id ? (
-              <Link
-                href={`/interpreters/${r.interpreter_id}`}
-                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                <FlagWithName
-                  code={r.nationality}
-                  name={r.interpreter}
-                />
-              </Link>
-            ) : (
-              "—"
-            )}
-          </td>
+                            {/* Sólo renderiza esta columna si sel !== 5 */}
+                            {sel !== 5 && (
+                              <td className="border px-2 py-1">
+                                {r.interpreter_id ? (
+                                  <Link
+                                    href={`/interpreters/${r.interpreter_id}`}
+                                    className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                  >
+                                    <FlagWithName
+                                      code={r.nationality}
+                                      name={r.interpreter}
+                                    />
+                                  </Link>
+                                ) : (
+                                  "—"
+                                )}
+                              </td>
+                            )}
 
-          {/* Won Date */}
-          <td className="border px-2 py-1 text-center">
-            {formatEnglishDate(r.won_date)}
-          </td>
+                            {/* Won Date */}
+                            <td className="border px-2 py-1 text-center">
+                              {formatEnglishDate(r.won_date)}
+                            </td>
 
-          {/* Event */}
-          <td className="border px-2 py-1 text-center">
-            {r.event_id ? (
-              <Link
-                href={`/events/${r.event_id}`}
-                className="text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                {r.event_name}
-              </Link>
-            ) : (
-              "—"
-            )}
-          </td>
+                            {/* Event */}
+                            <td className="border px-2 py-1 text-center">
+                              {r.event_id ? (
+                                <Link
+                                  href={`/events/${r.event_id}`}
+                                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                                >
+                                  {r.event_name}
+                                </Link>
+                              ) : (
+                                "—"
+                              )}
+                            </td>
 
-          {/* Reign # */}
-          <td className="border px-2 py-1 text-center">
-            {r.reign_number}
-          </td>
+                            {/* Reign # */}
+                            <td className="border px-2 py-1 text-center">
+                              {r.reign_number}
+                            </td>
 
-          {/* Days Held */}
-          <td className="border px-2 py-1 text-center">
-            {r.lost_date === null
-              ? daysHeldRaw
-              : daysHeldRaw.replace("+", "")}
-          </td>
+                            {/* Days Held */}
+                            <td className="border px-2 py-1 text-center">
+                              {r.lost_date === null
+                                ? daysHeldRaw
+                                : daysHeldRaw.replace("+", "")}
+                            </td>
 
-          {/* Notes */}
-          <td className="border px-2 py-1 text-[12px] break-words">
-            {translateNotesToEnglish(r.notes)}
-          </td>
-        </tr>
-      );
-    });
-  })()}
-</tbody>
-
+                            {/* Notes */}
+                            <td className="border px-2 py-1 text-[12px] break-words">
+                              {translateNotesToEnglish(r.notes)}
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
+                  </tbody>
                 </table>
 
                 {/* ------------------------------- */}
