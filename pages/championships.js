@@ -609,12 +609,38 @@ export default function ChampionshipsPage() {
                             <td className="border px-2 py-1">
                               {r.tag_team_id ? (
                                 <>
+                                  {/* Nombre del equipo */}
                                   <span className="font-semibold">
                                     {r.team_name}
                                   </span>
                                   <br />
-                                  <span className="text-xs text-gray-700 dark:text-gray-300">
-                                    {r.team_members}
+                                  {/* Miembros entre paréntesis, coma y texto pequeño */}
+                                  <span className="text-xs">
+                                    (
+                                    {(r.team_members_raw
+                                      ? r.team_members_raw.split(",")
+                                      : []
+                                    ).map((item, i, arr) => {
+                                      const [id, name, country] =
+                                        item.split("|");
+                                      return (
+                                        <>
+                                          <Link
+                                            key={id}
+                                            href={`/wrestlers/${id}`}
+                                            className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                          >
+                                            <FlagWithName
+                                              code={country}
+                                              name={name}
+                                            />
+                                          </Link>
+                                          {/* añade coma y espacio salvo en el último miembro */}
+                                          {i < arr.length - 1 ? ", " : ""}
+                                        </>
+                                      );
+                                    })}
+                                    )
                                   </span>
                                 </>
                               ) : r.wrestler_id ? (

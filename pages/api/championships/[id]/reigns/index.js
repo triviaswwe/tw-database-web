@@ -32,10 +32,10 @@ export default async function handler(req, res) {
 
         -- Concatenamos los miembros del reinado de pareja
         GROUP_CONCAT(
-          DISTINCT wrm.wrestler
+          DISTINCT CONCAT(wrm.id, '|', wrm.wrestler, '|', wrm.country)
           ORDER BY wrm.wrestler
-          SEPARATOR ', '
-        ) AS team_members,
+          SEPARATOR ','
+        ) AS team_members_raw,
 
         -- Datos del evento
         r.event_id,
