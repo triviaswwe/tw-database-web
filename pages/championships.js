@@ -64,6 +64,7 @@ export default function ChampionshipsPage() {
       month: "long",
       day: "numeric",
       year: "numeric",
+      timeZone: "UTC",
     });
   };
 
@@ -73,6 +74,7 @@ export default function ChampionshipsPage() {
       month: "long",
       day: "numeric",
       year: "numeric",
+      timeZone: "UTC",
     });
   }, []);
 
