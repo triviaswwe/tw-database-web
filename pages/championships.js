@@ -511,6 +511,7 @@ export default function ChampionshipsPage() {
                               {
                                 month: "long",
                                 day: "numeric",
+                                timeZone: "UTC",
                               }
                             )}
                             {""},{" "}
