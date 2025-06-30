@@ -504,14 +504,14 @@ export default function ChampionshipsPage() {
                               />
                             </Link>{" "}
                             on {/* Fecha sólo mes y día */}
-                            {new Date(d.event_date).toLocaleDateString(
-                              "en-US",
-                              {
-                                month: "long",
-                                day: "numeric",
-                              }
-                            )}
-                            {""},{" "}
+                            {(() => {
+                              const [year, month, day] =
+                                d.event_date.split("-");
+                              const m = MONTH_NAMES[parseInt(month, 10) - 1];
+                              // Eliminamos ceros a la izquierda y devolvemos "June 28"
+                              return `${m} ${parseInt(day, 10)}`;
+                            })()}
+                            ,{" "}
                             <Link
                               href={`/events/${d.event_id}`}
                               className="text-blue-600 hover:underline dark:text-sky-300"
