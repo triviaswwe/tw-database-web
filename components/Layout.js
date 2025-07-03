@@ -45,6 +45,9 @@ export default function Layout({ children, isDark, setIsDark }) {
             >
               Interpreters
             </Link>
+            <Link href="/stables" className={navLinkClass("/stables")}>
+              Stables & Tag Teams
+            </Link>
             <Link href="/events" className={navLinkClass("/events")}>
               Events
             </Link>

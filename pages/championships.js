@@ -125,15 +125,43 @@ export default function ChampionshipsPage() {
   ];
 
   // 1) Incluir reignId en currentReignText
+  // Dentro de ChampionshipsPage:
+
   const currentReignText = useMemo(() => {
     if (!Array.isArray(reigns) || reigns.length === 0) return null;
     const current = reigns.find((r) => !r.lost_date);
     if (!current) return null;
 
+    /* ----- equipo campeón ----- */
+    let teamName = null,
+      teamMembers = [];
+    if (sel === 5 && current.team_members_raw) {
+      teamName = current.team_name;
+      teamMembers = current.team_members_raw.split(",").map((raw) => {
+        const [id, name, country] = raw.split("|");
+        return { wrestlerId: id, wrestler: name, country };
+      });
+    }
+
+    /* ----- equipo rival ----- */
+    let opponentTeamName = null,
+      opponentTeamId = null,
+      opponentTeamMembers = [];
+    if (sel === 5 && current.opponent_team_members_raw) {
+      opponentTeamName = current.opponent_team_name;
+      opponentTeamId = current.opponent_tag_team_id;
+      opponentTeamMembers = current.opponent_team_members_raw
+        .split(",")
+        .map((raw) => {
+          const [id, name, country] = raw.split("|");
+          return { wrestlerId: id, wrestler: name, country };
+        });
+    }
+
     return {
-      reignId: current.id, // agregado
-      wrestlerName: current.wrestler,
+      reignId: current.id,
       wrestlerId: current.wrestler_id,
+      wrestlerName: current.wrestler,
       wrestlerCountry: current.country,
       ordinalWord: getOrdinalWord(current.reign_number),
       defeatedOpponent: current.opponent || "—",
@@ -142,8 +170,17 @@ export default function ChampionshipsPage() {
       formattedDate: formatEnglishDate(current.won_date),
       eventName: current.event_name || "—",
       eventId: current.event_id || null,
+      tagTeamId: current.tag_team_id,
+      teamName, // nombre del equipo
+      teamMembers, // miembros del equipo
+      opponentTeamName,
+      opponentTeamId,
+      opponentTeamMembers,
+      defeatedOpponentId: current.opponent_id,
+      defeatedOpponent: current.opponent,
+      defeatedOpponentCountry: current.opponent_country,
     };
-  }, [reigns]);
+  }, [reigns, sel]);
 
   // 2) Filtrar defenses por reignId
   const currentDefenses = useMemo(() => {
@@ -266,75 +303,109 @@ export default function ChampionshipsPage() {
     return arr;
   }, [reigns, sortKey, sortOrder, sel]);
 
-  // Agrupar reinados por luchador y sumar días totales + defensas exitosas
+  // Agrupar reinados por luchador (o por tag‑team cuando sel === 5)
   const aggregatedStats = useMemo(() => {
-    if (!reigns) return [];
-    // También necesitamos defenses, si aún no llegó, devolvemos vacío
-    if (!defenseSummary) return [];
+    if (!reigns || !defenseSummary) return [];
 
-    // Construimos un Map<reign_id, count> a partir de defenses[]
-    const defensesMap = new Map();
-    defenseSummary.forEach((d) => {
-      defensesMap.set(d.reign_id, d.count);
-    });
+    /* ---------- mapa de defensas por reinado ---------- */
+    const defMap = new Map(defenseSummary.map((d) => [d.reign_id, d.count]));
 
-    const map = new Map();
+    /* ---------- elegimos la clave de agrupación ---------- */
+    const isTagTeamTitle = sel === 5; // sólo este título es por parejas
+    const map = new Map(); // Map<key, obj>
 
     reigns.forEach((r) => {
-      const wid = r.wrestler_id;
-      if (!wid) return;
-      // Calcular días de ese reinado
-      const daysHeldRaw = calculateDaysHeld(r.won_date, r.lost_date);
-      const daysHeld =
-        typeof daysHeldRaw === "string"
-          ? parseInt(daysHeldRaw.replace("+", ""), 10)
-          : daysHeldRaw;
-      // Obtener defensas de este reinado (por defecto 0)
-      const defensesForReign = defensesMap.get(r.id) || 0;
+      /* -------- días de ese reinado -------- */
+      const daysNum = parseInt(
+        calculateDaysHeld(r.won_date, r.lost_date).replace("+", ""),
+        10
+      );
+      const defenses = defMap.get(r.id) || 0;
 
-      if (!map.has(wid)) {
-        map.set(wid, {
-          wrestlerId: wid,
-          wrestlerName: r.wrestler,
-          country: r.country,
-          interpreterId: r.interpreter_id,
-          interpreterName: r.interpreter,
-          interpreterCountry: r.nationality,
-          reignCount: 1,
-          defenses: defensesForReign,
-          totalDays: daysHeld,
-          isCurrent: r.lost_date === null,
+      if (isTagTeamTitle && r.tag_team_id) {
+        /* ========== AGRUPAR POR EQUIPO ========== */
+        const key = r.tag_team_id;
+
+        /* miembros de este reinado */
+        const members = (r.team_members_raw || "").split(",").map((raw) => {
+          // id|name|country|reignNum
+          const [id, name, country, reignNum] = raw.split("|");
+
+          return {
+            id: Number(id),
+            name,
+            country,
+            reignNum: reignNum ? Number(reignNum) : null, // ← nuevo campo
+          };
         });
-      } else {
-        const entry = map.get(wid);
-        entry.reignCount += 1;
-        entry.defenses += defensesForReign;
-        entry.totalDays += daysHeld;
-        if (r.lost_date === null) {
-          entry.isCurrent = true;
+
+        if (!map.has(key)) {
+          map.set(key, {
+            /* datos de equipo */
+            tagTeamId: key,
+            teamName: r.team_name,
+            members: new Map(), // Map<wrestlerId, {name,country}>
+            reignCount: 0,
+            defenses: 0,
+            totalDays: 0,
+            isCurrent: false,
+          });
         }
+        const obj = map.get(key);
+        obj.reignCount += 1;
+        obj.defenses += defenses;
+        obj.totalDays += daysNum;
+        if (r.lost_date === null) obj.isCurrent = true;
+
+        /* combinar miembros (evita duplicados) */
+        members.forEach((m) => obj.members.set(m.id, m));
+      } else if (!isTagTeamTitle && r.wrestler_id) {
+        /* ========== AGRUPAR POR WRESTLER (caso single) ========== */
+        const key = r.wrestler_id;
+
+        if (!map.has(key)) {
+          map.set(key, {
+            wrestlerId: key,
+            wrestlerName: r.wrestler,
+            country: r.country,
+            interpreterId: r.interpreter_id,
+            interpreterName: r.interpreter,
+            interpreterCountry: r.nationality,
+            reignCount: 0,
+            defenses: 0,
+            totalDays: 0,
+            isCurrent: false,
+          });
+        }
+        const obj = map.get(key);
+        obj.reignCount += 1;
+        obj.defenses += defenses;
+        obj.totalDays += daysNum;
+        if (r.lost_date === null) obj.isCurrent = true;
       }
     });
 
-    const arr = Array.from(map.values()).map((e) => ({
-      ...e,
-      totalDaysLabel: e.isCurrent ? `${e.totalDays}+` : `${e.totalDays}`,
+    /* ---------- transformar en array y etiquetar días+ ---------- */
+    const arr = Array.from(map.values()).map((o) => ({
+      ...o,
+      totalDaysLabel: o.isCurrent ? `${o.totalDays}+` : `${o.totalDays}`,
     }));
 
+    /* ---------- ordenamiento ---------- */
     arr.sort((a, b) => {
       let va, vb;
       switch (aggSortKey) {
         case "N.º":
-          va = a.wrestlerId;
-          vb = b.wrestlerId;
+          va = isTagTeamTitle ? a.tagTeamId : a.wrestlerId;
+          vb = isTagTeamTitle ? b.tagTeamId : b.wrestlerId;
           break;
         case "Champion":
-          va = a.wrestlerName.toLowerCase();
-          vb = b.wrestlerName.toLowerCase();
-          break;
-        case "Interpreter":
-          va = a.interpreterName ? a.interpreterName.toLowerCase() : "";
-          vb = b.interpreterName ? b.interpreterName.toLowerCase() : "";
+          va = isTagTeamTitle
+            ? a.teamName.toLowerCase()
+            : a.wrestlerName.toLowerCase();
+          vb = isTagTeamTitle
+            ? b.teamName.toLowerCase()
+            : b.wrestlerName.toLowerCase();
           break;
         case "Reigns":
           va = a.reignCount;
@@ -357,7 +428,7 @@ export default function ChampionshipsPage() {
     });
 
     return arr;
-  }, [reigns, defenses, aggSortKey, aggSortOrder]);
+  }, [reigns, defenseSummary, sel, aggSortKey, aggSortOrder]);
 
   // Manejar clic en encabezado para cambiar orden (reinados)
   const handleSort = (column) => {
@@ -427,37 +498,92 @@ export default function ChampionshipsPage() {
             <p>Loading...</p>
           ) : (
             <>
-              {/* -------------------------- */}
+              {/* ------------------------- */}
               {/* Sección: Current champion */}
-              {/* -------------------------- */}
+              {/* ------------------------- */}
               {currentReignText && (
                 <div className="mb-4 p-4 rounded">
                   <h3 className="text-xl font-semibold mb-2">
                     Current champion
                   </h3>
                   <p className="text-sm">
-                    The current champion is{" "}
-                    {currentReignText.wrestlerId ? (
-                      <Link
-                        href={`/wrestlers/${currentReignText.wrestlerId}`}
-                        className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
-                      >
-                        <FlagWithName
-                          code={currentReignText.wrestlerCountry}
-                          name={currentReignText.wrestlerName}
-                        />
-                      </Link>
+                    {sel === 5 ? (
+                      <>
+                        The current champions are{" "}
+                        {/* Usamos teamName del currentReignText */}
+                        <Link
+                          href={`/stables/${currentReignText.tagTeamId}`}
+                          className="text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                        >
+                          {currentReignText.teamName}
+                        </Link>{" "}
+                        (
+                        {currentReignText.teamMembers.map((m, i) => (
+                          <span
+                            key={m.wrestlerId}
+                            className="inline-flex items-center gap-1"
+                          >
+                            <Link
+                              href={`/wrestlers/${m.wrestlerId}`}
+                              className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                            >
+                              <FlagWithName
+                                code={m.country}
+                                name={m.wrestler}
+                              />
+                            </Link>
+                            {/* Si es el primer miembro, ponemos el separador fuera del link */}
+                            {i === 0 && <span className="mx-1">&amp;</span>}
+                          </span>
+                        ))}
+                        ), who are in their {currentReignText.ordinalWord} reign
+                        as a team.
+                      </>
                     ) : (
-                      <span className="inline-flex items-center gap-1 font-semibold">
-                        <FlagWithName
-                          code={currentReignText.wrestlerCountry}
-                          name={currentReignText.wrestlerName}
-                        />
-                      </span>
-                    )}
-                    , who is in his {currentReignText.ordinalWord} reign. He won
-                    the title after defeating{" "}
-                    {currentReignText.defeatedOpponentId ? (
+                      <>
+                        The current champion is{" "}
+                        <Link
+                          href={`/wrestlers/${currentReignText.wrestlerId}`}
+                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                        >
+                          <FlagWithName
+                            code={currentReignText.wrestlerCountry}
+                            name={currentReignText.wrestlerName}
+                          />
+                        </Link>
+                        , who is in his {currentReignText.ordinalWord} reign.
+                      </>
+                    )}{" "}
+                    He won the title after defeating{" "}
+                    {sel === 5 && currentReignText.opponentTeamId ? (
+                      <>
+                        <Link
+                          href={`/stables/${currentReignText.opponentTeamId}`}
+                          className="text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                        >
+                          {currentReignText.opponentTeamName}
+                        </Link>{" "}
+                        (
+                        {currentReignText.opponentTeamMembers.map((m, i) => (
+                          <span
+                            key={m.wrestlerId}
+                            className="inline-flex items-center gap-1"
+                          >
+                            <Link
+                              href={`/wrestlers/${m.wrestlerId}`}
+                              className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                            >
+                              <FlagWithName
+                                code={m.country}
+                                name={m.wrestler}
+                              />
+                            </Link>
+                            {i === 0 && <span className="mx-1">&amp;</span>}
+                          </span>
+                        ))}
+                        )
+                      </>
+                    ) : currentReignText.defeatedOpponentId ? (
                       <Link
                         href={`/wrestlers/${currentReignText.defeatedOpponentId}`}
                         className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
@@ -468,7 +594,7 @@ export default function ChampionshipsPage() {
                         />
                       </Link>
                     ) : (
-                      <strong>{currentReignText.defeatedOpponent}</strong>
+                      <strong>—</strong>
                     )}{" "}
                     on {currentReignText.formattedDate} at{" "}
                     {currentReignText.eventId ? (
@@ -481,57 +607,109 @@ export default function ChampionshipsPage() {
                     ) : (
                       <strong>{currentReignText.eventName}</strong>
                     )}
-                    {"."}
+                    .
                   </p>
 
-                  {/* 3) Usar currentDefenses en lugar de defenses */}
                   {currentDefenses.length > 0 && (
                     <div className="mt-4">
                       <p className="text-sm mb-2">
-                        {currentReignText.wrestlerName} records the following
-                        televised defenses as of {todayString}:
+                        {sel === 5
+                          ? currentReignText.teamMembers
+                              .map((m) => m.wrestler)
+                              .join(" & ")
+                          : currentReignText.wrestlerName}{" "}
+                        records the following televised defenses as of{" "}
+                        {todayString}:
                       </p>
                       <ol className="list-decimal list-inside ml-4 space-y-1 text-sm">
-                        {currentDefenses.map((d, i) => (
-                          <li key={i}>
-                            ({d.score}) vs{" "}
-                            <Link
-                              href={`/wrestlers/${d.opponent_id}`}
-                              className="inline-flex items-center gap-1 text-blue-600 hover:underline dark:text-sky-300"
-                            >
-                              {/* Aquí usamos FlagWithName */}
-                              <FlagWithName
-                                code={d.opponent_country}
-                                name={d.opponent}
-                              />
-                            </Link>{" "}
-                            on {/* Fecha sólo mes y día */}
-                            {new Date(d.event_date).toLocaleDateString(
-                              "en-US",
-                              {
-                                month: "long",
-                                day: "numeric",
-                                timeZone: "UTC",
-                              }
-                            )}
-                            {""},{" "}
-                            <Link
-                              href={`/events/${d.event_id}`}
-                              className="text-blue-600 hover:underline dark:text-sky-300"
-                            >
-                              {d.event_name}
-                            </Link>
-                          </li>
-                        ))}
+                        {currentDefenses.map((d, i) => {
+                          /* --- para tag‑team rival, parseamos los miembros --- */
+                          let opponentBlock;
+                          if (sel === 5 && d.opponent_tag_team_id) {
+                            const members =
+                              d.opponent_team_members_raw
+                                ?.split(",")
+                                .map((raw) => {
+                                  const [id, name, country] = raw.split("|");
+                                  return { id, name, country };
+                                }) || [];
+
+                            opponentBlock = (
+                              <>
+                                <Link
+                                  href={`/stables/${d.opponent_tag_team_id}`}
+                                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                                >
+                                  {d.opponent_team_name}
+                                </Link>{" "}
+                                (
+                                {members.map((m, idx) => (
+                                  <span
+                                    key={m.id}
+                                    className="inline-flex items-center gap-1"
+                                  >
+                                    <Link
+                                      href={`/wrestlers/${m.id}`}
+                                      className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                    >
+                                      <FlagWithName
+                                        code={m.country}
+                                        name={m.name}
+                                      />
+                                    </Link>
+                                    {idx === 0 && members.length > 1 && (
+                                      <span className="mx-1">&amp;</span>
+                                    )}
+                                  </span>
+                                ))}
+                                )
+                              </>
+                            );
+                          } else {
+                            /* rival individual */
+                            opponentBlock = (
+                              <Link
+                                href={`/wrestlers/${d.opponent_id}`}
+                                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                <FlagWithName
+                                  code={d.opponent_country}
+                                  name={d.opponent}
+                                />
+                              </Link>
+                            );
+                          }
+
+                          return (
+                            <li key={i}>
+                              ({d.score}) vs {opponentBlock} on{" "}
+                              {new Date(d.event_date).toLocaleDateString(
+                                "en-US",
+                                {
+                                  month: "long",
+                                  day: "numeric",
+                                  timeZone: "UTC",
+                                }
+                              )}
+                              ,{" "}
+                              <Link
+                                href={`/events/${d.event_id}`}
+                                className="text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                {d.event_name}
+                              </Link>
+                            </li>
+                          );
+                        })}
                       </ol>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* -------------------------- */}
+              {/* ---------------------------------- */}
               {/* Sección: Championship reigns table */}
-              {/* -------------------------- */}
+              {/* ---------------------------------- */}
               <h2 className="text-2xl font-semibold">{champ.title_name}</h2>
 
               <div className="overflow-x-auto no-scrollbar">
@@ -609,13 +787,16 @@ export default function ChampionshipsPage() {
                             </td>
 
                             {/* Champion */}
-                            <td className="border px-2 py-1">
+                            <td className="border px-1 py-1 font-semibold">
                               {r.tag_team_id ? (
                                 <>
-                                  {/* Nombre del equipo */}
-                                  <span className="font-semibold">
+                                  {/* Nombre del equipo linkeable */}
+                                  <Link
+                                    href={`/stables/${r.tag_team_id}`}
+                                    className="font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                                  >
                                     {r.team_name}
-                                  </span>
+                                  </Link>
                                   <br />
                                   {/* Miembros entre paréntesis, coma y texto pequeño */}
                                   <span className="text-xs">
@@ -624,12 +805,14 @@ export default function ChampionshipsPage() {
                                       ? r.team_members_raw.split(",")
                                       : []
                                     ).map((item, i, arr) => {
-                                      const [id, name, country] =
+                                      const [id, name, country, indivReign] =
                                         item.split("|");
                                       return (
-                                        <>
+                                        <span
+                                          key={id}
+                                          className="inline-flex items-center"
+                                        >
                                           <Link
-                                            key={id}
                                             href={`/wrestlers/${id}`}
                                             className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
                                           >
@@ -638,9 +821,11 @@ export default function ChampionshipsPage() {
                                               name={name}
                                             />
                                           </Link>
-                                          {/* añade coma y espacio salvo en el último miembro */}
+                                          {/* nº de reinado individual */}
+                                          &nbsp;(
+                                          {indivReign})
                                           {i < arr.length - 1 ? ", " : ""}
-                                        </>
+                                        </span>
                                       );
                                     })}
                                     )
@@ -722,9 +907,9 @@ export default function ChampionshipsPage() {
                   </tbody>
                 </table>
 
-                {/* ------------------------------- */}
+                {/* --------------------------------- */}
                 {/* Bloque: Total days with the title */}
-                {/* ------------------------------- */}
+                {/* --------------------------------- */}
                 <div className="mt-8 mb-6">
                   <h3 className="text-xl font-semibold mb-2">
                     Total days with the title
@@ -739,7 +924,11 @@ export default function ChampionshipsPage() {
                             <th
                               key={label}
                               onClick={() => handleAggSort(label)}
-                              className="border px-2 py-1 text-center cursor-pointer select-none"
+                              className={`border px-2 py-1 text-center cursor-pointer select-none ${
+                                label === "Interpreter" && sel === 5
+                                  ? "hidden"
+                                  : ""
+                              }`}
                             >
                               {label}
                               {renderSortIcon(label, true)}
@@ -762,37 +951,73 @@ export default function ChampionshipsPage() {
                               {idx + 1}
                             </td>
 
-                            {/* 2) Champion con bandera */}
+                            {/* 2) Champion / Team */}
                             <td className="border px-2 py-1">
-                              <Link
-                                href={`/wrestlers/${row.wrestlerId}`}
-                                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                              >
-                                <FlagWithName
-                                  code={row.country}
-                                  name={row.wrestlerName}
-                                />
-                              </Link>
-                            </td>
-
-                            {/* 3) Interpreter con bandera o guión */}
-                            <td className="border px-2 py-1">
-                              {row.interpreterId ? (
+                              {sel === 5 ? (
+                                /* -------- FILA DE TAG‑TEAM -------- */
+                                <>
+                                  <Link
+                                    href={`/stables/${row.tagTeamId}`}
+                                    className="font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                                  >
+                                    {row.teamName}
+                                  </Link>
+                                  <br />
+                                  <span className="text-xs">
+                                    (
+                                    {Array.from(row.members.values()).map(
+                                      (m, i, arr) => (
+                                        <span key={m.id}>
+                                          <Link
+                                            href={`/wrestlers/${m.id}`}
+                                            className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                          >
+                                            <FlagWithName
+                                              code={m.country}
+                                              name={m.name}
+                                            />
+                                          </Link>
+                                          {i < arr.length - 1 && ", "}
+                                        </span>
+                                      )
+                                    )}
+                                    )
+                                  </span>
+                                </>
+                              ) : (
+                                /* -------- FILA INDIVIDUAL -------- */
                                 <Link
-                                  href={`/interpreters/${row.interpreterId}`}
-                                  className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                  href={`/wrestlers/${row.wrestlerId}`}
+                                  className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
                                 >
                                   <FlagWithName
-                                    code={row.interpreterCountry}
-                                    name={row.interpreterName}
+                                    code={row.country}
+                                    name={row.wrestlerName}
                                   />
                                 </Link>
-                              ) : (
-                                "—"
                               )}
                             </td>
 
-                            {/* 4) Número de reinados */}
+                            {/* 3) Interpreter — oculto si sel === 5 */}
+                            {sel !== 5 && (
+                              <td className="border px-2 py-1">
+                                {row.interpreterId ? (
+                                  <Link
+                                    href={`/interpreters/${row.interpreterId}`}
+                                    className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                  >
+                                    <FlagWithName
+                                      code={row.interpreterCountry}
+                                      name={row.interpreterName}
+                                    />
+                                  </Link>
+                                ) : (
+                                  "—"
+                                )}
+                              </td>
+                            )}
+
+                            {/* 4) Reigns */}
                             <td className="border px-2 py-1 text-center">
                               {row.reignCount}
                             </td>
