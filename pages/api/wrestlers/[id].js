@@ -28,7 +28,7 @@ export default async function handler(req, res) {
 
     // Opcional: traer interpreters asociados
     const [interpreters] = await pool.query(
-      `SELECT i.id, i.interpreter, i.nationality, i.instagram
+      `SELECT i.id, i.interpreter, i.nationality
        FROM interpreters i
        JOIN wrestler_interpreter wi ON i.id = wi.interpreter_id
        WHERE wi.wrestler_id = ?`,

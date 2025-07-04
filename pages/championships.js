@@ -1,5 +1,6 @@
 // pages/championships.js
 
+import React from "react";
 import { useState, useMemo } from "react";
 import useSWR from "swr";
 import Link from "next/link";
@@ -20,6 +21,7 @@ const CHAMPIONS = [
 export default function ChampionshipsPage() {
   const [sel, setSel] = useState(null);
 
+  // 0) SWR: championship, reigns y defenses
   const { data: champ } = useSWR(
     sel ? `/api/championships/${sel}` : null,
     fetcher
@@ -28,36 +30,67 @@ export default function ChampionshipsPage() {
     sel ? `/api/championships/${sel}/reigns` : null,
     fetcher
   );
-  // <-- NEW: SWR for defenses endpoint
   const { data: defensesData } = useSWR(
     sel ? `/api/championships/${sel}/defenses` : null,
     fetcher
   );
-
-  console.log("reigns →", reigns);
-
   const defenses = defensesData?.details || [];
   const defenseSummary = defensesData?.summary || [];
 
-  // Estado para ordenamiento de reinados
+  // 1) Estados de ordenamiento tablas
   const [sortKey, setSortKey] = useState(null);
-  const [sortOrder, setSortOrder] = useState("asc"); // "asc" o "desc"
+  const [sortOrder, setSortOrder] = useState("asc");
 
-  // Estados para ordenamiento de "Total days with the title"
   const [aggSortKey, setAggSortKey] = useState("Total days");
   const [aggSortOrder, setAggSortOrder] = useState("desc");
 
-  // Cálculo de días sostenidos para un reinado
-  const calculateDaysHeld = (wonDateStr, lostDateStr) => {
+  // 2) Estados de ordenamiento tabla reigns
+  const handleSort = (column, isAgg = false) => {
+    if (column === "#") {
+      if (isAgg) {
+        setAggSortKey("Total days");
+        setAggSortOrder("desc");
+      } else {
+        setSortKey(null);
+        setSortOrder("asc");
+      }
+    } else {
+      if (isAgg) {
+        if (aggSortKey === column) {
+          setAggSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+        } else {
+          setAggSortKey(column);
+          setAggSortOrder("asc");
+        }
+      } else {
+        if (sortKey === column) {
+          setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+        } else {
+          setSortKey(column);
+          setSortOrder("asc");
+        }
+      }
+    }
+  };
+
+  // 3) Utilitarios hoisted
+  function calculateDaysHeld(wonDateStr, lostDateStr) {
     if (!wonDateStr) return "—";
     const start = new Date(wonDateStr);
     const end = lostDateStr ? new Date(lostDateStr) : new Date();
-    const diffMs = end.getTime() - start.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffMs = end - start;
+    const diffDays = Math.floor(diffMs / 86400000);
     return lostDateStr ? `${diffDays}` : `${diffDays}+`;
-  };
+  }
 
-  // Formato de fechas en inglés
+  function parseDays(daysHeld) {
+    if (typeof daysHeld === "string") {
+      if (daysHeld === "—") return Number.MAX_SAFE_INTEGER;
+      return parseInt(daysHeld.replace("+", ""), 10);
+    }
+    return daysHeld;
+  }
+
   const formatEnglishDate = (dateStr) => {
     if (!dateStr) return "—";
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -68,19 +101,8 @@ export default function ChampionshipsPage() {
     });
   };
 
-  // Obtener fecha actual para "Updated as of"
-  const todayString = useMemo(() => {
-    return new Date().toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-      timeZone: "UTC",
-    });
-  }, []);
-
-  // Función para convertir número de reinado a palabra ordinal en inglés
   const getOrdinalWord = (num) => {
-    const ordinals = {
+    const ord = {
       1: "first",
       2: "second",
       3: "third",
@@ -92,17 +114,12 @@ export default function ChampionshipsPage() {
       9: "ninth",
       10: "tenth",
     };
-    return ordinals[num] || `${num}th`;
+    return ord[num] || `${num}th`;
   };
 
-  // Ordenamiento de notas (sin traducción para simplificar)
-  const translateNotesToEnglish = (note) => {
-    if (!note) return "—";
-    return note;
-  };
+  const translateNotesToEnglish = (note) => note || "—";
 
-  // Columnas definidas para reinados
-  // Mantenemos siempre todas las columnas, pero las ocultamos vía CSS cuando sel===5
+  // Columnas de la tabla de reinados
   const columns = [
     { label: "#", key: "index" },
     { label: "Champion", key: "champion" },
@@ -114,9 +131,9 @@ export default function ChampionshipsPage() {
     { label: "Notes", key: "notes", widthClass: "w-[25%]" },
   ];
 
-  // Columnas definidas para "Total days with the title"
+  // Columnas de la tabla agregada “Total days with the title”
   const aggColumns = [
-    { label: "N.º", sortable: true },
+    { label: "#", sortable: true },
     { label: "Champion", sortable: true },
     { label: "Interpreter", sortable: true },
     { label: "Reigns", sortable: true },
@@ -124,26 +141,43 @@ export default function ChampionshipsPage() {
     { label: "Total days", sortable: true },
   ];
 
-  // 1) Incluir reignId en currentReignText
-  // Dentro de ChampionshipsPage:
+  // Función para mostrar la flechita ▲▼ en cualquier tabla
+  const renderSortIcon = (column, isAgg = false) => {
+    const activeKey = isAgg ? aggSortKey : sortKey;
+    const activeOrder = isAgg ? aggSortOrder : sortOrder;
+    if (activeKey !== column) return null;
+    return activeOrder === "asc" ? " ▲" : " ▼";
+  };
 
+  const todayString = useMemo(
+    () =>
+      new Date().toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+        timeZone: "UTC",
+      }),
+    []
+  );
+
+  // 4) Texto del reinado actual
   const currentReignText = useMemo(() => {
     if (!Array.isArray(reigns) || reigns.length === 0) return null;
     const current = reigns.find((r) => !r.lost_date);
     if (!current) return null;
 
-    /* ----- equipo campeón ----- */
+    // Para tag‑team (id=5)
     let teamName = null,
       teamMembers = [];
     if (sel === 5 && current.team_members_raw) {
       teamName = current.team_name;
       teamMembers = current.team_members_raw.split(",").map((raw) => {
         const [id, name, country] = raw.split("|");
-        return { wrestlerId: id, wrestler: name, country };
+        return { wrestlerId: Number(id), wrestler: name, country };
       });
     }
 
-    /* ----- equipo rival ----- */
+    // Oponente tag‑team
     let opponentTeamName = null,
       opponentTeamId = null,
       opponentTeamMembers = [];
@@ -154,7 +188,7 @@ export default function ChampionshipsPage() {
         .split(",")
         .map((raw) => {
           const [id, name, country] = raw.split("|");
-          return { wrestlerId: id, wrestler: name, country };
+          return { wrestlerId: Number(id), wrestler: name, country };
         });
     }
 
@@ -164,36 +198,187 @@ export default function ChampionshipsPage() {
       wrestlerName: current.wrestler,
       wrestlerCountry: current.country,
       ordinalWord: getOrdinalWord(current.reign_number),
-      defeatedOpponent: current.opponent || "—",
-      defeatedOpponentId: current.opponent_id || null,
-      defeatedOpponentCountry: current.opponent_country || null,
       formattedDate: formatEnglishDate(current.won_date),
-      eventName: current.event_name || "—",
-      eventId: current.event_id || null,
+      eventId: current.event_id,
+      eventName: current.event_name,
+      // para tag‑team
       tagTeamId: current.tag_team_id,
-      teamName, // nombre del equipo
-      teamMembers, // miembros del equipo
-      opponentTeamName,
+      teamName,
+      teamMembers,
       opponentTeamId,
+      opponentTeamName,
       opponentTeamMembers,
+      // para singles
       defeatedOpponentId: current.opponent_id,
       defeatedOpponent: current.opponent,
       defeatedOpponentCountry: current.opponent_country,
     };
   }, [reigns, sel]);
 
-  // 2) Filtrar defenses por reignId
+  // 5) Defensas del reinado actual
   const currentDefenses = useMemo(() => {
     if (!defenses || !currentReignText) return [];
     return defenses.filter((d) => d.reign_id === currentReignText.reignId);
   }, [defenses, currentReignText]);
 
-  // Ordenar reinados y agregar filas de Vacant para NXT Championship (id=6)
-  const sortedReigns = useMemo(() => {
-    // 🚨 Cambio clave: validamos que reigns sea realmente un array
-    if (!Array.isArray(reigns)) return [];
+  // 6) Estadísticas “por luchador” (solo para singles)
+  const fighterStats = useMemo(() => {
+    if (!reigns || !defenseSummary || sel === 5) return [];
+    const defMap = new Map(defenseSummary.map((d) => [d.reign_id, d.count]));
+    const map = new Map();
 
-    // Ahora sí clonamos y procesamos
+    reigns.forEach((r) => {
+      if (!r.wrestler_id) return;
+      const daysNum =
+        parseInt(
+          calculateDaysHeld(r.won_date, r.lost_date).replace("+", ""),
+          10
+        ) || 0;
+      const defs = defMap.get(r.id) || 0;
+      if (!map.has(r.wrestler_id)) {
+        map.set(r.wrestler_id, {
+          wrestlerId: r.wrestler_id,
+          wrestlerName: r.wrestler,
+          country: r.country,
+          interpreterId: r.interpreter_id,
+          interpreterName: r.interpreter,
+          interpreterCountry: r.nationality,
+          reignCount: 0,
+          defenses: 0,
+          totalDays: 0,
+          isCurrent: false,
+        });
+      }
+      const o = map.get(r.wrestler_id);
+      o.reignCount++;
+      o.defenses += defs;
+      o.totalDays += daysNum;
+      if (r.lost_date === null) o.isCurrent = true;
+    });
+
+    return Array.from(map.values())
+      .map((o) => ({
+        ...o,
+        totalDaysLabel: o.isCurrent ? `${o.totalDays}+` : `${o.totalDays}`,
+      }))
+      .sort((a, b) => {
+        let va, vb;
+        switch (aggSortKey) {
+          case "Champion":
+            va = a.wrestlerName.toLowerCase();
+            vb = b.wrestlerName.toLowerCase();
+            break;
+          case "Reigns":
+            va = a.reignCount;
+            vb = b.reignCount;
+            break;
+          case "Successful defenses":
+            va = a.defenses;
+            vb = b.defenses;
+            break;
+          case "Total days":
+            va = a.totalDays;
+            vb = b.totalDays;
+            break;
+          default:
+            return 0;
+        }
+        return aggSortOrder === "asc"
+          ? va < vb
+            ? -1
+            : va > vb
+            ? 1
+            : 0
+          : va > vb
+          ? -1
+          : va < vb
+          ? 1
+          : 0;
+      });
+  }, [reigns, defenseSummary, sel, aggSortKey, aggSortOrder]);
+
+  // 7) Estadísticas “por equipos” (solo para tag‑team id=5)
+  const teamStats = useMemo(() => {
+    if (!reigns || !defenseSummary || sel !== 5) return [];
+    const defMap = new Map(defenseSummary.map((d) => [d.reign_id, d.count]));
+    const map = new Map();
+
+    reigns.forEach((r) => {
+      if (!r.tag_team_id) return;
+      const daysNum =
+        parseInt(
+          calculateDaysHeld(r.won_date, r.lost_date).replace("+", ""),
+          10
+        ) || 0;
+      const defs = defMap.get(r.id) || 0;
+
+      if (!map.has(r.tag_team_id)) {
+        map.set(r.tag_team_id, {
+          tagTeamId: r.tag_team_id,
+          teamName: r.team_name,
+          members: new Map(),
+          reignCount: 0,
+          defenses: 0,
+          totalDays: 0,
+          isCurrent: false,
+        });
+      }
+      const o = map.get(r.tag_team_id);
+      o.reignCount++;
+      o.defenses += defs;
+      o.totalDays += daysNum;
+      if (r.lost_date === null) o.isCurrent = true;
+
+      (r.team_members_raw || "").split(",").forEach((raw) => {
+        const [id, name, country] = raw.split("|");
+        o.members.set(Number(id), { id: Number(id), name, country });
+      });
+    });
+
+    return Array.from(map.values())
+      .map((o) => ({
+        ...o,
+        totalDaysLabel: o.isCurrent ? `${o.totalDays}+` : `${o.totalDays}`,
+      }))
+      .sort((a, b) => {
+        let va, vb;
+        switch (aggSortKey) {
+          case "Champion":
+            va = a.teamName.toLowerCase();
+            vb = b.teamName.toLowerCase();
+            break;
+          case "Reigns":
+            va = a.reignCount;
+            vb = b.reignCount;
+            break;
+          case "Successful defenses":
+            va = a.defenses;
+            vb = b.defenses;
+            break;
+          case "Total days":
+            va = a.totalDays;
+            vb = b.totalDays;
+            break;
+          default:
+            return 0;
+        }
+        return aggSortOrder === "asc"
+          ? va < vb
+            ? -1
+            : va > vb
+            ? 1
+            : 0
+          : va > vb
+          ? -1
+          : va < vb
+          ? 1
+          : 0;
+      });
+  }, [reigns, defenseSummary, sel, aggSortKey, aggSortOrder]);
+
+  // 8) Reinados ordenados + Vacant para NXT
+  const sortedReigns = useMemo(() => {
+    if (!Array.isArray(reigns)) return [];
     let arr = reigns.map((r, idx) => ({
       ...r,
       __index: idx,
@@ -206,37 +391,27 @@ export default function ChampionshipsPage() {
       isVacant: false,
     }));
 
-    // Orden inicial por fecha
     arr.sort((a, b) => a.__wonDateObj - b.__wonDateObj);
 
-    // Insertar filas "Vacant" solo para NXT (sel === 6)
     if (sel === 6) {
-      const withVacancies = [];
+      const withVac = [];
       for (let i = 0; i < arr.length; i++) {
-        const current = arr[i];
-        withVacancies.push(current);
+        withVac.push(arr[i]);
         const next = arr[i + 1];
         if (
           next &&
-          current.lost_date &&
+          arr[i].lost_date &&
           next.won_date &&
-          current.lost_date !== next.won_date
+          arr[i].lost_date !== next.won_date
         ) {
-          withVacancies.push({
+          withVac.push({
             id: `vacant-${i}`,
-            championship_id: sel,
             wrestler_id: null,
             wrestler: "Vacant",
-            interpreter_id: null,
-            interpreter: null,
-            won_date: current.lost_date,
-            event_id: null,
-            event_name: null,
-            reign_number: null,
-            notes: null,
+            won_date: arr[i].lost_date,
             __index: null,
             __daysHeld: "—",
-            __wonDateObj: new Date(current.lost_date),
+            __wonDateObj: new Date(arr[i].lost_date),
             __eventName: "",
             __wrestlerName: "Vacant",
             __interpreterName: "",
@@ -245,17 +420,16 @@ export default function ChampionshipsPage() {
           });
         }
       }
-      arr = withVacancies;
+      arr = withVac;
     }
 
-    // Aplicar orden dinámico según columna
     if (sortKey) {
       arr.sort((a, b) => {
         let va, vb;
         switch (sortKey) {
           case "#":
-            va = a.__index !== null ? a.__index : Number.MAX_SAFE_INTEGER;
-            vb = b.__index !== null ? b.__index : Number.MAX_SAFE_INTEGER;
+            va = a.__index ?? Number.MAX_SAFE_INTEGER;
+            vb = b.__index ?? Number.MAX_SAFE_INTEGER;
             break;
           case "Champion":
             va = a.__wrestlerName.toLowerCase();
@@ -274,10 +448,8 @@ export default function ChampionshipsPage() {
             vb = b.__eventName.toLowerCase();
             break;
           case "Reign #":
-            va =
-              a.reign_number != null ? a.reign_number : Number.MAX_SAFE_INTEGER;
-            vb =
-              b.reign_number != null ? b.reign_number : Number.MAX_SAFE_INTEGER;
+            va = a.reign_number ?? Number.MAX_SAFE_INTEGER;
+            vb = b.reign_number ?? Number.MAX_SAFE_INTEGER;
             break;
           case "Days Held":
             va = parseDays(a.__daysHeld);
@@ -293,77 +465,47 @@ export default function ChampionshipsPage() {
     }
 
     return arr;
-  }, [reigns, sortKey, sortOrder, sel]);
+  }, [reigns, sel, sortKey, sortOrder]);
 
-  // Helper para extraer número de días de la etiqueta
-  function parseDays(daysHeld) {
-    if (typeof daysHeld === "string") {
-      if (daysHeld === "—") return Number.MAX_SAFE_INTEGER;
-      return parseInt(daysHeld.replace("+", ""), 10);
-    }
-    return daysHeld;
-  }
-
-  // Agrupar reinados por luchador (o por tag‑team cuando sel === 5)
+  // 9) Tabla agregada “Total days with the title”
   const aggregatedStats = useMemo(() => {
     if (!reigns || !defenseSummary) return [];
-
-    /* ---------- mapa de defensas por reinado ---------- */
     const defMap = new Map(defenseSummary.map((d) => [d.reign_id, d.count]));
-
-    /* ---------- elegimos la clave de agrupación ---------- */
-    const isTagTeamTitle = sel === 5; // sólo este título es por parejas
-    const map = new Map(); // Map<key, obj>
+    const isTag = sel === 5;
+    const map = new Map();
 
     reigns.forEach((r) => {
-      /* -------- días de ese reinado -------- */
       const daysNum = parseInt(
         calculateDaysHeld(r.won_date, r.lost_date).replace("+", ""),
         10
       );
-      const defenses = defMap.get(r.id) || 0;
+      const defs = defMap.get(r.id) || 0;
 
-      if (isTagTeamTitle && r.tag_team_id) {
-        /* ========== AGRUPAR POR EQUIPO ========== */
+      if (isTag && r.tag_team_id) {
         const key = r.tag_team_id;
-
-        /* miembros de este reinado */
         const members = (r.team_members_raw || "").split(",").map((raw) => {
-          // id|name|country|reignNum
           const [id, name, country, reignNum] = raw.split("|");
-
-          return {
-            id: Number(id),
-            name,
-            country,
-            reignNum: reignNum ? Number(reignNum) : null, // ← nuevo campo
-          };
+          return { id: Number(id), name, country, reignNum: Number(reignNum) };
         });
-
         if (!map.has(key)) {
           map.set(key, {
-            /* datos de equipo */
             tagTeamId: key,
             teamName: r.team_name,
-            members: new Map(), // Map<wrestlerId, {name,country}>
+            members: new Map(),
             reignCount: 0,
             defenses: 0,
             totalDays: 0,
             isCurrent: false,
           });
         }
-        const obj = map.get(key);
-        obj.reignCount += 1;
-        obj.defenses += defenses;
-        obj.totalDays += daysNum;
-        if (r.lost_date === null) obj.isCurrent = true;
-
-        /* combinar miembros (evita duplicados) */
-        members.forEach((m) => obj.members.set(m.id, m));
-      } else if (!isTagTeamTitle && r.wrestler_id) {
-        /* ========== AGRUPAR POR WRESTLER (caso single) ========== */
+        const o = map.get(key);
+        o.reignCount++;
+        o.defenses += defs;
+        o.totalDays += daysNum;
+        if (r.lost_date === null) o.isCurrent = true;
+        members.forEach((m) => o.members.set(m.id, m));
+      } else if (!isTag && r.wrestler_id) {
         const key = r.wrestler_id;
-
         if (!map.has(key)) {
           map.set(key, {
             wrestlerId: key,
@@ -378,87 +520,62 @@ export default function ChampionshipsPage() {
             isCurrent: false,
           });
         }
-        const obj = map.get(key);
-        obj.reignCount += 1;
-        obj.defenses += defenses;
-        obj.totalDays += daysNum;
-        if (r.lost_date === null) obj.isCurrent = true;
+        const o = map.get(key);
+        o.reignCount++;
+        o.defenses += defs;
+        o.totalDays += daysNum;
+        if (r.lost_date === null) o.isCurrent = true;
       }
     });
 
-    /* ---------- transformar en array y etiquetar días+ ---------- */
-    const arr = Array.from(map.values()).map((o) => ({
-      ...o,
-      totalDaysLabel: o.isCurrent ? `${o.totalDays}+` : `${o.totalDays}`,
-    }));
-
-    /* ---------- ordenamiento ---------- */
-    arr.sort((a, b) => {
-      let va, vb;
-      switch (aggSortKey) {
-        case "N.º":
-          va = isTagTeamTitle ? a.tagTeamId : a.wrestlerId;
-          vb = isTagTeamTitle ? b.tagTeamId : b.wrestlerId;
-          break;
-        case "Champion":
-          va = isTagTeamTitle
-            ? a.teamName.toLowerCase()
-            : a.wrestlerName.toLowerCase();
-          vb = isTagTeamTitle
-            ? b.teamName.toLowerCase()
-            : b.wrestlerName.toLowerCase();
-          break;
-        case "Reigns":
-          va = a.reignCount;
-          vb = b.reignCount;
-          break;
-        case "Successful defenses":
-          va = a.defenses;
-          vb = b.defenses;
-          break;
-        case "Total days":
-          va = a.totalDays;
-          vb = b.totalDays;
-          break;
-        default:
-          return 0;
-      }
-      if (va < vb) return aggSortOrder === "asc" ? -1 : 1;
-      if (va > vb) return aggSortOrder === "asc" ? 1 : -1;
-      return 0;
-    });
-
-    return arr;
+    return Array.from(map.values())
+      .map((o) => ({
+        ...o,
+        totalDaysLabel: o.isCurrent ? `${o.totalDays}+` : `${o.totalDays}`,
+      }))
+      .sort((a, b) => {
+        let va, vb;
+        switch (aggSortKey) {
+          case "#":
+            va = isTag ? a.tagTeamId : a.wrestlerId;
+            vb = isTag ? b.tagTeamId : b.wrestlerId;
+            break;
+          case "Champion":
+            va = isTag
+              ? a.teamName.toLowerCase()
+              : a.wrestlerName.toLowerCase();
+            vb = isTag
+              ? b.teamName.toLowerCase()
+              : b.wrestlerName.toLowerCase();
+            break;
+          case "Reigns":
+            va = a.reignCount;
+            vb = b.reignCount;
+            break;
+          case "Successful defenses":
+            va = a.defenses;
+            vb = b.defenses;
+            break;
+          case "Total days":
+            va = a.totalDays;
+            vb = b.totalDays;
+            break;
+          default:
+            return 0;
+        }
+        return aggSortOrder === "asc"
+          ? va < vb
+            ? -1
+            : va > vb
+            ? 1
+            : 0
+          : va > vb
+          ? -1
+          : va < vb
+          ? 1
+          : 0;
+      });
   }, [reigns, defenseSummary, sel, aggSortKey, aggSortOrder]);
-
-  // Manejar clic en encabezado para cambiar orden (reinados)
-  const handleSort = (column) => {
-    if (column === "Notes") return;
-    if (sortKey === column) {
-      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortKey(column);
-      setSortOrder("asc");
-    }
-  };
-
-  // Manejar clic en encabezado para cambiar orden (totales)
-  const handleAggSort = (column) => {
-    if (aggSortKey === column) {
-      setAggSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setAggSortKey(column);
-      setAggSortOrder("asc");
-    }
-  };
-
-  // Render de icono de flecha (para ambas tablas)
-  const renderSortIcon = (column, isAgg = false) => {
-    const activeKey = isAgg ? aggSortKey : sortKey;
-    const activeOrder = isAgg ? aggSortOrder : sortOrder;
-    if (activeKey !== column) return null;
-    return activeOrder === "asc" ? " ▲" : " ▼";
-  };
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -720,14 +837,15 @@ export default function ChampionshipsPage() {
                       {columns.map(({ label, key, widthClass }) => (
                         <th
                           key={key}
-                          // Oculto toda la columna "Interpreter" cuando sel===5
-                          className={`border px-2 py-1 text-center ${
+                          onClick={() => handleSort(label)}
+                          className={`cursor-pointer border px-2 py-1 text-center ${
                             widthClass || ""
                           } ${
                             key === "interpreter" && sel === 5 ? "hidden" : ""
                           }`}
                         >
                           {label}
+                          {renderSortIcon(label)}
                         </th>
                       ))}
                     </tr>
@@ -783,6 +901,7 @@ export default function ChampionshipsPage() {
                             key={r.id}
                             className="hover:bg-gray-50 dark:hover:bg-gray-800"
                           >
+                            {/* # */}
                             <td className="border px-2 py-1 text-center">
                               {displayIndex}
                             </td>
@@ -791,7 +910,6 @@ export default function ChampionshipsPage() {
                             <td className="border px-1 py-1 font-semibold">
                               {r.tag_team_id ? (
                                 <>
-                                  {/* Nombre del equipo linkeable */}
                                   <Link
                                     href={`/stables/${r.tag_team_id}`}
                                     className="font-semibold text-blue-600 dark:text-blue-400 hover:underline"
@@ -799,7 +917,6 @@ export default function ChampionshipsPage() {
                                     {r.team_name}
                                   </Link>
                                   <br />
-                                  {/* Miembros entre paréntesis, coma y texto pequeño */}
                                   <span className="text-xs">
                                     (
                                     {(r.team_members_raw
@@ -819,9 +936,7 @@ export default function ChampionshipsPage() {
                                               name={name}
                                             />
                                           </Link>
-                                          {/* nº de reinado individual */}
-                                          &nbsp;(
-                                          {indivReign})
+                                          &nbsp;({indivReign})
                                           {i < arr.length - 1 ? ", " : ""}
                                         </span>
                                       );
@@ -844,7 +959,7 @@ export default function ChampionshipsPage() {
                               )}
                             </td>
 
-                            {/* Sólo renderiza esta columna si sel !== 5 */}
+                            {/* Interpreter (solo si sel !== 5) */}
                             {sel !== 5 && (
                               <td className="border px-2 py-1">
                                 {r.interpreter_id ? (
@@ -915,46 +1030,42 @@ export default function ChampionshipsPage() {
                 </h3>
                 <p className="mb-4 text-sm">Updated as of {todayString}.</p>
 
-                <div className="overflow-x-auto no-scrollbar">
-                  <table className="table-auto w-full border-collapse text-sm min-w-[800px]">
-                    <thead>
-                      <tr className="bg-gray-100 dark:bg-gray-700">
-                        {aggColumns.map(({ label }) => (
-                          <th
-                            key={label}
-                            onClick={() => handleAggSort(label)}
-                            className={`border px-2 py-1 text-center cursor-pointer select-none ${
-                              label === "Interpreter" && sel === 5
-                                ? "hidden"
-                                : ""
-                            }`}
-                          >
-                            {label}
-                            {renderSortIcon(label, true)}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {aggregatedStats.map((row, idx) => (
-                        <tr
-                          key={row.wrestlerId}
-                          className={`${
-                            row.isCurrent
-                              ? "bg-yellow-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
-                              : "hover:bg-gray-50 dark:hover:bg-gray-800"
-                          }`}
-                        >
-                          {/* 1) Número de posición */}
-                          <td className="border px-2 py-1 text-center">
-                            {idx + 1}
-                          </td>
-
-                          {/* 2) Champion / Team */}
-                          <td className="border px-2 py-1">
-                            {sel === 5 ? (
-                              /* -------- FILA DE TAG‑TEAM -------- */
-                              <>
+                {/* === Tabla por equipos (solo para tag‑team) === */}
+                {sel === 5 && (
+                  <div className="mb-8">
+                    <h4 className="text-lg font-semibold mb-2">By Tag Team</h4>
+                    <div className="overflow-x-auto no-scrollbar">
+                      <table className="table-auto w-full border-collapse text-sm min-w-[600px]">
+                        <thead>
+                          <tr className="bg-gray-100 dark:bg-gray-700">
+                            {aggColumns
+                              .filter((c) => c.label !== "Interpreter")
+                              .map(({ label }) => (
+                                <th
+                                  key={label}
+                                  onClick={() => handleSort(label, true)}
+                                  className="border px-2 py-1 text-center cursor-pointer select-none"
+                                >
+                                  {label}
+                                  {renderSortIcon(label, true)}
+                                </th>
+                              ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {teamStats.map((row, idx) => (
+                            <tr
+                              key={row.tagTeamId}
+                              className={`${
+                                row.isCurrent
+                                  ? "bg-yellow-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                              }`}
+                            >
+                              <td className="border px-2 py-1 text-center">
+                                {idx + 1}
+                              </td>
+                              <td className="border px-2 py-1">
                                 <Link
                                   href={`/stables/${row.tagTeamId}`}
                                   className="font-bold text-blue-600 dark:text-blue-400 hover:underline"
@@ -982,9 +1093,59 @@ export default function ChampionshipsPage() {
                                   )}
                                   )
                                 </span>
-                              </>
-                            ) : (
-                              /* -------- FILA INDIVIDUAL -------- */
+                              </td>
+                              <td className="border px-2 py-1 text-center">
+                                {row.reignCount}
+                              </td>
+                              <td className="border px-2 py-1 text-center">
+                                {row.defenses}
+                              </td>
+                              <td className="border px-2 py-1 text-center">
+                                {row.totalDaysLabel}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* === Tabla por luchador (siempre) === */}
+                <div>
+                  <h4 className="text-lg font-semibold mb-2">
+                    {sel === 5 ? "By Individual Wrestler" : ""}
+                  </h4>
+                  <div className="overflow-x-auto no-scrollbar">
+                    <table className="table-auto w-full border-collapse text-sm min-w-[600px]">
+                      <thead>
+                        <tr className="bg-gray-100 dark:bg-gray-700">
+                          {aggColumns.map(({ label }) => (
+                            <th
+                              key={label}
+                              onClick={() => handleSort(label, true)}
+                              className="cursor-pointer border px-2 py-1 text-center"
+                            >
+                              {label}
+                              {renderSortIcon(label, true)}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {fighterStats.map((row, idx) => (
+                          <tr
+                            key={row.wrestlerId}
+                            className={`${
+                              row.isCurrent
+                                ? "bg-yellow-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                            }`}
+                          >
+                            <td className="border px-2 py-1 text-center">
+                              {idx + 1}
+                            </td>
+                            <td className="border px-2 py-1">
                               <Link
                                 href={`/wrestlers/${row.wrestlerId}`}
                                 className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
@@ -994,46 +1155,38 @@ export default function ChampionshipsPage() {
                                   name={row.wrestlerName}
                                 />
                               </Link>
-                            )}
-                          </td>
-
-                          {/* 3) Interpreter — oculto si sel === 5 */}
-                          {sel !== 5 && (
-                            <td className="border px-2 py-1">
-                              {row.interpreterId ? (
-                                <Link
-                                  href={`/interpreters/${row.interpreterId}`}
-                                  className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                                >
-                                  <FlagWithName
-                                    code={row.interpreterCountry}
-                                    name={row.interpreterName}
-                                  />
-                                </Link>
-                              ) : (
-                                "—"
-                              )}
                             </td>
-                          )}
-
-                          {/* 4) Reigns */}
-                          <td className="border px-2 py-1 text-center">
-                            {row.reignCount}
-                          </td>
-
-                          {/* 5) Defensas exitosas */}
-                          <td className="border px-2 py-1 text-center">
-                            {row.defenses}
-                          </td>
-
-                          {/* 6) Días totales */}
-                          <td className="border px-2 py-1 text-center">
-                            {row.totalDaysLabel}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                            {sel !== 5 && (
+                              <td className="border px-2 py-1">
+                                {row.interpreterId ? (
+                                  <Link
+                                    href={`/interpreters/${row.interpreterId}`}
+                                    className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                  >
+                                    <FlagWithName
+                                      code={row.interpreterCountry}
+                                      name={row.interpreterName}
+                                    />
+                                  </Link>
+                                ) : (
+                                  "—"
+                                )}
+                              </td>
+                            )}
+                            <td className="border px-2 py-1 text-center">
+                              {row.reignCount}
+                            </td>
+                            <td className="border px-2 py-1 text-center">
+                              {row.defenses}
+                            </td>
+                            <td className="border px-2 py-1 text-center">
+                              {row.totalDaysLabel}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             </>
