@@ -190,8 +190,11 @@ export default function ChampionshipsPage() {
 
   // Ordenar reinados y agregar filas de Vacant para NXT Championship (id=6)
   const sortedReigns = useMemo(() => {
-    if (!reigns) return [];
-    let arr = [...reigns].map((r, idx) => ({
+    // 🚨 Cambio clave: validamos que reigns sea realmente un array
+    if (!Array.isArray(reigns)) return [];
+
+    // Ahora sí clonamos y procesamos
+    let arr = reigns.map((r, idx) => ({
       ...r,
       __index: idx,
       __daysHeld: calculateDaysHeld(r.won_date, r.lost_date),
@@ -203,8 +206,10 @@ export default function ChampionshipsPage() {
       isVacant: false,
     }));
 
+    // Orden inicial por fecha
     arr.sort((a, b) => a.__wonDateObj - b.__wonDateObj);
 
+    // Insertar filas "Vacant" solo para NXT (sel === 6)
     if (sel === 6) {
       const withVacancies = [];
       for (let i = 0; i < arr.length; i++) {
@@ -243,6 +248,7 @@ export default function ChampionshipsPage() {
       arr = withVacancies;
     }
 
+    // Aplicar orden dinámico según columna
     if (sortKey) {
       arr.sort((a, b) => {
         let va, vb;
@@ -269,27 +275,13 @@ export default function ChampionshipsPage() {
             break;
           case "Reign #":
             va =
-              a.reign_number !== null
-                ? a.reign_number
-                : Number.MAX_SAFE_INTEGER;
+              a.reign_number != null ? a.reign_number : Number.MAX_SAFE_INTEGER;
             vb =
-              b.reign_number !== null
-                ? b.reign_number
-                : Number.MAX_SAFE_INTEGER;
+              b.reign_number != null ? b.reign_number : Number.MAX_SAFE_INTEGER;
             break;
           case "Days Held":
-            va =
-              typeof a.__daysHeld === "string"
-                ? a.__daysHeld === "—"
-                  ? Number.MAX_SAFE_INTEGER
-                  : parseInt(a.__daysHeld.replace("+", ""), 10)
-                : parseInt(a.__daysHeld, 10);
-            vb =
-              typeof b.__daysHeld === "string"
-                ? b.__daysHeld === "—"
-                  ? Number.MAX_SAFE_INTEGER
-                  : parseInt(b.__daysHeld.replace("+", ""), 10)
-                : parseInt(b.__daysHeld, 10);
+            va = parseDays(a.__daysHeld);
+            vb = parseDays(b.__daysHeld);
             break;
           default:
             return 0;
@@ -302,6 +294,15 @@ export default function ChampionshipsPage() {
 
     return arr;
   }, [reigns, sortKey, sortOrder, sel]);
+
+  // Helper para extraer número de días de la etiqueta
+  function parseDays(daysHeld) {
+    if (typeof daysHeld === "string") {
+      if (daysHeld === "—") return Number.MAX_SAFE_INTEGER;
+      return parseInt(daysHeld.replace("+", ""), 10);
+    }
+    return daysHeld;
+  }
 
   // Agrupar reinados por luchador (o por tag‑team cuando sel === 5)
   const aggregatedStats = useMemo(() => {
@@ -521,11 +522,11 @@ export default function ChampionshipsPage() {
                         {currentReignText.teamMembers.map((m, i) => (
                           <span
                             key={m.wrestlerId}
-                            className="inline-flex items-center gap-1"
+                            className="items-center gap-1"
                           >
                             <Link
                               href={`/wrestlers/${m.wrestlerId}`}
-                              className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                              className="items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
                             >
                               <FlagWithName
                                 code={m.country}
@@ -567,11 +568,11 @@ export default function ChampionshipsPage() {
                         {currentReignText.opponentTeamMembers.map((m, i) => (
                           <span
                             key={m.wrestlerId}
-                            className="inline-flex items-center gap-1"
+                            className="items-center gap-1"
                           >
                             <Link
                               href={`/wrestlers/${m.wrestlerId}`}
-                              className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                              className="items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
                             >
                               <FlagWithName
                                 code={m.country}
@@ -646,11 +647,11 @@ export default function ChampionshipsPage() {
                                 {members.map((m, idx) => (
                                   <span
                                     key={m.id}
-                                    className="inline-flex items-center gap-1"
+                                    className="items-center gap-1"
                                   >
                                     <Link
                                       href={`/wrestlers/${m.id}`}
-                                      className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                      className="items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
                                     >
                                       <FlagWithName
                                         code={m.country}
@@ -808,13 +809,10 @@ export default function ChampionshipsPage() {
                                       const [id, name, country, indivReign] =
                                         item.split("|");
                                       return (
-                                        <span
-                                          key={id}
-                                          className="inline-flex items-center"
-                                        >
+                                        <span key={id} className="items-center">
                                           <Link
                                             href={`/wrestlers/${id}`}
-                                            className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                            className="items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
                                           >
                                             <FlagWithName
                                               code={country}
@@ -906,136 +904,136 @@ export default function ChampionshipsPage() {
                     })()}
                   </tbody>
                 </table>
+              </div>
 
-                {/* --------------------------------- */}
-                {/* Bloque: Total days with the title */}
-                {/* --------------------------------- */}
-                <div className="mt-8 mb-6">
-                  <h3 className="text-xl font-semibold mb-2">
-                    Total days with the title
-                  </h3>
-                  <p className="mb-4 text-sm">Updated as of {todayString}.</p>
+              {/* --------------------------------- */}
+              {/* Bloque: Total days with the title */}
+              {/* --------------------------------- */}
+              <div className="mt-8 mb-6">
+                <h3 className="text-xl font-semibold mb-2">
+                  Total days with the title
+                </h3>
+                <p className="mb-4 text-sm">Updated as of {todayString}.</p>
 
-                  <div className="overflow-x-auto no-scrollbar">
-                    <table className="table-auto w-full border-collapse text-sm min-w-[800px]">
-                      <thead>
-                        <tr className="bg-gray-100 dark:bg-gray-700">
-                          {aggColumns.map(({ label }) => (
-                            <th
-                              key={label}
-                              onClick={() => handleAggSort(label)}
-                              className={`border px-2 py-1 text-center cursor-pointer select-none ${
-                                label === "Interpreter" && sel === 5
-                                  ? "hidden"
-                                  : ""
-                              }`}
-                            >
-                              {label}
-                              {renderSortIcon(label, true)}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {aggregatedStats.map((row, idx) => (
-                          <tr
-                            key={row.wrestlerId}
-                            className={`${
-                              row.isCurrent
-                                ? "bg-yellow-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                <div className="overflow-x-auto no-scrollbar">
+                  <table className="table-auto w-full border-collapse text-sm min-w-[800px]">
+                    <thead>
+                      <tr className="bg-gray-100 dark:bg-gray-700">
+                        {aggColumns.map(({ label }) => (
+                          <th
+                            key={label}
+                            onClick={() => handleAggSort(label)}
+                            className={`border px-2 py-1 text-center cursor-pointer select-none ${
+                              label === "Interpreter" && sel === 5
+                                ? "hidden"
+                                : ""
                             }`}
                           >
-                            {/* 1) Número de posición */}
-                            <td className="border px-2 py-1 text-center">
-                              {idx + 1}
-                            </td>
+                            {label}
+                            {renderSortIcon(label, true)}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {aggregatedStats.map((row, idx) => (
+                        <tr
+                          key={row.wrestlerId}
+                          className={`${
+                            row.isCurrent
+                              ? "bg-yellow-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                              : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                          }`}
+                        >
+                          {/* 1) Número de posición */}
+                          <td className="border px-2 py-1 text-center">
+                            {idx + 1}
+                          </td>
 
-                            {/* 2) Champion / Team */}
-                            <td className="border px-2 py-1">
-                              {sel === 5 ? (
-                                /* -------- FILA DE TAG‑TEAM -------- */
-                                <>
-                                  <Link
-                                    href={`/stables/${row.tagTeamId}`}
-                                    className="font-bold text-blue-600 dark:text-blue-400 hover:underline"
-                                  >
-                                    {row.teamName}
-                                  </Link>
-                                  <br />
-                                  <span className="text-xs">
-                                    (
-                                    {Array.from(row.members.values()).map(
-                                      (m, i, arr) => (
-                                        <span key={m.id}>
-                                          <Link
-                                            href={`/wrestlers/${m.id}`}
-                                            className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                                          >
-                                            <FlagWithName
-                                              code={m.country}
-                                              name={m.name}
-                                            />
-                                          </Link>
-                                          {i < arr.length - 1 && ", "}
-                                        </span>
-                                      )
-                                    )}
-                                    )
-                                  </span>
-                                </>
-                              ) : (
-                                /* -------- FILA INDIVIDUAL -------- */
+                          {/* 2) Champion / Team */}
+                          <td className="border px-2 py-1">
+                            {sel === 5 ? (
+                              /* -------- FILA DE TAG‑TEAM -------- */
+                              <>
                                 <Link
-                                  href={`/wrestlers/${row.wrestlerId}`}
-                                  className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                                  href={`/stables/${row.tagTeamId}`}
+                                  className="font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                                >
+                                  {row.teamName}
+                                </Link>
+                                <br />
+                                <span className="text-xs">
+                                  (
+                                  {Array.from(row.members.values()).map(
+                                    (m, i, arr) => (
+                                      <span key={m.id}>
+                                        <Link
+                                          href={`/wrestlers/${m.id}`}
+                                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                        >
+                                          <FlagWithName
+                                            code={m.country}
+                                            name={m.name}
+                                          />
+                                        </Link>
+                                        {i < arr.length - 1 && ", "}
+                                      </span>
+                                    )
+                                  )}
+                                  )
+                                </span>
+                              </>
+                            ) : (
+                              /* -------- FILA INDIVIDUAL -------- */
+                              <Link
+                                href={`/wrestlers/${row.wrestlerId}`}
+                                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                              >
+                                <FlagWithName
+                                  code={row.country}
+                                  name={row.wrestlerName}
+                                />
+                              </Link>
+                            )}
+                          </td>
+
+                          {/* 3) Interpreter — oculto si sel === 5 */}
+                          {sel !== 5 && (
+                            <td className="border px-2 py-1">
+                              {row.interpreterId ? (
+                                <Link
+                                  href={`/interpreters/${row.interpreterId}`}
+                                  className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
                                 >
                                   <FlagWithName
-                                    code={row.country}
-                                    name={row.wrestlerName}
+                                    code={row.interpreterCountry}
+                                    name={row.interpreterName}
                                   />
                                 </Link>
+                              ) : (
+                                "—"
                               )}
                             </td>
+                          )}
 
-                            {/* 3) Interpreter — oculto si sel === 5 */}
-                            {sel !== 5 && (
-                              <td className="border px-2 py-1">
-                                {row.interpreterId ? (
-                                  <Link
-                                    href={`/interpreters/${row.interpreterId}`}
-                                    className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                                  >
-                                    <FlagWithName
-                                      code={row.interpreterCountry}
-                                      name={row.interpreterName}
-                                    />
-                                  </Link>
-                                ) : (
-                                  "—"
-                                )}
-                              </td>
-                            )}
+                          {/* 4) Reigns */}
+                          <td className="border px-2 py-1 text-center">
+                            {row.reignCount}
+                          </td>
 
-                            {/* 4) Reigns */}
-                            <td className="border px-2 py-1 text-center">
-                              {row.reignCount}
-                            </td>
+                          {/* 5) Defensas exitosas */}
+                          <td className="border px-2 py-1 text-center">
+                            {row.defenses}
+                          </td>
 
-                            {/* 5) Defensas exitosas */}
-                            <td className="border px-2 py-1 text-center">
-                              {row.defenses}
-                            </td>
-
-                            {/* 6) Días totales */}
-                            <td className="border px-2 py-1 text-center">
-                              {row.totalDaysLabel}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                          {/* 6) Días totales */}
+                          <td className="border px-2 py-1 text-center">
+                            {row.totalDaysLabel}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </>
