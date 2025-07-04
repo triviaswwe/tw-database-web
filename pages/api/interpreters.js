@@ -37,7 +37,7 @@ export default async function handler(req, res) {
 
     // página de datos
     const [rows] = await pool.query(
-      `SELECT id, interpreter, nationality, instagram, status
+      `SELECT id, interpreter, nationality, status
        FROM interpreters
        ${whereSql}
        ORDER BY interpreter ASC

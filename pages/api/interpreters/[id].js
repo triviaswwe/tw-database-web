@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   try {
     // 1) Obtener datos del intérprete (sin filtrar status)
     const [ints] = await pool.query(
-      `SELECT id, interpreter, nationality, instagram, status
+      `SELECT id, interpreter, nationality, status
        FROM interpreters
        WHERE id = ?`,
       [id]
