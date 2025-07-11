@@ -256,7 +256,10 @@ export default function WrestlerDetail({
 
           {/* Debut */}
           <p className="text-gray-600 mb-1 dark:text-white">
-            Debut: {formatDebut(wrestler.debut_date)}
+            Debut:{" "}
+            {matches.stats.firstMatch
+              ? formatDateDDMMYYYY(matches.stats.firstMatch)
+              : "—"}
           </p>
 
           {/* Interpreter actual (solo si existe) */}

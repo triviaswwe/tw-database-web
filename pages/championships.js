@@ -34,8 +34,14 @@ export default function ChampionshipsPage() {
     sel ? `/api/championships/${sel}/defenses` : null,
     fetcher
   );
+  // 0.1) SWR para stats individuales de tag‑team (sólo WWE World Tag Team)
+  const { data: tagIndStats } = useSWR(
+    sel === 5 ? `/api/championships/${sel}/tag-individual-stats` : null,
+    fetcher
+  );
   const defenses = defensesData?.details || [];
   const defenseSummary = defensesData?.summary || [];
+  const tagIndividualStats = tagIndStats || [];
 
   // 1) Estados de ordenamiento tablas
   const [sortKey, setSortKey] = useState(null);
@@ -43,6 +49,14 @@ export default function ChampionshipsPage() {
 
   const [aggSortKey, setAggSortKey] = useState("Total days");
   const [aggSortOrder, setAggSortOrder] = useState("desc");
+
+  // 1.1) Orden para Tag Team
+  const [teamSortKey, setTeamSortKey] = useState("Total days");
+  const [teamSortOrder, setTeamSortOrder] = useState("desc");
+
+  // 1.2) Orden para Individual Wrestler (tag‑team)
+  const [indSortKey, setIndSortKey] = useState("Total days");
+  const [indSortOrder, setIndSortOrder] = useState("desc");
 
   // 2) Estados de ordenamiento tabla reigns
   const handleSort = (column, isAgg = false) => {
@@ -72,6 +86,30 @@ export default function ChampionshipsPage() {
       }
     }
   };
+
+  function handleTeamSort(column) {
+    if (column === "#") {
+      setTeamSortKey("Total days");
+      setTeamSortOrder("desc");
+    } else if (teamSortKey === column) {
+      setTeamSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setTeamSortKey(column);
+      setTeamSortOrder("asc");
+    }
+  }
+
+  function handleIndSort(column) {
+    if (column === "#") {
+      setIndSortKey("Total days");
+      setIndSortOrder("desc");
+    } else if (indSortKey === column) {
+      setIndSortOrder((o) => (o === "asc" ? "desc" : "asc"));
+    } else {
+      setIndSortKey(column);
+      setIndSortOrder("asc");
+    }
+  }
 
   // 3) Utilitarios hoisted
   function calculateDaysHeld(wonDateStr, lostDateStr) {
@@ -149,6 +187,12 @@ export default function ChampionshipsPage() {
     return activeOrder === "asc" ? " ▲" : " ▼";
   };
 
+  const renderTeamSortIcon = (column) =>
+    teamSortKey === column ? (teamSortOrder === "asc" ? " ▲" : " ▼") : null;
+
+  const renderIndSortIcon = (column) =>
+    indSortKey === column ? (indSortOrder === "asc" ? " ▲" : " ▼") : null;
+
   const todayString = useMemo(
     () =>
       new Date().toLocaleDateString("en-US", {
@@ -223,7 +267,7 @@ export default function ChampionshipsPage() {
 
   // 6) Estadísticas “por luchador” (solo para singles)
   const fighterStats = useMemo(() => {
-    if (!reigns || !defenseSummary || sel === 5) return [];
+    if (sel === 5 || !Array.isArray(reigns) || !defenseSummary) return [];
     const defMap = new Map(defenseSummary.map((d) => [d.reign_id, d.count]));
     const map = new Map();
 
@@ -268,6 +312,10 @@ export default function ChampionshipsPage() {
             va = a.wrestlerName.toLowerCase();
             vb = b.wrestlerName.toLowerCase();
             break;
+          case "Interpreter":
+            va = a.interpreterName.toLowerCase();
+            vb = b.interpreterName.toLowerCase();
+            break;
           case "Reigns":
             va = a.reignCount;
             vb = b.reignCount;
@@ -295,11 +343,12 @@ export default function ChampionshipsPage() {
           ? 1
           : 0;
       });
-  }, [reigns, defenseSummary, sel, aggSortKey, aggSortOrder]);
+  }, [sel, reigns, defenseSummary, aggSortKey, aggSortOrder]);
 
-  // 7) Estadísticas “por equipos” (solo para tag‑team id=5)
+  // 7) Estadísticas “por equipos” (solo para tag‑team id = 5)
   const teamStats = useMemo(() => {
-    if (!reigns || !defenseSummary || sel !== 5) return [];
+    if (sel !== 5 || !Array.isArray(reigns) || !defenseSummary) return [];
+
     const defMap = new Map(defenseSummary.map((d) => [d.reign_id, d.count]));
     const map = new Map();
 
@@ -331,50 +380,49 @@ export default function ChampionshipsPage() {
 
       (r.team_members_raw || "").split(",").forEach((raw) => {
         const [id, name, country] = raw.split("|");
-        o.members.set(Number(id), { id: Number(id), name, country });
+        if (id) o.members.set(+id, { id: +id, name, country });
       });
     });
 
-    return Array.from(map.values())
-      .map((o) => ({
-        ...o,
-        totalDaysLabel: o.isCurrent ? `${o.totalDays}+` : `${o.totalDays}`,
-      }))
-      .sort((a, b) => {
-        let va, vb;
-        switch (aggSortKey) {
-          case "Champion":
-            va = a.teamName.toLowerCase();
-            vb = b.teamName.toLowerCase();
-            break;
-          case "Reigns":
-            va = a.reignCount;
-            vb = b.reignCount;
-            break;
-          case "Successful defenses":
-            va = a.defenses;
-            vb = b.defenses;
-            break;
-          case "Total days":
-            va = a.totalDays;
-            vb = b.totalDays;
-            break;
-          default:
-            return 0;
-        }
-        return aggSortOrder === "asc"
-          ? va < vb
-            ? -1
-            : va > vb
-            ? 1
-            : 0
-          : va > vb
-          ? -1
-          : va < vb
-          ? 1
-          : 0;
-      });
-  }, [reigns, defenseSummary, sel, aggSortKey, aggSortOrder]);
+    const arr = Array.from(map.values()).map((o) => ({
+      ...o,
+      totalDaysLabel: o.isCurrent ? `${o.totalDays}+` : `${o.totalDays}`,
+    }));
+
+    // **Orden usando teamSortKey / teamSortOrder**
+    arr.sort((a, b) => {
+      let va, vb;
+      switch (teamSortKey) {
+        case "Champion":
+          va = a.teamName.toLowerCase();
+          vb = b.teamName.toLowerCase();
+          break;
+        case "Interpreter":
+          va = a.interpreterName.toLowerCase();
+          vb = b.interpreterName.toLowerCase();
+          break;
+        case "Reigns":
+          va = a.reignCount;
+          vb = b.reignCount;
+          break;
+        case "Successful defenses":
+          va = a.defenses;
+          vb = b.defenses;
+          break;
+        case "Total days":
+          va = a.totalDays;
+          vb = b.totalDays;
+          break;
+        default:
+          return 0;
+      }
+      if (va < vb) return teamSortOrder === "asc" ? -1 : 1;
+      if (va > vb) return teamSortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return arr;
+  }, [sel, reigns, defenseSummary, teamSortKey, teamSortOrder]);
 
   // 8) Reinados ordenados + Vacant para NXT
   const sortedReigns = useMemo(() => {
@@ -576,6 +624,45 @@ export default function ChampionshipsPage() {
           : 0;
       });
   }, [reigns, defenseSummary, sel, aggSortKey, aggSortOrder]);
+
+  const sortedIndStats = useMemo(() => {
+    const arr = Array.isArray(tagIndividualStats)
+      ? [...tagIndividualStats]
+      : [];
+
+    arr.sort((a, b) => {
+      let va, vb;
+      switch (indSortKey) {
+        case "Champion":
+          va = a.wrestlerName.toLowerCase();
+          vb = b.wrestlerName.toLowerCase();
+          break;
+        case "Interpreter":
+          va = a.interpreterName.toLowerCase();
+          vb = b.interpreterName.toLowerCase();
+          break;
+        case "Reigns":
+          va = a.reignCount;
+          vb = b.reignCount;
+          break;
+        case "Successful defenses":
+          va = a.defenses;
+          vb = b.defenses;
+          break;
+        case "Total days":
+          va = a.totalDays;
+          vb = b.totalDays;
+          break;
+        default:
+          return 0;
+      }
+      if (va < vb) return indSortOrder === "asc" ? -1 : 1;
+      if (va > vb) return indSortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return arr;
+  }, [tagIndividualStats, indSortKey, indSortOrder]);
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -1021,9 +1108,9 @@ export default function ChampionshipsPage() {
                 </table>
               </div>
 
-              {/* --------------------------------- */}
+              {/* ---------------------------------- */}
               {/* Bloque: Total days with the title */}
-              {/* --------------------------------- */}
+              {/* ---------------------------------- */}
               <div className="mt-8 mb-6">
                 <h3 className="text-xl font-semibold mb-2">
                   Total days with the title
@@ -1031,7 +1118,7 @@ export default function ChampionshipsPage() {
                 <p className="mb-4 text-sm">Updated as of {todayString}.</p>
 
                 {/* === Tabla por equipos (solo para tag‑team) === */}
-                {sel === 5 && (
+                {sel === 5 && teamStats.length > 0 && (
                   <div className="mb-8">
                     <h4 className="text-lg font-semibold mb-2">By Tag Team</h4>
                     <div className="overflow-x-auto no-scrollbar">
@@ -1043,11 +1130,11 @@ export default function ChampionshipsPage() {
                               .map(({ label }) => (
                                 <th
                                   key={label}
-                                  onClick={() => handleSort(label, true)}
+                                  onClick={() => handleTeamSort(label)}
                                   className="border px-2 py-1 text-center cursor-pointer select-none"
                                 >
                                   {label}
-                                  {renderSortIcon(label, true)}
+                                  {renderTeamSortIcon(label)}
                                 </th>
                               ))}
                           </tr>
@@ -1111,12 +1198,125 @@ export default function ChampionshipsPage() {
                   </div>
                 )}
 
-                {/* === Tabla por luchador (siempre) === */}
-                <div>
-                  <h4 className="text-lg font-semibold mb-2">
-                    {sel === 5 ? "By Individual Wrestler" : ""}
-                  </h4>
-                  <div className="overflow-x-auto no-scrollbar">
+                {/* === Tabla por luchador individual (tag‑team) === */}
+                {sel === 5 && tagIndividualStats.length > 0 && (
+                  <div className="mb-8">
+                    <h4 className="text-lg font-semibold mb-2">
+                      By individual wrestler
+                    </h4>
+                    <div className="overflow-x-auto no-scrollbar">
+                      <table className="table-auto w-full border-collapse text-sm min-w-[600px]">
+                        <thead>
+                          <tr className="bg-gray-100 dark:bg-gray-700">
+                            <th
+                              onClick={() => handleIndSort("#")}
+                              className="border px-2 py-1 text-center cursor-pointer select-none"
+                            >
+                              #{renderIndSortIcon("#")}
+                            </th>
+                            <th
+                              onClick={() => handleIndSort("Champion")}
+                              className="border px-2 py-1 text-center cursor-pointer select-none"
+                            >
+                              Champion
+                              {renderIndSortIcon("Champion")}
+                            </th>
+                            <th
+                              onClick={() => handleIndSort("Interpreter")}
+                              className="border px-2 py-1 text-center cursor-pointer select-none"
+                            >
+                              Interpreter
+                              {renderIndSortIcon("Interpreter")}
+                            </th>
+                            <th
+                              onClick={() => handleIndSort("Reigns")}
+                              className="border px-2 py-1 text-center cursor-pointer select-none"
+                            >
+                              Reigns
+                              {renderIndSortIcon("Reigns")}
+                            </th>
+                            <th
+                              onClick={() =>
+                                handleIndSort("Successful defenses")
+                              }
+                              className="border px-2 py-1 text-center cursor-pointer select-none"
+                            >
+                              Successful defenses
+                              {renderIndSortIcon("Successful defenses")}
+                            </th>
+                            <th
+                              onClick={() => handleIndSort("Total days")}
+                              className="border px-2 py-1 text-center cursor-pointer select-none"
+                            >
+                              Total days
+                              {renderIndSortIcon("Total days")}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {sortedIndStats.map((row, idx) => (
+                            <tr
+                              key={row.wrestlerId}
+                              className={
+                                row.isCurrent
+                                  ? "bg-yellow-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                              }
+                            >
+                              <td className="border px-2 py-1 text-center">
+                                {idx + 1}
+                              </td>
+
+                              {/* Champion con bandera, alineado a la izquierda */}
+                              <td className="border px-2 py-1 text-left">
+                                <Link
+                                  href={`/wrestlers/${row.wrestlerId}`}
+                                  className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                >
+                                  <FlagWithName
+                                    code={row.country}
+                                    name={row.wrestlerName}
+                                  />
+                                </Link>
+                              </td>
+
+                              {/* Interpreter con bandera, alineado a la izquierda */}
+                              <td className="border px-2 py-1 text-left">
+                                {row.interpreterId ? (
+                                  <Link
+                                    href={`/interpreters/${row.interpreterId}`}
+                                    className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                  >
+                                    <FlagWithName
+                                      code={row.interpreterCountry}
+                                      name={row.interpreterName}
+                                    />
+                                  </Link>
+                                ) : (
+                                  "—"
+                                )}
+                              </td>
+
+                              <td className="border px-2 py-1 text-center">
+                                {row.reignCount}
+                              </td>
+                              <td className="border px-2 py-1 text-center">
+                                {row.defenses}
+                              </td>
+                              <td className="border px-2 py-1 text-center">
+                                {row.totalDaysLabel}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* === Tabla por luchador individual (otros campeonatos) === */}
+                {sel !== 5 && fighterStats.length > 0 && (
+                  <div className="mb-8 overflow-x-auto no-scrollbar">
                     <table className="table-auto w-full border-collapse text-sm min-w-[600px]">
                       <thead>
                         <tr className="bg-gray-100 dark:bg-gray-700">
@@ -1124,7 +1324,7 @@ export default function ChampionshipsPage() {
                             <th
                               key={label}
                               onClick={() => handleSort(label, true)}
-                              className="cursor-pointer border px-2 py-1 text-center"
+                              className="border px-2 py-1 text-center cursor-pointer select-none"
                             >
                               {label}
                               {renderSortIcon(label, true)}
@@ -1148,7 +1348,7 @@ export default function ChampionshipsPage() {
                             <td className="border px-2 py-1">
                               <Link
                                 href={`/wrestlers/${row.wrestlerId}`}
-                                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
                               >
                                 <FlagWithName
                                   code={row.country}
@@ -1156,23 +1356,17 @@ export default function ChampionshipsPage() {
                                 />
                               </Link>
                             </td>
-                            {sel !== 5 && (
-                              <td className="border px-2 py-1">
-                                {row.interpreterId ? (
-                                  <Link
-                                    href={`/interpreters/${row.interpreterId}`}
-                                    className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                                  >
-                                    <FlagWithName
-                                      code={row.interpreterCountry}
-                                      name={row.interpreterName}
-                                    />
-                                  </Link>
-                                ) : (
-                                  "—"
-                                )}
-                              </td>
-                            )}
+                            <td className="border px-2 py-1">
+                              <Link
+                                href={`/interpreters/${row.interpreterId}`}
+                                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                <FlagWithName
+                                  code={row.country}
+                                  name={row.interpreterName}
+                                />
+                              </Link>
+                            </td>
                             <td className="border px-2 py-1 text-center">
                               {row.reignCount}
                             </td>
@@ -1187,7 +1381,7 @@ export default function ChampionshipsPage() {
                       </tbody>
                     </table>
                   </div>
-                </div>
+                )}
               </div>
             </>
           )}

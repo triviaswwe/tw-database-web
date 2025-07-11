@@ -48,6 +48,17 @@ export default async function handler(req, res) {
           SEPARATOR ','
         )                       AS team_members_raw,
 
+        /* ---------- miembros individuales (id|name|country|start|end) ---------- */
+        GROUP_CONCAT(
+               DISTINCT CONCAT(
+                rm_ind.wrestler_id,'|', wi.wrestler,'|', wi.country,'|',
+                DATE_FORMAT(rm_ind.start_date,'%Y-%m-%d'),'|',
+                IFNULL(DATE_FORMAT(rm_ind.end_date,'%Y-%m-%d'),'')
+                )
+              ORDER BY wi.wrestler
+              SEPARATOR ','
+                )     AS individual_members_raw,
+
         /* ---------- rival tag‑team (NULL para singles) ---------- */
         mp_opp.tag_team_id      AS opponent_tag_team_id,
         ot.name                 AS opponent_team_name,
@@ -80,6 +91,10 @@ export default async function handler(req, res) {
       LEFT JOIN tag_teams         t   ON t.id = r.tag_team_id
       LEFT JOIN reign_members     rm  ON rm.reign_id = r.id
       LEFT JOIN wrestlers         wrm ON wrm.id = rm.wrestler_id
+
+      /* miembros individuales de este reinado */
+      LEFT JOIN reign_members        rm_ind ON rm_ind.reign_id = r.id
+      LEFT JOIN wrestlers            wi     ON wi.id          = rm_ind.wrestler_id
 
       /* match que cambió el título */
       LEFT JOIN (
