@@ -30,12 +30,10 @@ export default async function handler(req, res) {
         /* ---------- tag‑team campeón ---------- */
         r.tag_team_id,
         t.name                  AS team_name,
-        /* añadimos el nº de reinado individual al final (campo 4) */
         GROUP_CONCAT(
           DISTINCT CONCAT(
             wrm.id, '|', wrm.wrestler, '|', wrm.country, '|',
             (
-              /* cuántos reinados tenía ESTE luchador hasta este reinado (incluido) */
               SELECT COUNT(*)
               FROM reign_members rm3
               JOIN championship_reigns r3 ON r3.id = rm3.reign_id
@@ -48,18 +46,18 @@ export default async function handler(req, res) {
           SEPARATOR ','
         )                       AS team_members_raw,
 
-        /* ---------- miembros individuales (id|name|country|start|end) ---------- */
+        /* ---------- miembros individuales ---------- */
         GROUP_CONCAT(
-               DISTINCT CONCAT(
-                rm_ind.wrestler_id,'|', wi.wrestler,'|', wi.country,'|',
-                DATE_FORMAT(rm_ind.start_date,'%Y-%m-%d'),'|',
-                IFNULL(DATE_FORMAT(rm_ind.end_date,'%Y-%m-%d'),'')
-                )
-              ORDER BY wi.wrestler
-              SEPARATOR ','
-                )     AS individual_members_raw,
+          DISTINCT CONCAT(
+            rm_ind.wrestler_id,'|', wi.wrestler,'|', wi.country,'|',
+            DATE_FORMAT(rm_ind.start_date,'%Y-%m-%d'),'|',
+            IFNULL(DATE_FORMAT(rm_ind.end_date,'%Y-%m-%d'),'')
+          )
+          ORDER BY wi.wrestler
+          SEPARATOR ','
+        )                       AS individual_members_raw,
 
-        /* ---------- rival tag‑team (NULL para singles) ---------- */
+        /* ---------- rival tag‑team ---------- */
         mp_opp.tag_team_id      AS opponent_tag_team_id,
         ot.name                 AS opponent_team_name,
         GROUP_CONCAT(
@@ -70,31 +68,39 @@ export default async function handler(req, res) {
           SEPARATOR ','
         )                       AS opponent_team_members_raw,
 
-        /* ---------- rival single (NULL para tag‑team) ---------- */
+        /* ---------- rival single ---------- */
         CASE WHEN r.tag_team_id IS NULL THEN MIN(mp_opp.wrestler_id) END AS opponent_id,
         CASE WHEN r.tag_team_id IS NULL THEN MIN(w_opp.wrestler)     END AS opponent,
         CASE WHEN r.tag_team_id IS NULL THEN MIN(w_opp.country)      END AS opponent_country,
 
-        /* ---------- evento / notas ---------- */
+        /* ---------- evento y notas ---------- */
         r.event_id,
         e.name                  AS event_name,
-        m.notes                 AS notes
+        m.notes                 AS notes,
+
+        /* ---------- ERA ---------- */
+        era.name                AS era_name
 
       FROM championship_reigns r
 
-      /* tablas básicas */
+      /* joins base */
       LEFT JOIN wrestlers    w  ON w.id = r.wrestler_id
       LEFT JOIN interpreters i  ON i.id = r.interpreter_id
       LEFT JOIN events       e  ON e.id = r.event_id
+
+      /* determinar era según won_date */
+      LEFT JOIN eras era
+        ON r.won_date >= era.start_date
+       AND (era.end_date IS NULL OR r.won_date <= era.end_date)
 
       /* tag‑team campeón */
       LEFT JOIN tag_teams         t   ON t.id = r.tag_team_id
       LEFT JOIN reign_members     rm  ON rm.reign_id = r.id
       LEFT JOIN wrestlers         wrm ON wrm.id = rm.wrestler_id
 
-      /* miembros individuales de este reinado */
-      LEFT JOIN reign_members        rm_ind ON rm_ind.reign_id = r.id
-      LEFT JOIN wrestlers            wi     ON wi.id          = rm_ind.wrestler_id
+      /* miembros individuales */
+      LEFT JOIN reign_members   rm_ind ON rm_ind.reign_id = r.id
+      LEFT JOIN wrestlers       wi     ON wi.id         = rm_ind.wrestler_id
 
       /* match que cambió el título */
       LEFT JOIN (
@@ -110,7 +116,7 @@ export default async function handler(req, res) {
         ON m.championship_id = r.championship_id
        AND m.event_id        = r.event_id
 
-      /* participante rival (single o tag‑team) */
+      /* participante rival */
       LEFT JOIN match_participants mp_opp
         ON mp_opp.match_id = m.id
        AND (
@@ -121,7 +127,7 @@ export default async function handler(req, res) {
       /* datos rival single */
       LEFT JOIN wrestlers w_opp ON w_opp.id = mp_opp.wrestler_id
 
-      /* datos rival tag‑team (solo miembros que pelearon) */
+      /* datos rival tag‑team */
       LEFT JOIN tag_teams ot ON ot.id = mp_opp.tag_team_id
       LEFT JOIN match_participants opp_part
         ON opp_part.match_id   = m.id
@@ -129,8 +135,8 @@ export default async function handler(req, res) {
       LEFT JOIN wrestlers wot ON wot.id = opp_part.wrestler_id
 
       WHERE r.championship_id = ?
-      GROUP BY r.id
-      ORDER BY r.won_date ASC
+      GROUP BY r.id, era.name
+      ORDER BY era.start_date, r.won_date
       `,
       [championshipId]
     );

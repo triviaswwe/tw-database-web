@@ -1362,7 +1362,7 @@ export default function ChampionshipsPage() {
                                 className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
                               >
                                 <FlagWithName
-                                  code={row.country}
+                                  code={row.interpreterCountry}
                                   name={row.interpreterName}
                                 />
                               </Link>
