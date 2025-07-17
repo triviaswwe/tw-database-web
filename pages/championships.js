@@ -123,7 +123,7 @@ export default function ChampionshipsPage() {
 
   function parseDays(daysHeld) {
     if (typeof daysHeld === "string") {
-      if (daysHeld === "—") return Number.MAX_SAFE_INTEGER;
+      if (daysHeld === "—") return -Infinity;
       return parseInt(daysHeld.replace("+", ""), 10);
     }
     return daysHeld;
@@ -476,8 +476,8 @@ export default function ChampionshipsPage() {
         let va, vb;
         switch (sortKey) {
           case "#":
-            va = a.__index ?? Number.MAX_SAFE_INTEGER;
-            vb = b.__index ?? Number.MAX_SAFE_INTEGER;
+            va = a.__index ?? -Infinity;
+            vb = b.__index ?? -Infinity;
             break;
           case "Champion":
             va = a.__wrestlerName.toLowerCase();
@@ -496,8 +496,8 @@ export default function ChampionshipsPage() {
             vb = b.__eventName.toLowerCase();
             break;
           case "Reign #":
-            va = a.reign_number ?? Number.MAX_SAFE_INTEGER;
-            vb = b.reign_number ?? Number.MAX_SAFE_INTEGER;
+            va = a.reign_number ?? -Infinity;
+            vb = b.reign_number ?? -Infinity;
             break;
           case "Days Held":
             va = parseDays(a.__daysHeld);
@@ -514,6 +514,22 @@ export default function ChampionshipsPage() {
 
     return arr;
   }, [reigns, sel, sortKey, sortOrder]);
+
+  // Identificar el reinado más largo de todo el listado
+  const longestReignId = useMemo(() => {
+    if (!Array.isArray(sortedReigns) || sortedReigns.length === 0) return null;
+    let maxDays = -Infinity;
+    let winner = null;
+    sortedReigns.forEach((r) => {
+      if (r.isVacant) return; // ignoramos los vacant
+      const d = parseDays(r.__daysHeld); // usa tu helper
+      if (d > maxDays) {
+        maxDays = d;
+        winner = r.id;
+      }
+    });
+    return winner;
+  }, [sortedReigns]);
 
   // 9) Tabla agregada “Total days with the title”
   const aggregatedStats = useMemo(() => {
@@ -663,6 +679,28 @@ export default function ChampionshipsPage() {
 
     return arr;
   }, [tagIndividualStats, indSortKey, indSortOrder]);
+
+  // 10) Eras
+  const eras = [
+    {
+      id: 1,
+      name: "The OGs Era",
+      start_date: "2023-02-27",
+      end_date: "2023-04-11",
+    },
+    {
+      id: 2,
+      name: "The WM Era",
+      start_date: "2023-04-12",
+      end_date: "2024-12-31",
+    },
+    {
+      id: 3,
+      name: "The Kliq Era",
+      start_date: "2025-01-01",
+      end_date: null,
+    },
+  ];
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -940,169 +978,220 @@ export default function ChampionshipsPage() {
 
                   <tbody className="divide-y">
                     {(() => {
-                      let counter = 0;
-                      return sortedReigns.map((r, idx) => {
-                        const displayIndex = r.isVacant ? "—" : ++counter;
+                      // 1) aplica orden global a sortedReigns (ya lo hace tu hook)
+                      // 2) inicializa contador global
+                      let globalCounter = 0;
 
-                        if (r.isVacant) {
-                          return (
-                            <tr
-                              key={r.id || `vacant-${idx}`}
-                              className="bg-gray-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
-                            >
-                              <td className="border px-2 py-1 text-center">
-                                {displayIndex}
-                              </td>
-                              <td className="border px-2 py-1 font-semibold">
-                                Vacant
-                              </td>
-                              <td className="border px-2 py-1 text-center">
-                                —
-                              </td>
-                              <td className="border px-2 py-1 text-center">
-                                {formatEnglishDate(r.won_date)}
-                              </td>
-                              <td className="border px-2 py-1 text-center">
-                                —
-                              </td>
-                              <td className="border px-2 py-1 text-center">
-                                —
-                              </td>
-                              <td className="border px-2 py-1 text-center">
-                                —
-                              </td>
-                              <td className="border px-2 py-1 text-[12px] break-words">
-                                —
+                      // 3) filtra sólo las eras que tienen al menos un reinado
+                      const erasWithReigns = eras
+                        .map((era) => {
+                          const rows = sortedReigns.filter((r) => {
+                            const won = new Date(r.won_date);
+                            const from = new Date(era.start_date);
+                            const to = era.end_date
+                              ? new Date(era.end_date)
+                              : null;
+                            return won >= from && (to === null || won <= to);
+                          });
+                          return { ...era, rows };
+                        })
+                        .filter((era) => era.rows.length > 0);
+
+                      // 4) renderiza
+                      return erasWithReigns.map(
+                        ({ id: eraId, name: eraName, rows }) => (
+                          <React.Fragment key={eraId}>
+                            {/* fila de título de era */}
+                            <tr className="bg-gray-200 dark:bg-gray-800">
+                              <td
+                                className="border px-2 py-1 font-semibold text-center"
+                                colSpan={columns.length}
+                              >
+                                {eraName}
                               </td>
                             </tr>
-                          );
-                        }
 
-                        const daysHeldRaw = calculateDaysHeld(
-                          r.won_date,
-                          r.lost_date
-                        );
-
-                        return (
-                          <tr
-                            key={r.id}
-                            className="hover:bg-gray-50 dark:hover:bg-gray-800"
-                          >
-                            {/* # */}
-                            <td className="border px-2 py-1 text-center">
-                              {displayIndex}
-                            </td>
-
-                            {/* Champion */}
-                            <td className="border px-1 py-1 font-semibold">
-                              {r.tag_team_id ? (
-                                <>
-                                  <Link
-                                    href={`/stables/${r.tag_team_id}`}
-                                    className="font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                            {/* filas de reinados dentro de esta era */}
+                            {rows.map((r) => {
+                              const displayIndex = r.isVacant
+                                ? "—"
+                                : ++globalCounter;
+                              if (r.isVacant) {
+                                return (
+                                  <tr
+                                    key={
+                                      r.id || `vacant-${eraId}-${displayIndex}`
+                                    }
+                                    className="bg-gray-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
                                   >
-                                    {r.team_name}
-                                  </Link>
-                                  <br />
-                                  <span className="text-xs">
-                                    (
-                                    {(r.team_members_raw
-                                      ? r.team_members_raw.split(",")
-                                      : []
-                                    ).map((item, i, arr) => {
-                                      const [id, name, country, indivReign] =
-                                        item.split("|");
-                                      return (
-                                        <span key={id} className="items-center">
-                                          <Link
-                                            href={`/wrestlers/${id}`}
-                                            className="items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                                          >
-                                            <FlagWithName
-                                              code={country}
-                                              name={name}
-                                            />
-                                          </Link>
-                                          &nbsp;({indivReign})
-                                          {i < arr.length - 1 ? ", " : ""}
+                                    <td className="border px-2 py-1 text-center">
+                                      {displayIndex}
+                                    </td>
+                                    <td className="border px-2 py-1 font-semibold">
+                                      Vacant
+                                    </td>
+                                    <td className="border px-2 py-1 text-center">
+                                      —
+                                    </td>
+                                    <td className="border px-2 py-1 text-center">
+                                      {formatEnglishDate(r.won_date)}
+                                    </td>
+                                    <td className="border px-2 py-1 text-center">
+                                      —
+                                    </td>
+                                    <td className="border px-2 py-1 text-center">
+                                      —
+                                    </td>
+                                    <td className="border px-2 py-1 text-center">
+                                      —
+                                    </td>
+                                    <td className="border px-2 py-1 text-[12px] break-words">
+                                      —{" "}
+                                    </td>
+                                  </tr>
+                                );
+                              }
+                              const daysHeldRaw = calculateDaysHeld(
+                                r.won_date,
+                                r.lost_date
+                              );
+
+                              return (
+                                <tr
+                                  key={r.id}
+                                  className="hover:bg-gray-50 dark:hover:bg-gray-800"
+                                >
+                                  {/* # */}
+                                  <td className="border px-2 py-1 text-center">
+                                    {displayIndex}
+                                  </td>
+
+                                  {/* Champion */}
+                                  <td className="border px-1 py-1 font-semibold">
+                                    {r.tag_team_id ? (
+                                      <>
+                                        <Link
+                                          href={`/stables/${r.tag_team_id}`}
+                                          className="font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                                        >
+                                          {r.team_name}
+                                        </Link>
+                                        <br />
+                                        <span className="text-xs">
+                                          (
+                                          {(r.team_members_raw
+                                            ? r.team_members_raw.split(",")
+                                            : []
+                                          ).map((item, i, arr) => {
+                                            const [
+                                              id,
+                                              name,
+                                              country,
+                                              indivReign,
+                                            ] = item.split("|");
+                                            return (
+                                              <span
+                                                key={id}
+                                                className="items-center"
+                                              >
+                                                <Link
+                                                  href={`/wrestlers/${id}`}
+                                                  className="items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                                >
+                                                  <FlagWithName
+                                                    code={country}
+                                                    name={name}
+                                                  />
+                                                </Link>
+                                                &nbsp;({indivReign})
+                                                {i < arr.length - 1 ? ", " : ""}
+                                              </span>
+                                            );
+                                          })}
+                                          )
                                         </span>
-                                      );
-                                    })}
-                                    )
-                                  </span>
-                                </>
-                              ) : r.wrestler_id ? (
-                                <Link
-                                  href={`/wrestlers/${r.wrestler_id}`}
-                                  className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                                >
-                                  <FlagWithName
-                                    code={r.country}
-                                    name={r.wrestler}
-                                  />
-                                </Link>
-                              ) : (
-                                "—"
-                              )}
-                            </td>
+                                      </>
+                                    ) : r.wrestler_id ? (
+                                      <Link
+                                        href={`/wrestlers/${r.wrestler_id}`}
+                                        className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                      >
+                                        <FlagWithName
+                                          code={r.country}
+                                          name={r.wrestler}
+                                        />
+                                      </Link>
+                                    ) : (
+                                      "—"
+                                    )}
+                                  </td>
 
-                            {/* Interpreter (solo si sel !== 5) */}
-                            {sel !== 5 && (
-                              <td className="border px-2 py-1">
-                                {r.interpreter_id ? (
-                                  <Link
-                                    href={`/interpreters/${r.interpreter_id}`}
-                                    className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                                  >
-                                    <FlagWithName
-                                      code={r.nationality}
-                                      name={r.interpreter}
-                                    />
-                                  </Link>
-                                ) : (
-                                  "—"
-                                )}
-                              </td>
-                            )}
+                                  {/* Interpreter (solo si sel !== 5) */}
+                                  {sel !== 5 && (
+                                    <td className="border px-2 py-1">
+                                      {r.interpreter_id ? (
+                                        <Link
+                                          href={`/interpreters/${r.interpreter_id}`}
+                                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                        >
+                                          <FlagWithName
+                                            code={r.nationality}
+                                            name={r.interpreter}
+                                          />
+                                        </Link>
+                                      ) : (
+                                        "—"
+                                      )}
+                                    </td>
+                                  )}
 
-                            {/* Won Date */}
-                            <td className="border px-2 py-1 text-center">
-                              {formatEnglishDate(r.won_date)}
-                            </td>
+                                  {/* Won Date */}
+                                  <td className="border px-2 py-1 text-center">
+                                    {formatEnglishDate(r.won_date)}
+                                  </td>
 
-                            {/* Event */}
-                            <td className="border px-2 py-1 text-center">
-                              {r.event_id ? (
-                                <Link
-                                  href={`/events/${r.event_id}`}
-                                  className="text-blue-600 dark:text-blue-400 hover:underline"
-                                >
-                                  {r.event_name}
-                                </Link>
-                              ) : (
-                                "—"
-                              )}
-                            </td>
+                                  {/* Event */}
+                                  <td className="border px-2 py-1 text-center">
+                                    {r.event_id ? (
+                                      <Link
+                                        href={`/events/${r.event_id}`}
+                                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                                      >
+                                        {r.event_name}
+                                      </Link>
+                                    ) : (
+                                      "—"
+                                    )}
+                                  </td>
 
-                            {/* Reign # */}
-                            <td className="border px-2 py-1 text-center">
-                              {r.reign_number}
-                            </td>
+                                  {/* Reign # */}
+                                  <td className="border px-2 py-1 text-center">
+                                    {r.reign_number}
+                                  </td>
 
-                            {/* Days Held */}
-                            <td className="border px-2 py-1 text-center">
-                              {r.lost_date === null
-                                ? daysHeldRaw
-                                : daysHeldRaw.replace("+", "")}
-                            </td>
+                                  {/* Days Held */}
+                                  <td className="border px-2 py-1 text-center">
+                                    {r.lost_date === null
+                                      ? daysHeldRaw
+                                      : daysHeldRaw.replace("+", "")}
+                                  </td>
 
-                            {/* Notes */}
-                            <td className="border px-2 py-1 text-[12px] break-words">
-                              {translateNotesToEnglish(r.notes)}
-                            </td>
-                          </tr>
-                        );
-                      });
+                                  {/* Notes */}
+                                  <td className="border px-2 py-1 text-[12px] break-words">
+                                    {translateNotesToEnglish(r.notes)}
+                                    {sel !== 2 && r.id === longestReignId && (
+                                      <span className="ml-1">
+                                        This is the longest reign in the history
+                                        of the championship.
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </React.Fragment>
+                        )
+                      );
                     })()}
                   </tbody>
                 </table>
@@ -1202,7 +1291,7 @@ export default function ChampionshipsPage() {
                 {sel === 5 && tagIndividualStats.length > 0 && (
                   <div className="mb-8">
                     <h4 className="text-lg font-semibold mb-2">
-                      By individual wrestler
+                      By Individual Wrestler
                     </h4>
                     <div className="overflow-x-auto no-scrollbar">
                       <table className="table-auto w-full border-collapse text-sm min-w-[600px]">
@@ -1216,7 +1305,7 @@ export default function ChampionshipsPage() {
                             </th>
                             <th
                               onClick={() => handleIndSort("Champion")}
-                              className="border px-2 py-1 text-center cursor-pointer select-none"
+                              className="border px-2 py-1 text-center cursor-pointer select-none font-semibold"
                             >
                               Champion
                               {renderIndSortIcon("Champion")}
@@ -1268,7 +1357,7 @@ export default function ChampionshipsPage() {
                               </td>
 
                               {/* Champion con bandera, alineado a la izquierda */}
-                              <td className="border px-2 py-1 text-left">
+                              <td className="border px-2 py-1 text-left font-semibold">
                                 <Link
                                   href={`/wrestlers/${row.wrestlerId}`}
                                   className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
@@ -1348,7 +1437,7 @@ export default function ChampionshipsPage() {
                             <td className="border px-2 py-1">
                               <Link
                                 href={`/wrestlers/${row.wrestlerId}`}
-                                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
                               >
                                 <FlagWithName
                                   code={row.country}

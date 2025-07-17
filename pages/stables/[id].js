@@ -78,7 +78,7 @@ export default function StableDetail({ stable, members }) {
             >
               <Link
                 href={`/wrestlers/${m.id}`}
-                className="text-blue-600 hover:underline"
+                className="text-blue-600 "
               >
                 <FlagWithName code={m.country} /> {m.wrestler}
               </Link>
