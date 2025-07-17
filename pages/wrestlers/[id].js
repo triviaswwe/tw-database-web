@@ -268,7 +268,7 @@ export default function WrestlerDetail({
               Interpreter:{" "}
               <Link
                 href={`/interpreters/${currentInterpreter.id}`}
-                className="text-blue-600  dark:text-sky-300"
+                className="text-blue-600  dark:text-sky-300 hover:underline"
               >
                 <FlagWithName
                   code={currentInterpreter.country}
@@ -290,7 +290,7 @@ export default function WrestlerDetail({
                 <span key={intp.id}>
                   <Link
                     href={`/interpreters/${intp.id}`}
-                    className="text-blue-600  dark:text-sky-300"
+                    className="text-blue-600 dark:text-sky-300 hover:underline"
                   >
                     <FlagWithName code={intp.country} name={intp.name} />
                   </Link>
@@ -377,7 +377,7 @@ export default function WrestlerDetail({
                   <Link
                     key={p.wrestler_id}
                     href={`/wrestlers/${p.wrestler_id}`}
-                    className="text-blue-600  dark:text-sky-300"
+                    className="text-blue-600  dark:text-sky-300 hover:underline"
                   >
                     {p.wrestler}
                   </Link>
@@ -435,7 +435,7 @@ export default function WrestlerDetail({
                 {formatDateDDMMYYYY(match.event_date)} —{" "}
                 <Link
                   href={`/events/${match.event_id}`}
-                  className="text-blue-600  dark:text-sky-300"
+                  className="text-blue-600  dark:text-sky-300 hover:underline"
                 >
                   {match.event}
                 </Link>

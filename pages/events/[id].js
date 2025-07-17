@@ -246,7 +246,7 @@ export default function EventDetail({ matches }) {
                       {i > 0 && " & "}
                       <Link
                         href={`/wrestlers/${p.wrestler_id}`}
-                        className="text-blue-600  dark:text-sky-300"
+                        className="text-blue-600  dark:text-sky-300 hover:underline"
                       >
                         {isWinner ? <strong>{p.wrestler}</strong> : p.wrestler}
                       </Link>
