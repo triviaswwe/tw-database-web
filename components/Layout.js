@@ -51,8 +51,23 @@ export default function Layout({ children, isDark, setIsDark }) {
             <Link href="/events" className={navLinkClass("/events")}>
               Events
             </Link>
-            <Link href="/championships" className={navLinkClass("/championships")}>
+            <Link
+              href="/championships"
+              className={navLinkClass("/championships")}
+            >
               Championships
+            </Link>
+            <Link
+              href="/rules"
+              className={navLinkClass("/rules")}
+            >
+              Rules
+            </Link>
+            <Link
+              href="/stipulations"
+              className={navLinkClass("/stipulations")}
+            >
+              Stipulations
             </Link>
             {/* Añade más links aquí si los necesitas */}
           </div>
