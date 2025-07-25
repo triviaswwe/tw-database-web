@@ -133,8 +133,8 @@ export default function Rules() {
           </li>
           <li>
             Es obligatorio usar "The" solo en casos como The Miz, The Rock, The
-            Usos, The Shield, The Revival, The Bloodline, The Authority, The
-            Nexus, The Corre.
+            Usos, The Shield, The Revival, The Bloodline, The Corporation, The Authority, The
+            Nexus, The Corre, The Bar, The Club, The Darkstate.
           </li>
           <li>
             No se tomará en cuenta como respuesta un mensaje editado que
