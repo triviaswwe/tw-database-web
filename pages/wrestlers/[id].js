@@ -7,11 +7,12 @@ import FlagWithName from "../../components/FlagWithName";
 // Helper para formatear fechas como "DD/MM/AAAA"
 function formatDateDDMMYYYY(dateString) {
   if (!dateString) return "—";
-  const d = new Date(dateString);
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
+  return new Date(dateString).toLocaleDateString("es-ES", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 }
 
 export async function getServerSideProps({ params }) {

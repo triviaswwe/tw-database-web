@@ -7,11 +7,12 @@ import FlagWithName from "../../components/FlagWithName";
 // Helper para formatear fechas como "DD/MM/AAAA"
 function formatDateDDMMYYYY(dateString) {
   if (!dateString) return "—";
-  const d = new Date(dateString);
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
+  return new Date(dateString).toLocaleDateString("es-ES", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 }
 
 export async function getServerSideProps({ params }) {
@@ -31,7 +32,7 @@ export async function getServerSideProps({ params }) {
     id: interpreterRow.id,
     interpreter: interpreterRow.interpreter,
     nationality: interpreterRow.nationality, // código ISO
-    status: interpreterRow.status,           // "Active" o "Inactive"
+    status: interpreterRow.status, // "Active" o "Inactive"
   };
 
   // 2) Obtener TODOS los luchadores asociados en wrestler_interpreter
@@ -122,12 +123,8 @@ export async function getServerSideProps({ params }) {
     wins: statsRow?.wins || 0,
     draws: statsRow?.draws || 0,
     losses: statsRow?.losses || 0,
-    firstMatch: statsRow?.firstMatch
-      ? statsRow.firstMatch.toISOString()
-      : null,
-    lastMatch: statsRow?.lastMatch
-      ? statsRow.lastMatch.toISOString()
-      : null,
+    firstMatch: statsRow?.firstMatch ? statsRow.firstMatch.toISOString() : null,
+    lastMatch: statsRow?.lastMatch ? statsRow.lastMatch.toISOString() : null,
   };
 
   // 4) Detalle de matches como intérprete (con match_type y championship)
@@ -231,9 +228,7 @@ export default function InterpreterDetail({
   return (
     <div className="p-4 max-w-3xl mx-auto">
       {/* Nombre del intérprete */}
-      <h1 className="text-3xl font-bold mb-2">
-        {interpreter.interpreter}
-      </h1>
+      <h1 className="text-3xl font-bold mb-2">{interpreter.interpreter}</h1>
 
       {/* Nationality: bandera + nombre completo */}
       <p className="text-gray-600 mb-1 dark:text-white">
@@ -446,18 +441,13 @@ export default function InterpreterDetail({
                         return (
                           <>
                             defeated by {renderTeam(winnersParticipants)}
-
                             {otherTeams.length > 0 && (
                               <>
                                 {" "}
                                 (Other participants:{" "}
                                 {otherTeams
                                   .map((tn) => renderTeam(teamsMap[tn]))
-                                  .reduce((prev, curr) => [
-                                    prev,
-                                    ", ",
-                                    curr,
-                                  ])}
+                                  .reduce((prev, curr) => [prev, ", ", curr])}
                                 )
                               </>
                             )}
@@ -478,8 +468,7 @@ export default function InterpreterDetail({
                     {scoreMap[mainTeamNumber] != null &&
                     scoreMap[rivalTeams[0]] != null ? (
                       <>
-                        {scoreMap[mainTeamNumber]}–
-                        {scoreMap[rivalTeams[0]]}{" "}
+                        {scoreMap[mainTeamNumber]}–{scoreMap[rivalTeams[0]]}{" "}
                         {renderTeam(teamsMap[rivalTeams[0]])}
                       </>
                     ) : (
@@ -492,9 +481,7 @@ export default function InterpreterDetail({
                 ) : (
                   <span>
                     {[
-                      <span key="main">
-                        {scoreMap[mainTeamNumber] ?? 0}
-                      </span>,
+                      <span key="main">{scoreMap[mainTeamNumber] ?? 0}</span>,
                       ...rivalTeams.map((teamNumber) => {
                         const team = renderTeam(teamsMap[teamNumber]);
                         const score = scoreMap[teamNumber] ?? 0;
