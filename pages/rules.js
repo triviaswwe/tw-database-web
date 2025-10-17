@@ -127,14 +127,12 @@ export default function Rules() {
             del combate.
           </li>
           <li>
-            No hace falta utilizar el término "The" en respuestas como
-            Undertaker, Ultimate Warrior, Big Show, ni en Tag Teams / Stables
-            como Hardy Boyz, Final Testament, entre otros.
+            Es obligatorio usar "The" en wrestlers, tag teams o stables cuyo nombre esté
+            compuesto de una sola palabra (ej: The Miz, The Undertaker, The Usos, The Vision).
           </li>
           <li>
-            Es obligatorio usar "The" solo en casos como The Miz, The Rock, The
-            Usos, The Shield, The Revival, The Bloodline, The Corporation, The Authority, The
-            Nexus, The Corre, The Bar, The Club, The Darkstate.
+            Es opcional usar "The" en wrestlers, tag teams o stables cuyo nombre esté 
+            compuesto por más de una palabra (ej: Big Show, New Day, Road Dogg).
           </li>
           <li>
             No se tomará en cuenta como respuesta un mensaje editado que
