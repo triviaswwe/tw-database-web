@@ -76,9 +76,10 @@ En caso de nulas, pregunta normal del árbitro.`,
 Esta estipulación consiste en que solo pueden responder UNA única vez por cada pregunta hecha por el árbitro.`,
     "Pitch Black": `Lucha a 10 preguntas.
 Las preguntas estarán encriptadas sustituyendo las letras por números. Ejemplo: Luch4 p0r 3l WW3 Ch4mp10nsh1p.`,
-    "Royal Rumble": `Todos empiezan con 3 vidas (y esa es la cantidad máxima de vidas que se puede tener).
-Si ganas un punto: decidís si sumarte una vida o restarle a un rival.
+    "Royal Rumble": `Para presentarse, deben subir su imagen con número de entrada.
 Cada 3 preguntas entra un luchador nuevo al ring.
+Todos empiezan con 3 vidas (y esa es la cantidad máxima de vidas que se puede tener).
+Si ganas un punto: decidís si sumarte una vida o restarle a un rival.
 Al ser un combate largo, el árbitro debe empezar a contar "Nula en..." a partir de 5 (en lugar de 10 como en el resto de estipulaciones).
 Cuando ingresa el #30, se deshabilita la opción de sumarse vidas.
 Gana el único que quede con vida dentro del ring y se gana la posibilidad de retar a un campeón mundial en WrestleMania.`,
