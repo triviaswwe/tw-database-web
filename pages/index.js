@@ -1,41 +1,21 @@
 // pages/index.js
+
 import Head from "next/head";
+import { useEffect } from "react";
 
-export async function getServerSideProps() {
-  try {
-    // 1) Hacemos fetch de la página pública de Instagram
-    const res = await fetch("https://www.instagram.com/triviaswwe/", {
-      headers: { "User-Agent": "Mozilla/5.0" },
-    });
-    const html = await res.text();
+export default function Home() {
+  // Carga el script de embeds de Instagram una sola vez
+  useEffect(() => {
+    if (window.instgrm) {
+      window.instgrm.Embeds.process();
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "//www.instagram.com/embed.js";
+    script.async = true;
+    document.body.appendChild(script);
+  }, []);
 
-    // 2) Extraemos el JSON de window._sharedData
-    const sharedDataMatch = html.match(
-      /<script[^>]*>\s*window\._sharedData\s*=\s*(\{.+?\});<\/script>/s
-    );
-    if (!sharedDataMatch) throw new Error("No sharedData on page");
-    const sharedData = JSON.parse(sharedDataMatch[1]);
-
-    // 3) Navegamos hasta el array de posts
-    const edges =
-      sharedData.entry_data.ProfilePage[0].graphql.user
-        .edge_owner_to_timeline_media.edges || [];
-
-    // 4) Tomamos solo las primeras 9 publicaciones
-    const posts = edges.slice(0, 9).map(({ node }) => ({
-      id: node.id,
-      shortcode: node.shortcode,
-      thumbnail: node.thumbnail_src,
-    }));
-
-    return { props: { posts } };
-  } catch (error) {
-    console.error("Error scraping Instagram:", error);
-    return { props: { posts: [] } };
-  }
-}
-
-export default function Home({ posts }) {
   return (
     <div className="min-h-screen px-4 py-6 max-w-5xl mx-auto bg-white text-black dark:bg-zinc-950 dark:text-white transition-colors duration-300">
       <Head>
@@ -55,37 +35,63 @@ export default function Home({ posts }) {
         <strong>Campeonato de Trivias de WWE</strong>, un torneo competitivo donde
         fanáticos de la lucha libre responden preguntas sobre luchadores, eventos
         históricos, títulos, movimientos y mucho más. Representá a tu luchador
-        favorito en RAW, SmackDown, NXT o Speed y acumulá victorias para llegar a
+        favorito en RAW, SmackDown o NXT y acumulá victorias para llegar a
         lo más alto del ranking.
       </p>
 
-      <h2 className="text-2xl font-semibold mb-4 text-center">
+      {/* ── Sección Instagram ─────────────────────────────────────────────── */}
+      <h2 className="text-2xl font-semibold mb-6 text-center">
         Últimas publicaciones en Instagram
       </h2>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-16">
-        {posts.length > 0 ? (
-          posts.map((post) => (
-            <a
-              key={post.id}
-              href={`https://www.instagram.com/p/${post.shortcode}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <img
-                src={post.thumbnail}
-                alt="Publicación de Instagram"
-                className="rounded-lg shadow hover:opacity-80 transition"
-              />
-            </a>
-          ))
-        ) : (
-          <p className="col-span-full text-center text-gray-500 dark:text-gray-400">
-            No se pudieron cargar las publicaciones.
-          </p>
-        )}
+      {/*
+        OPCIÓN A — Embed del perfil completo (muestra el feed como widget oficial).
+        Reemplazá la URL si cambiás de cuenta.
+        Si preferís embeds de posts individuales, usá la OPCIÓN B más abajo.
+      */}
+      <div className="flex justify-center mb-10">
+        <blockquote
+          className="instagram-media"
+          data-instgrm-permalink="https://www.instagram.com/triviaswwe/"
+          data-instgrm-version="14"
+          style={{
+            background: "#FFF",
+            border: 0,
+            borderRadius: "3px",
+            boxShadow: "0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15)",
+            margin: "1px",
+            maxWidth: "540px",
+            minWidth: "326px",
+            padding: 0,
+            width: "100%",
+          }}
+        />
       </div>
 
+      {/*
+        OPCIÓN B — Posts individuales (descomentar y pegar shortcodes reales).
+        Cada shortcode es la parte final de la URL de un post:
+        https://www.instagram.com/p/SHORTCODE/
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-10">
+          {[
+            "SHORTCODE_1",
+            "SHORTCODE_2",
+            "SHORTCODE_3",
+          ].map((code) => (
+            <div key={code} className="flex justify-center">
+              <blockquote
+                className="instagram-media"
+                data-instgrm-permalink={`https://www.instagram.com/p/${code}/`}
+                data-instgrm-version="14"
+                style={{ maxWidth: "320px", width: "100%" }}
+              />
+            </div>
+          ))}
+        </div>
+      */}
+
+      {/* ── Footer ───────────────────────────────────────────────────────── */}
       <footer className="border-t pt-6 text-sm text-center border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 space-y-2">
         <p>
           Seguinos en{" "}
@@ -99,7 +105,7 @@ export default function Home({ posts }) {
           </a>{" "}
           |{" "}
           <a
-            href="https://www.youtube.com/@TriviasWWE-TriviasWWE"
+            href="https://www.youtube.com/@TriviasWWE"
             target="_blank"
             rel="noopener noreferrer"
             className="text-red-600 dark:text-red-400 hover:underline"
