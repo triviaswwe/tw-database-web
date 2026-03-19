@@ -1,5 +1,7 @@
 // pages/api/championships/[id]/reigns/index.js
+
 import pool from '../../../../../lib/db';
+import { setCacheHeaders } from '../../../../../lib/db';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET')
@@ -83,26 +85,21 @@ export default async function handler(req, res) {
 
       FROM championship_reigns r
 
-      /* joins base */
       LEFT JOIN wrestlers    w  ON w.id = r.wrestler_id
       LEFT JOIN interpreters i  ON i.id = r.interpreter_id
       LEFT JOIN events       e  ON e.id = r.event_id
 
-      /* determinar era según won_date */
       LEFT JOIN eras era
         ON r.won_date >= era.start_date
        AND (era.end_date IS NULL OR r.won_date <= era.end_date)
 
-      /* tag‑team campeón */
       LEFT JOIN tag_teams         t   ON t.id = r.tag_team_id
       LEFT JOIN reign_members     rm  ON rm.reign_id = r.id
       LEFT JOIN wrestlers         wrm ON wrm.id = rm.wrestler_id
 
-      /* miembros individuales */
       LEFT JOIN reign_members   rm_ind ON rm_ind.reign_id = r.id
       LEFT JOIN wrestlers       wi     ON wi.id         = rm_ind.wrestler_id
 
-      /* match que cambió el título */
       LEFT JOIN (
         SELECT m1.*
         FROM matches m1
@@ -116,7 +113,6 @@ export default async function handler(req, res) {
         ON m.championship_id = r.championship_id
        AND m.event_id        = r.event_id
 
-      /* participante rival */
       LEFT JOIN match_participants mp_opp
         ON mp_opp.match_id = m.id
        AND (
@@ -124,10 +120,8 @@ export default async function handler(req, res) {
          OR (r.tag_team_id IS NOT NULL AND mp_opp.tag_team_id <> r.tag_team_id)
           )
 
-      /* datos rival single */
       LEFT JOIN wrestlers w_opp ON w_opp.id = mp_opp.wrestler_id
 
-      /* datos rival tag‑team */
       LEFT JOIN tag_teams ot ON ot.id = mp_opp.tag_team_id
       LEFT JOIN match_participants opp_part
         ON opp_part.match_id   = m.id
@@ -141,9 +135,11 @@ export default async function handler(req, res) {
       [championshipId]
     );
 
-    res.status(200).json(rows);
+    // Historial de reinados cambia solo cuando hay nuevo campeón — cachear 2 minutos
+    setCacheHeaders(res, 120);
+    return res.status(200).json(rows);
   } catch (err) {
     console.error('Database error in /api/championships/[id]/reigns:', err);
-    res.status(500).json({ error: 'Database error' });
+    return res.status(500).json({ error: 'Database error' });
   }
 }

@@ -1,6 +1,7 @@
 // pages/api/championships/[id]/tag-individual-stats.js
 
 import pool from '../../../../lib/db';
+import { setCacheHeaders } from '../../../../lib/db';
 
 export default async function handler(req, res) {
   const { id: championshipId } = req.query;
@@ -13,8 +14,8 @@ export default async function handler(req, res) {
     const [memberDefRows] = await pool.query(
       `
       SELECT
-        rm.wrestler_id      AS wrestler_id,
-        rm.reign_id         AS reign_id,
+        rm.wrestler_id,
+        rm.reign_id,
         COUNT(DISTINCT m.id) AS defenses
       FROM   reign_members rm
       JOIN   championship_reigns cr
@@ -38,7 +39,7 @@ export default async function handler(req, res) {
     );
 
     const defMap = new Map(
-      memberDefRows.map(r => [`${r.reign_id}_${r.wrestler_id}`, r.defenses])
+      memberDefRows.map((r) => [`${r.reign_id}_${r.wrestler_id}`, r.defenses])
     );
 
     // 2) Traer miembros individuales e intérprete
@@ -49,7 +50,7 @@ export default async function handler(req, res) {
         rm.wrestler_id,
         rm.interpreter_id,
         w.wrestler       AS wrestlerName,
-        w.country        AS country,
+        w.country,
         i.interpreter    AS interpreterName,
         i.nationality    AS interpreterCountry,
         rm.start_date,
@@ -58,10 +59,8 @@ export default async function handler(req, res) {
       JOIN championship_reigns cr
         ON cr.id = rm.reign_id
        AND cr.championship_id = ?
-      JOIN wrestlers w
-        ON w.id = rm.wrestler_id
-      LEFT JOIN interpreters i
-        ON i.id = rm.interpreter_id
+      JOIN wrestlers w   ON w.id = rm.wrestler_id
+      LEFT JOIN interpreters i ON i.id = rm.interpreter_id
       `,
       [championshipId]
     );
@@ -72,53 +71,44 @@ export default async function handler(req, res) {
 
     for (const mr of memberRows) {
       const {
-        reign_id,
-        wrestler_id,
-        wrestlerName,
-        country,
-        interpreter_id,
-        interpreterName,
-        interpreterCountry,
-        start_date,
-        end_date,
+        reign_id, wrestler_id, wrestlerName, country,
+        interpreter_id, interpreterName, interpreterCountry,
+        start_date, end_date,
       } = mr;
 
       const start = new Date(start_date);
-      const end = end_date ? new Date(end_date) : now;
-      const days = Math.floor((end - start) / (1000 * 60 * 60 * 24));
-      const defKey = `${reign_id}_${wrestler_id}`;
-      const defs = defMap.get(defKey) || 0;
+      const end   = end_date ? new Date(end_date) : now;
+      const days  = Math.floor((end - start) / (1000 * 60 * 60 * 24));
+      const defs  = defMap.get(`${reign_id}_${wrestler_id}`) || 0;
 
       if (!byWrestler.has(wrestler_id)) {
         byWrestler.set(wrestler_id, {
-          wrestlerId: wrestler_id,
+          wrestlerId:        wrestler_id,
           wrestlerName,
           country,
-          interpreterId: interpreter_id,
-          interpreterName: interpreterName || null,
-          interpreterCountry: interpreterCountry || null,
-          reignCount: 0,
-          defenses: 0,
-          totalDays: 0,
-          isCurrent: false,
+          interpreterId:     interpreter_id,
+          interpreterName:   interpreterName   || null,
+          interpreterCountry:interpreterCountry || null,
+          reignCount:  0,
+          defenses:    0,
+          totalDays:   0,
+          isCurrent:   false,
         });
       }
 
       const o = byWrestler.get(wrestler_id);
       o.reignCount += 1;
-      o.defenses += defs;
-      o.totalDays += days;
-      if (!end_date) {
-        o.isCurrent = true;
-      }
+      o.defenses   += defs;
+      o.totalDays  += days;
+      if (!end_date) o.isCurrent = true;
     }
 
-    // 4) Transformar a array y etiquetar días
-    const result = Array.from(byWrestler.values()).map(o => ({
+    const result = Array.from(byWrestler.values()).map((o) => ({
       ...o,
-      totalDaysLabel: o.isCurrent ? `${o.totalDays}+` : `${o.totalDays}`
+      totalDaysLabel: o.isCurrent ? `${o.totalDays}+` : `${o.totalDays}`,
     }));
 
+    setCacheHeaders(res, 120);
     return res.status(200).json(result);
   } catch (err) {
     console.error('Error in tag-individual-stats:', err);
