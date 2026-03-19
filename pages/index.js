@@ -114,7 +114,7 @@ export default function Home() {
           </a>{" "}
           |{" "}
           <a
-            href="https://discord.gg/yPUV8cg8"
+            href="https://discord.gg/YmBJQPfQ"
             target="_blank"
             rel="noopener noreferrer"
             className="text-indigo-600 dark:text-indigo-400 hover:underline"
