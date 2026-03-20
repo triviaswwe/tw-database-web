@@ -1,15 +1,21 @@
 // pages/stipulations.js
+
+import Head from "next/head";
 import pool from "../lib/db";
 
 export async function getServerSideProps() {
-  const [rows] = await pool.query(
-    `SELECT id, name FROM match_types ORDER BY id`
-  );
-  return { props: { stipulations: rows } };
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, name FROM match_types ORDER BY id`
+    );
+    return { props: { stipulations: rows } };
+  } catch (err) {
+    console.error("Error in stipulations getServerSideProps:", err);
+    return { props: { stipulations: [], error: true } };
+  }
 }
 
-export default function Stipulations({ stipulations }) {
-  // Mapa de descripciones extraídas desde Google Docs
+export default function Stipulations({ stipulations, error }) {
   const descriptions = {
     "2 out of 3 Falls": `3 rondas; cada ronda la gana el primero que llega a 5 (en lugar de 5 preguntas).`,
     Death: `Combate titular a 7 preguntas que consiste en ir subiendo de nivel mediante las épocas en las que WWE (y sus derivados a través del tiempo) funcionó como empresa.
@@ -106,19 +112,35 @@ Al activar reglas WarGames, cada acierto resta 1 punto al rival.
 Gana el equipo que deje al otro con 0 puntos.`,
   };
 
+  if (error) {
+    return (
+      <div className="p-8 text-center">
+        <h1 className="text-2xl font-bold mb-2">Error al cargar</h1>
+        <p className="text-gray-500">No se pudo conectar a la base de datos. Intentá de nuevo en unos segundos.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-4 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold mb-4">Stipulations</h1>
-      <ul className="space-y-6">
-        {stipulations.map(({ name }) => (
-          <li key={name}>
-            <h2 className="text-2xl font-semibold mb-1">{name}</h2>
-            <p className="text-base whitespace-pre-line">
-              {descriptions[name] || "No hay reglas especiales para esta estipulación."}
-            </p>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <>
+      <Head>
+        <title>Stipulations — Trivias WWE</title>
+        <meta name="description" content="Reglas de todas las estipulaciones del Campeonato de Trivias WWE: Ladder, Hell in a Cell, Royal Rumble, WarGames y más." />
+      </Head>
+
+      <div className="p-4 max-w-3xl mx-auto">
+        <h1 className="text-3xl font-bold mb-4">Stipulations</h1>
+        <ul className="space-y-6">
+          {stipulations.map(({ name }) => (
+            <li key={name}>
+              <h2 className="text-2xl font-semibold mb-1">{name}</h2>
+              <p className="text-base whitespace-pre-line">
+                {descriptions[name] || "No hay reglas especiales para esta estipulación."}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
   );
 }

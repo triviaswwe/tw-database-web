@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Head from "next/head";
 import Spinner from "../components/Spinner";
 
 const EVENTS_PER_PAGE = 33;
@@ -122,7 +123,12 @@ export default function EventsPage() {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <>
+      <Head>
+        <title>Events — Trivias WWE</title>
+        <meta name="description" content="Historial de eventos del Campeonato de Trivias WWE. Filtrá por tipo, fecha y nombre." />
+      </Head>
+      <div className="p-6 max-w-5xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Events</h1>
 
       {/* Fila filtros */}
@@ -258,5 +264,6 @@ export default function EventsPage() {
         </button>
       </div>
     </div>
+    </>
   );
 }
