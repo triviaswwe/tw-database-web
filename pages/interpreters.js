@@ -7,7 +7,6 @@ import FlagWithName from '../components/FlagWithName';
 
 const INTERPRETERS_PER_PAGE = 33;
 
-// Opciones de filtro de status
 const statusOptions = [
   { label: 'All',      value: '' },
   { label: 'Active',   value: 'active' },
@@ -19,8 +18,6 @@ export default function InterpretersPage() {
   const [page, setPage]                 = useState(1);
   const [totalPages, setTotalPages]     = useState(1);
   const [loading, setLoading]           = useState(false);
-
-  // nuevo estado para status
   const [statusFilter, setStatusFilter] = useState('');
   const [nameFilter, setNameFilter]     = useState('');
 
@@ -31,12 +28,11 @@ export default function InterpretersPage() {
         const params = new URLSearchParams();
         params.append('page', page);
         params.append('limit', INTERPRETERS_PER_PAGE);
-        if (statusFilter) params.append('status', statusFilter);
+        if (statusFilter)      params.append('status', statusFilter);
         if (nameFilter.trim()) params.append('filter', nameFilter.trim());
 
         const res  = await fetch(`/api/interpreters?${params.toString()}`);
         const data = await res.json();
-
         setInterpreters(data.interpreters || []);
         setTotalPages(data.totalPages || 1);
       } catch (err) {
@@ -47,15 +43,38 @@ export default function InterpretersPage() {
         setLoading(false);
       }
     }
-
     fetchInterpreters();
   }, [page, statusFilter, nameFilter]);
+
+  // Ventana deslizante de 3 botones (igual que Events)
+  const renderPageButtons = () => {
+    let start = Math.max(1, page - 1);
+    let end   = Math.min(totalPages, start + 2);
+    if (end - start < 2) start = Math.max(1, end - 2);
+    const buttons = [];
+    for (let i = start; i <= end; i++) {
+      buttons.push(
+        <button
+          key={i}
+          onClick={() => setPage(i)}
+          className={`px-3 py-1 rounded ${
+            page === i
+              ? 'bg-blue-600 text-white shadow'
+              : 'bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300'
+          }`}
+        >
+          {i}
+        </button>
+      );
+    }
+    return buttons;
+  };
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Interpreters</h1>
 
-      {/* filtro por status */}
+      {/* Filtro por status */}
       <div className="mb-4 flex flex-wrap gap-2">
         {statusOptions.map(({ label, value }) => (
           <button
@@ -72,7 +91,7 @@ export default function InterpretersPage() {
         ))}
       </div>
 
-      {/* filtro por nombre */}
+      {/* Filtro por nombre */}
       <input
         type="text"
         placeholder="Filter by interpreter name"
@@ -105,21 +124,31 @@ export default function InterpretersPage() {
         </div>
       )}
 
-      {/* Paginación */}
-      <div className="flex justify-center mt-8 space-x-2">
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
-          <button
-            key={num}
-            onClick={() => setPage(num)}
-            className={`px-3 py-1 rounded ${
-              page === num
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 text-gray-700 dark:bg-gray-900 dark:text-white hover:bg-gray-300'
-            }`}
-          >
-            {num}
-          </button>
-        ))}
+      {/* Paginación estilo Events */}
+      <div className="mt-8 flex justify-center space-x-2 items-center">
+        <button
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={page === 1}
+          className={`px-3 py-1 rounded transition-colors ${
+            page === 1
+              ? 'bg-gray-300 dark:bg-gray-900 dark:text-white cursor-not-allowed'
+              : 'bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700'
+          }`}
+        >
+          &lt;
+        </button>
+        {renderPageButtons()}
+        <button
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          disabled={page === totalPages}
+          className={`px-3 py-1 rounded transition-colors ${
+            page === totalPages
+              ? 'bg-gray-300 dark:bg-gray-900 dark:text-white cursor-not-allowed'
+              : 'bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700'
+          }`}
+        >
+          &gt;
+        </button>
       </div>
     </div>
   );

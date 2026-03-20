@@ -1,819 +1,137 @@
 // pages/championships.js
+// Refactorizado: lógica extraída a hooks/useChampionshipSort y hooks/useChampionshipStats
 
-import React from "react";
-import { useState, useMemo } from "react";
+import React, { useMemo } from "react";
 import useSWR from "swr";
 import Link from "next/link";
 import FlagWithName from "../components/FlagWithName";
+import { useChampionshipSort } from "../hooks/useChampionshipSort";
+import { useChampionshipStats } from "../hooks/useChampionshipStats";
+import { formatEnglishDate } from "../hooks/useChampionshipHelpers";
 
 const fetcher = (url) => fetch(url).then((r) => r.json());
 
-const CHAMPIONS = [
-  { id: 1, title: "Undisputed WWE Championship" },
-  { id: 2, title: "World Heavyweight Championship" },
-  { id: 3, title: "Intercontinental Championship" },
-  { id: 4, title: "United States Championship" },
-  { id: 5, title: "WWE World Tag Team Championship" },
-  { id: 6, title: "NXT Championship" },
-  { id: 7, title: "Speed Championship" },
+const aggColumns = [
+  { label: "#" }, { label: "Champion" }, { label: "Interpreter" },
+  { label: "Reigns" }, { label: "Successful defenses" }, { label: "Total days" },
+];
+
+const tableColumns = [
+  { label: "#",           key: "index" },
+  { label: "Champion",    key: "champion" },
+  { label: "Interpreter", key: "interpreter" },
+  { label: "Won Date",    key: "won_date" },
+  { label: "Event",       key: "event" },
+  { label: "Reign #",     key: "reign_number" },
+  { label: "Days Held",   key: "days_held" },
+  { label: "Notes",       key: "notes", widthClass: "w-[25%]" },
 ];
 
 export default function ChampionshipsPage() {
-  const [sel, setSel] = useState(null);
+  const [sel, setSel] = React.useState(null);
 
-  // 0) SWR: championship, reigns y defenses
-  const { data: champ } = useSWR(
-    sel ? `/api/championships/${sel}` : null,
-    fetcher
-  );
-  const { data: reigns } = useSWR(
-    sel ? `/api/championships/${sel}/reigns` : null,
-    fetcher
-  );
-  const { data: defensesData } = useSWR(
-    sel ? `/api/championships/${sel}/defenses` : null,
-    fetcher
-  );
-  const { data: tagIndStats } = useSWR(
-    sel === 5 ? `/api/championships/${sel}/tag-individual-stats` : null,
-    fetcher
-  );
+  // ─── Datos desde API ──────────────────────────────────────────────────────
+  const { data: championsList } = useSWR("/api/championships", fetcher);
+  const { data: champ }         = useSWR(sel ? `/api/championships/${sel}`                            : null, fetcher);
+  const { data: reigns }        = useSWR(sel ? `/api/championships/${sel}/reigns`                     : null, fetcher);
+  const { data: defensesData }  = useSWR(sel ? `/api/championships/${sel}/defenses`                   : null, fetcher);
+  const { data: tagIndStats }   = useSWR(sel === 5 ? `/api/championships/${sel}/tag-individual-stats` : null, fetcher);
 
-  // normalizar
   const reignsArr = useMemo(() => {
     if (Array.isArray(reigns)) return reigns;
     if (reigns && typeof reigns === "object") {
-      if (Array.isArray(reigns.data)) return reigns.data;
+      if (Array.isArray(reigns.data))    return reigns.data;
       if (Array.isArray(reigns.results)) return reigns.results;
-      if (Array.isArray(reigns.reigns)) return reigns.reigns;
+      if (Array.isArray(reigns.reigns))  return reigns.reigns;
     }
     return [];
   }, [reigns]);
 
-  const defenses = defensesData?.details || [];
-  const defenseSummary = defensesData?.summary || [];
+  const defenses         = defensesData?.details || [];
+  const defenseSummary   = defensesData?.summary  || [];
   const tagIndividualStats = tagIndStats || [];
 
-  // 1) estados
-  const [sortKey, setSortKey] = useState(null);
-  const [sortOrder, setSortOrder] = useState("asc");
+  // ─── Hooks de lógica ─────────────────────────────────────────────────────
+  const {
+    handleSort, renderSortIcon,
+    sortedReigns, longestReignId, orderedEraNames,
+  } = useChampionshipSort(reignsArr, sel);
 
-  const [aggSortKey, setAggSortKey] = useState("Total days");
-  const [aggSortOrder, setAggSortOrder] = useState("desc");
+  const {
+    handleAggSort,  renderAggSortIcon,
+    handleTeamSort, renderTeamSortIcon,
+    handleIndSort,  renderIndSortIcon,
+    currentReignText, currentDefenses,
+    fighterStats, teamStats, sortedIndStats,
+  } = useChampionshipStats(reignsArr, defenseSummary, defenses, tagIndividualStats, sel);
 
-  const [teamSortKey, setTeamSortKey] = useState("Total days");
-  const [teamSortOrder, setTeamSortOrder] = useState("desc");
-
-  const [indSortKey, setIndSortKey] = useState("Total days");
-  const [indSortOrder, setIndSortOrder] = useState("desc");
-
-  const handleSort = (column, isAgg = false) => {
-    if (column === "#") {
-      if (isAgg) {
-        setAggSortKey("Total days");
-        setAggSortOrder("desc");
-      } else {
-        setSortKey(null);
-        setSortOrder("asc");
-      }
-    } else {
-      if (isAgg) {
-        if (aggSortKey === column)
-          setAggSortOrder((p) => (p === "asc" ? "desc" : "asc"));
-        else {
-          setAggSortKey(column);
-          setAggSortOrder("asc");
-        }
-      } else {
-        if (sortKey === column)
-          setSortOrder((p) => (p === "asc" ? "desc" : "asc"));
-        else {
-          setSortKey(column);
-          setSortOrder("asc");
-        }
-      }
-    }
-  };
-
-  function handleTeamSort(column) {
-    if (column === "#") {
-      setTeamSortKey("Total days");
-      setTeamSortOrder("desc");
-    } else if (teamSortKey === column) {
-      setTeamSortOrder((p) => (p === "asc" ? "desc" : "asc"));
-    } else {
-      setTeamSortKey(column);
-      setTeamSortOrder("asc");
-    }
-  }
-
-  function handleIndSort(column) {
-    if (column === "#") {
-      setIndSortKey("Total days");
-      setIndSortOrder("desc");
-    } else if (indSortKey === column) {
-      setIndSortOrder((o) => (o === "asc" ? "desc" : "asc"));
-    } else {
-      setIndSortKey(column);
-      setIndSortOrder("asc");
-    }
-  }
-
-  // utilitarios
-  function calculateDaysHeld(wonDateStr, lostDateStr) {
-    if (!wonDateStr) return "—";
-    const start = new Date(wonDateStr);
-    const end = lostDateStr ? new Date(lostDateStr) : new Date();
-    const diffMs = end - start;
-    const diffDays = Math.floor(diffMs / 86400000);
-    return lostDateStr ? `${diffDays}` : `${diffDays}+`;
-  }
-
-  function parseDays(daysHeld) {
-    if (typeof daysHeld === "string") {
-      if (daysHeld === "—") return -Infinity;
-      return parseInt(daysHeld.replace("+", ""), 10);
-    }
-    return daysHeld;
-  }
-
-  const formatEnglishDate = (dateStr) => {
-    if (!dateStr) return "—";
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-      timeZone: "UTC",
-    });
-  };
-
-  const getOrdinalWord = (num) => {
-    const ord = {
-      1: "first",
-      2: "second",
-      3: "third",
-      4: "fourth",
-      5: "fifth",
-      6: "sixth",
-      7: "seventh",
-      8: "eighth",
-      9: "ninth",
-      10: "tenth",
-    };
-    return ord[num] || `${num}th`;
-  };
-
-  const translateNotesToEnglish = (note) => note || "—";
-
-  // columnas
-  const columns = [
-    { label: "#", key: "index" },
-    { label: "Champion", key: "champion" },
-    { label: "Interpreter", key: "interpreter" },
-    { label: "Won Date", key: "won_date" },
-    { label: "Event", key: "event" },
-    { label: "Reign #", key: "reign_number" },
-    { label: "Days Held", key: "days_held" },
-    { label: "Notes", key: "notes", widthClass: "w-[25%]" },
-  ];
-
-  // calculo de columnas visibles (importantísimo para colSpan)
-  const visibleColumnsCount = columns.filter(
+  const visibleColumnsCount = tableColumns.filter(
     (c) => !(c.key === "interpreter" && sel === 5)
   ).length;
 
-  const aggColumns = [
-    { label: "#", sortable: true },
-    { label: "Champion", sortable: true },
-    { label: "Interpreter", sortable: true },
-    { label: "Reigns", sortable: true },
-    { label: "Successful defenses", sortable: true },
-    { label: "Total days", sortable: true },
-  ];
-
-  const renderSortIcon = (column, isAgg = false) => {
-    const activeKey = isAgg ? aggSortKey : sortKey;
-    const activeOrder = isAgg ? aggSortOrder : sortOrder;
-    if (activeKey !== column) return null;
-    return activeOrder === "asc" ? " ▲" : " ▼";
-  };
-
-  const renderTeamSortIcon = (column) =>
-    teamSortKey === column ? (teamSortOrder === "asc" ? " ▲" : " ▼") : null;
-
-  const renderIndSortIcon = (column) =>
-    indSortKey === column ? (indSortOrder === "asc" ? " ▲" : " ▼") : null;
-
-  const todayString = useMemo(
-    () =>
-      new Date().toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-        timeZone: "UTC",
-      }),
-    []
-  );
-
-  // current reign text
-  const currentReignText = useMemo(() => {
-    if (!Array.isArray(reignsArr) || reignsArr.length === 0) return null;
-    const current = reignsArr.find((r) => !r.lost_date);
-    if (!current) return null;
-
-    let teamName = null,
-      teamMembers = [];
-    if (sel === 5 && current.team_members_raw) {
-      teamName = current.team_name;
-      teamMembers = current.team_members_raw.split(",").map((raw) => {
-        const [id, name, country] = raw.split("|");
-        return { wrestlerId: Number(id), wrestler: name, country };
-      });
-    }
-
-    let opponentTeamName = null,
-      opponentTeamId = null,
-      opponentTeamMembers = [];
-    if (sel === 5 && current.opponent_team_members_raw) {
-      opponentTeamName = current.opponent_team_name;
-      opponentTeamId = current.opponent_tag_team_id;
-      opponentTeamMembers = current.opponent_team_members_raw
-        .split(",")
-        .map((raw) => {
-          const [id, name, country] = raw.split("|");
-          return { wrestlerId: Number(id), wrestler: name, country };
-        });
-    }
-
-    return {
-      reignId: current.id,
-      wrestlerId: current.wrestler_id,
-      wrestlerName: current.wrestler,
-      wrestlerCountry: current.country,
-      ordinalWord: getOrdinalWord(current.reign_number),
-      formattedDate: formatEnglishDate(current.won_date),
-      eventId: current.event_id,
-      eventName: current.event_name,
-      tagTeamId: current.tag_team_id,
-      teamName,
-      teamMembers,
-      opponentTeamId,
-      opponentTeamName,
-      opponentTeamMembers,
-      defeatedOpponentId: current.opponent_id,
-      defeatedOpponent: current.opponent,
-      defeatedOpponentCountry: current.opponent_country,
-    };
-  }, [reignsArr, sel]);
-
-  const currentDefenses = useMemo(() => {
-    if (!defenses || !currentReignText) return [];
-    return defenses.filter((d) => d.reign_id === currentReignText.reignId);
-  }, [defenses, currentReignText]);
-
-  // fighterStats (singles)
-  const fighterStats = useMemo(() => {
-    if (sel === 5 || !Array.isArray(reignsArr) || !defenseSummary) return [];
-    const defMap = new Map(defenseSummary.map((d) => [d.reign_id, d.count]));
-    const map = new Map();
-
-    reignsArr.forEach((r) => {
-      if (!r.wrestler_id) return;
-      const daysNum =
-        parseInt(
-          calculateDaysHeld(r.won_date, r.lost_date).replace("+", ""),
-          10
-        ) || 0;
-      const defs = defMap.get(r.id) || 0;
-      if (!map.has(r.wrestler_id)) {
-        map.set(r.wrestler_id, {
-          wrestlerId: r.wrestler_id,
-          wrestlerName: r.wrestler,
-          country: r.country,
-          interpreterId: r.interpreter_id,
-          interpreterName: r.interpreter,
-          interpreterCountry: r.nationality,
-          reignCount: 0,
-          defenses: 0,
-          totalDays: 0,
-          isCurrent: false,
-        });
-      }
-      const o = map.get(r.wrestler_id);
-      o.reignCount++;
-      o.defenses += defs;
-      o.totalDays += daysNum;
-      if (r.lost_date === null) o.isCurrent = true;
-    });
-
-    return Array.from(map.values())
-      .map((o) => ({
-        ...o,
-        totalDaysLabel: o.isCurrent ? `${o.totalDays}+` : `${o.totalDays}`,
-      }))
-      .sort((a, b) => {
-        let va, vb;
-        switch (aggSortKey) {
-          case "Champion":
-            va = a.wrestlerName.toLowerCase();
-            vb = b.wrestlerName.toLowerCase();
-            break;
-          case "Interpreter":
-            va = a.interpreterName.toLowerCase();
-            vb = b.interpreterName.toLowerCase();
-            break;
-          case "Reigns":
-            va = a.reignCount;
-            vb = b.reignCount;
-            break;
-          case "Successful defenses":
-            va = a.defenses;
-            vb = b.defenses;
-            break;
-          case "Total days":
-            va = a.totalDays;
-            vb = b.totalDays;
-            break;
-          default:
-            return 0;
-        }
-        return aggSortOrder === "asc"
-          ? va < vb
-            ? -1
-            : va > vb
-            ? 1
-            : 0
-          : va > vb
-          ? -1
-          : va < vb
-          ? 1
-          : 0;
-      });
-  }, [sel, reignsArr, defenseSummary, aggSortKey, aggSortOrder]);
-
-  // teamStats (tag)
-  const teamStats = useMemo(() => {
-    if (sel !== 5 || !Array.isArray(reignsArr) || !defenseSummary) return [];
-
-    const defMap = new Map(defenseSummary.map((d) => [d.reign_id, d.count]));
-    const map = new Map();
-
-    reignsArr.forEach((r) => {
-      if (!r.tag_team_id) return;
-      const daysNum =
-        parseInt(
-          calculateDaysHeld(r.won_date, r.lost_date).replace("+", ""),
-          10
-        ) || 0;
-      const defs = defMap.get(r.id) || 0;
-
-      if (!map.has(r.tag_team_id)) {
-        map.set(r.tag_team_id, {
-          tagTeamId: r.tag_team_id,
-          teamName: r.team_name,
-          members: new Map(),
-          reignCount: 0,
-          defenses: 0,
-          totalDays: 0,
-          isCurrent: false,
-        });
-      }
-      const o = map.get(r.tag_team_id);
-      o.reignCount++;
-      o.defenses += defs;
-      o.totalDays += daysNum;
-      if (r.lost_date === null) o.isCurrent = true;
-
-      (r.team_members_raw || "").split(",").forEach((raw) => {
-        const [id, name, country] = raw.split("|");
-        if (id) o.members.set(+id, { id: +id, name, country });
-      });
-    });
-
-    const arr = Array.from(map.values()).map((o) => ({
-      ...o,
-      totalDaysLabel: o.isCurrent ? `${o.totalDays}+` : `${o.totalDays}`,
-    }));
-
-    arr.sort((a, b) => {
-      let va, vb;
-      switch (teamSortKey) {
-        case "Champion":
-          va = a.teamName.toLowerCase();
-          vb = b.teamName.toLowerCase();
-          break;
-        case "Interpreter":
-          va = a.interpreterName?.toLowerCase() || "";
-          vb = b.interpreterName?.toLowerCase() || "";
-          break;
-        case "Reigns":
-          va = a.reignCount;
-          vb = b.reignCount;
-          break;
-        case "Successful defenses":
-          va = a.defenses;
-          vb = b.defenses;
-          break;
-        case "Total days":
-          va = a.totalDays;
-          vb = b.totalDays;
-          break;
-        default:
-          return 0;
-      }
-      if (va < vb) return teamSortOrder === "asc" ? -1 : 1;
-      if (va > vb) return teamSortOrder === "asc" ? 1 : -1;
-      return 0;
-    });
-
-    return arr;
-  }, [sel, reignsArr, defenseSummary, teamSortKey, teamSortOrder]);
-
-  // sortedReigns + insert Vacant automatico
-  const sortedReigns = useMemo(() => {
-    if (!Array.isArray(reignsArr)) return [];
-    let arr = reignsArr.map((r, idx) => ({
-      ...r,
-      __index: idx,
-      __daysHeld: calculateDaysHeld(r.won_date, r.lost_date),
-      __wonDateObj: r.won_date ? new Date(r.won_date) : new Date(0),
-      __eventName: r.event_name || "",
-      __wrestlerName: r.wrestler || "",
-      __interpreterName: r.interpreter || "",
-      __notesText: r.notes || "",
-      isVacant: false,
-    }));
-
-    arr.sort((a, b) => a.__wonDateObj - b.__wonDateObj);
-
-    if (arr.length > 0) {
-      const withVac = [];
-      const isTag = sel === 5;
-      for (let i = 0; i < arr.length; i++) {
-        withVac.push(arr[i]);
-        const next = arr[i + 1];
-        if (
-          next &&
-          arr[i].lost_date &&
-          next.won_date &&
-          arr[i].lost_date !== next.won_date
-        ) {
-          const vacantBase = {
-            id: `vacant-${i}`,
-            wrestler_id: null,
-            wrestler: "Vacant",
-            won_date: arr[i].lost_date,
-            __index: null,
-            __daysHeld: "—",
-            __wonDateObj: new Date(arr[i].lost_date),
-            __eventName: "",
-            __wrestlerName: "Vacant",
-            __interpreterName: "",
-            __notesText: "",
-            isVacant: true,
-          };
-
-          if (isTag) {
-            withVac.push({
-              ...vacantBase,
-              tag_team_id: null,
-              team_name: "Vacant",
-            });
-          } else {
-            withVac.push(vacantBase);
-          }
-        }
-      }
-      arr = withVac;
-    }
-
-    if (sortKey) {
-      arr.sort((a, b) => {
-        let va, vb;
-        switch (sortKey) {
-          case "#":
-            va = a.__index ?? -Infinity;
-            vb = b.__index ?? -Infinity;
-            break;
-          case "Champion":
-            va = (a.__wrestlerName || "").toLowerCase();
-            vb = (b.__wrestlerName || "").toLowerCase();
-            break;
-          case "Interpreter":
-            va = (a.__interpreterName || "").toLowerCase();
-            vb = (b.__interpreterName || "").toLowerCase();
-            break;
-          case "Won Date":
-            va = a.__wonDateObj;
-            vb = b.__wonDateObj;
-            break;
-          case "Event":
-            va = (a.__eventName || "").toLowerCase();
-            vb = (b.__eventName || "").toLowerCase();
-            break;
-          case "Reign #":
-            va = a.reign_number ?? -Infinity;
-            vb = b.reign_number ?? -Infinity;
-            break;
-          case "Days Held":
-            va = parseDays(a.__daysHeld);
-            vb = parseDays(b.__daysHeld);
-            break;
-          default:
-            return 0;
-        }
-        if (va < vb) return sortOrder === "asc" ? -1 : 1;
-        if (va > vb) return sortOrder === "asc" ? 1 : -1;
-        return 0;
-      });
-    }
-
-    return arr;
-  }, [reignsArr, sel, sortKey, sortOrder]);
-
-  const longestReignId = useMemo(() => {
-    if (!Array.isArray(sortedReigns) || sortedReigns.length === 0) return null;
-    let maxDays = -Infinity;
-    let winner = null;
-    sortedReigns.forEach((r) => {
-      if (r.isVacant) return;
-      const d = parseDays(r.__daysHeld);
-      if (d > maxDays) {
-        maxDays = d;
-        winner = r.id;
-      }
-    });
-    return winner;
-  }, [sortedReigns]);
-
-  // aggregatedStats
-  // 9) Tabla agregada “Total days with the title” (patched)
-  const aggregatedStats = useMemo(() => {
-    if (!Array.isArray(reignsArr) || !defenseSummary) return [];
-    const defMap = new Map(defenseSummary.map((d) => [d.reign_id, d.count]));
-    const isTag = sel === 5;
-    const map = new Map();
-
-    reignsArr.forEach((r) => {
-      // safe numeric days (evitamos NaN)
-      const rawDays = calculateDaysHeld(r.won_date, r.lost_date).replace(
-        "+",
-        ""
-      );
-      const daysNum = Number.isFinite(Number(rawDays))
-        ? parseInt(rawDays, 10)
-        : 0;
-      const defs = defMap.get(r.id) || 0;
-
-      if (isTag && r.tag_team_id) {
-        const key = r.tag_team_id;
-        const members = (r.team_members_raw || "")
-          .split(",")
-          .map((raw) => {
-            if (!raw) return null;
-            const parts = raw.split("|");
-            const id = Number(parts[0]);
-            const name = parts[1] || "";
-            const country = parts[2] || "";
-            const reignNum = Number(parts[3]) || 0;
-            if (!Number.isFinite(id)) return null;
-            return { id, name, country, reignNum };
-          })
-          .filter(Boolean);
-
-        if (!map.has(key)) {
-          map.set(key, {
-            tagTeamId: key,
-            teamName: r.team_name,
-            members: new Map(),
-            reignCount: 0,
-            defenses: 0,
-            totalDays: 0,
-            isCurrent: false,
-          });
-        }
-        const o = map.get(key);
-        o.reignCount++;
-        o.defenses += defs;
-        // o.totalDays debe sumar número válido
-        o.totalDays += daysNum;
-        if (r.lost_date === null) o.isCurrent = true;
-        members.forEach((m) => {
-          if (m && Number.isFinite(m.id)) o.members.set(m.id, m);
-        });
-      } else if (!isTag && r.wrestler_id) {
-        const key = r.wrestler_id;
-        if (!map.has(key)) {
-          map.set(key, {
-            wrestlerId: key,
-            wrestlerName: r.wrestler,
-            country: r.country,
-            interpreterId: r.interpreter_id,
-            interpreterName: r.interpreter,
-            interpreterCountry: r.nationality,
-            reignCount: 0,
-            defenses: 0,
-            totalDays: 0,
-            isCurrent: false,
-          });
-        }
-        const o = map.get(key);
-        o.reignCount++;
-        o.defenses += defs;
-        o.totalDays += daysNum;
-        if (r.lost_date === null) o.isCurrent = true;
-      }
-    });
-
-    return Array.from(map.values())
-      .map((o) => ({
-        ...o,
-        totalDaysLabel: o.isCurrent ? `${o.totalDays}+` : `${o.totalDays}`,
-      }))
-      .sort((a, b) => {
-        let va, vb;
-        switch (aggSortKey) {
-          case "#":
-            va = isTag ? a.tagTeamId : a.wrestlerId;
-            vb = isTag ? b.tagTeamId : b.wrestlerId;
-            break;
-          case "Champion":
-            va = isTag
-              ? a.teamName.toLowerCase()
-              : a.wrestlerName.toLowerCase();
-            vb = isTag
-              ? b.teamName.toLowerCase()
-              : b.wrestlerName.toLowerCase();
-            break;
-          case "Reigns":
-            va = a.reignCount;
-            vb = b.reignCount;
-            break;
-          case "Successful defenses":
-            va = a.defenses;
-            vb = b.defenses;
-            break;
-          case "Total days":
-            va = a.totalDays;
-            vb = b.totalDays;
-            break;
-          default:
-            return 0;
-        }
-        return aggSortOrder === "asc"
-          ? va < vb
-            ? -1
-            : va > vb
-            ? 1
-            : 0
-          : va > vb
-          ? -1
-          : va < vb
-          ? 1
-          : 0;
-      });
-  }, [reignsArr, defenseSummary, sel, aggSortKey, aggSortOrder]);
-
-  const sortedIndStats = useMemo(() => {
-    const arr = Array.isArray(tagIndividualStats)
-      ? [...tagIndividualStats]
-      : [];
-    arr.sort((a, b) => {
-      let va, vb;
-      switch (indSortKey) {
-        case "Champion":
-          va = a.wrestlerName.toLowerCase();
-          vb = b.wrestlerName.toLowerCase();
-          break;
-        case "Interpreter":
-          va = a.interpreterName.toLowerCase();
-          vb = b.interpreterName.toLowerCase();
-          break;
-        case "Reigns":
-          va = a.reignCount;
-          vb = b.reignCount;
-          break;
-        case "Successful defenses":
-          va = a.defenses;
-          vb = b.defenses;
-          break;
-        case "Total days":
-          va = a.totalDays;
-          vb = b.totalDays;
-          break;
-        default:
-          return 0;
-      }
-      if (va < vb) return indSortOrder === "asc" ? -1 : 1;
-      if (va > vb) return indSortOrder === "asc" ? 1 : -1;
-      return 0;
-    });
-    return arr;
-  }, [tagIndividualStats, indSortKey, indSortOrder]);
-
-  // Eras staticas
-  const eras = [
-    {
-      id: 1,
-      name: "The OGs Era",
-      start_date: "2023-02-27",
-      end_date: "2023-04-11",
-    },
-    {
-      id: 2,
-      name: "The WM Era",
-      start_date: "2023-04-12",
-      end_date: "2024-12-31",
-    },
-    { id: 3, name: "The Kliq Era", start_date: "2025-01-01", end_date: null },
-  ];
+  const todayString = useMemo(() =>
+    new Date().toLocaleDateString("en-US", { month:"long", day:"numeric", year:"numeric", timeZone:"UTC" }), []);
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <style jsx global>{`
-        .no-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        .no-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
 
       <h1 className="text-3xl font-bold mb-6">Championships</h1>
-      <p className="mb-4 text-lg font-medium">
-        Select a championship to view its stats:
-      </p>
+      <p className="mb-4 text-lg font-medium">Select a championship to view its stats:</p>
 
+      {/* Botones de campeonatos desde API */}
       <div className="flex flex-wrap gap-3 mb-6">
-        {CHAMPIONS.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => setSel(c.id)}
-            className={`px-4 py-2 rounded shadow ${
-              sel === c.id
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"
-            }`}
-          >
-            {c.title}
-          </button>
-        ))}
+        {!championsList ? (
+          <p className="text-sm text-gray-400">Loading...</p>
+        ) : (
+          championsList.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setSel(c.id)}
+              className={`px-4 py-2 rounded shadow ${
+                sel === c.id
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"
+              }`}
+            >
+              {c.title_name}
+            </button>
+          ))
+        )}
       </div>
 
       {sel && (
         <div className="space-y-4">
-          {!champ || !reignsArr ? (
+          {!champ || !reignsArr.length ? (
             <p>Loading...</p>
           ) : (
             <>
+              {/* ─── Campeón actual ─────────────────────────────────────── */}
               {currentReignText && (
                 <div className="mb-4 p-4 rounded">
-                  <h3 className="text-xl font-semibold mb-2">
-                    Current champion
-                  </h3>
+                  <h3 className="text-xl font-semibold mb-2">Current champion</h3>
                   <p className="text-sm">
                     {sel === 5 ? (
                       <>
                         The current champions are{" "}
-                        <Link
-                          href={`/stables/${currentReignText.tagTeamId}`}
-                          className="text-blue-600 dark:text-blue-400 hover:underline font-semibold"
-                        >
-                          {currentReignText.teamName}
-                        </Link>{" "}
-                        (
-                        {currentReignText.teamMembers.map((m, i) => (
-                          <span
-                            key={m.wrestlerId}
-                            className="items-center gap-1"
-                          >
-                            <Link
-                              href={`/wrestlers/${m.wrestlerId}`}
-                              className="items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
-                            >
-                              <FlagWithName
-                                code={m.country}
-                                name={m.wrestler}
-                              />
+                        <Link href={`/stables/${currentReignText.tagTeamId}`} className="text-blue-600 dark:text-blue-400 hover:underline font-semibold">{currentReignText.teamName}</Link>{" "}
+                        ({currentReignText.teamMembers.map((m, i) => (
+                          <span key={m.wrestlerId} className="items-center gap-1">
+                            <Link href={`/wrestlers/${m.wrestlerId}`} className="items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold">
+                              <FlagWithName code={m.country} name={m.wrestler} />
                             </Link>
                             {i === 0 && <span className="mx-1">&amp;</span>}
                           </span>
-                        ))}
-                        ), who are in their {currentReignText.ordinalWord} reign
-                        as a team.
+                        ))}), who are in their {currentReignText.ordinalWord} reign as a team.
                       </>
                     ) : (
                       <>
                         The current champion is{" "}
-                        <Link
-                          href={`/wrestlers/${currentReignText.wrestlerId}`}
-                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
-                        >
-                          <FlagWithName
-                            code={currentReignText.wrestlerCountry}
-                            name={currentReignText.wrestlerName}
-                          />
+                        <Link href={`/wrestlers/${currentReignText.wrestlerId}`} className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold">
+                          <FlagWithName code={currentReignText.wrestlerCountry} name={currentReignText.wrestlerName} />
                         </Link>
                         , who is in his {currentReignText.ordinalWord} reign.
                       </>
@@ -821,145 +139,65 @@ export default function ChampionshipsPage() {
                     He won the title after defeating{" "}
                     {sel === 5 && currentReignText.opponentTeamId ? (
                       <>
-                        <Link
-                          href={`/stables/${currentReignText.opponentTeamId}`}
-                          className="text-blue-600 dark:text-blue-400 hover:underline font-semibold"
-                        >
-                          {currentReignText.opponentTeamName}
-                        </Link>{" "}
-                        (
-                        {currentReignText.opponentTeamMembers.map((m, i) => (
-                          <span
-                            key={m.wrestlerId}
-                            className="items-center gap-1"
-                          >
-                            <Link
-                              href={`/wrestlers/${m.wrestlerId}`}
-                              className="items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              <FlagWithName
-                                code={m.country}
-                                name={m.wrestler}
-                              />
+                        <Link href={`/stables/${currentReignText.opponentTeamId}`} className="text-blue-600 dark:text-blue-400 hover:underline font-semibold">{currentReignText.opponentTeamName}</Link>{" "}
+                        ({currentReignText.opponentTeamMembers.map((m, i) => (
+                          <span key={m.wrestlerId} className="items-center gap-1">
+                            <Link href={`/wrestlers/${m.wrestlerId}`} className="items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline">
+                              <FlagWithName code={m.country} name={m.wrestler} />
                             </Link>
                             {i === 0 && <span className="mx-1">&amp;</span>}
                           </span>
-                        ))}
-                        )
+                        ))})
                       </>
                     ) : currentReignText.defeatedOpponentId ? (
-                      <Link
-                        href={`/wrestlers/${currentReignText.defeatedOpponentId}`}
-                        className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
-                      >
-                        <FlagWithName
-                          code={currentReignText.defeatedOpponentCountry}
-                          name={currentReignText.defeatedOpponent}
-                        />
+                      <Link href={`/wrestlers/${currentReignText.defeatedOpponentId}`} className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold">
+                        <FlagWithName code={currentReignText.defeatedOpponentCountry} name={currentReignText.defeatedOpponent} />
                       </Link>
-                    ) : (
-                      <strong>—</strong>
-                    )}{" "}
+                    ) : <strong>—</strong>}{" "}
                     on {currentReignText.formattedDate} at{" "}
-                    {currentReignText.eventId ? (
-                      <Link
-                        href={`/events/${currentReignText.eventId}`}
-                        className="text-blue-600 dark:text-blue-400 hover:underline font-semibold"
-                      >
-                        {currentReignText.eventName}
-                      </Link>
-                    ) : (
-                      <strong>{currentReignText.eventName}</strong>
-                    )}
-                    .
+                    {currentReignText.eventId
+                      ? <Link href={`/events/${currentReignText.eventId}`} className="text-blue-600 dark:text-blue-400 hover:underline font-semibold">{currentReignText.eventName}</Link>
+                      : <strong>{currentReignText.eventName}</strong>}.
                   </p>
 
                   {currentDefenses.length > 0 && (
                     <div className="mt-4">
                       <p className="text-sm mb-2">
                         {sel === 5
-                          ? currentReignText.teamMembers
-                              .map((m) => m.wrestler)
-                              .join(" & ")
+                          ? currentReignText.teamMembers.map((m) => m.wrestler).join(" & ")
                           : currentReignText.wrestlerName}{" "}
-                        records the following televised defenses as of{" "}
-                        {todayString}:
+                        records the following televised defenses as of {todayString}:
                       </p>
                       <ol className="list-decimal list-inside ml-4 space-y-1 text-sm">
                         {currentDefenses.map((d, i) => {
                           let opponentBlock;
                           if (sel === 5 && d.opponent_tag_team_id) {
-                            const members = (d.opponent_team_members_raw || "")
-                              .split(",")
-                              .map((raw) => {
-                                const [id, name, country] = raw.split("|");
-                                return { id, name, country };
-                              })
+                            const members = (d.opponent_team_members_raw || "").split(",")
+                              .map((raw) => { const [id,name,country] = raw.split("|"); return { id, name, country }; })
                               .filter(Boolean);
-
                             opponentBlock = (
                               <>
-                                <Link
-                                  href={`/stables/${d.opponent_tag_team_id}`}
-                                  className="text-blue-600 dark:text-blue-400 hover:underline"
-                                >
-                                  {d.opponent_team_name}
-                                </Link>{" "}
-                                (
-                                {members.map((m, idx) => (
-                                  <span
-                                    key={m.id}
-                                    className="items-center gap-1"
-                                  >
-                                    <Link
-                                      href={`/wrestlers/${m.id}`}
-                                      className="items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                                    >
-                                      <FlagWithName
-                                        code={m.country}
-                                        name={m.name}
-                                      />
-                                    </Link>
-                                    {idx === 0 && members.length > 1 && (
-                                      <span className="mx-1">&amp;</span>
-                                    )}
+                                <Link href={`/stables/${d.opponent_tag_team_id}`} className="text-blue-600 dark:text-blue-400 hover:underline">{d.opponent_team_name}</Link>{" "}
+                                ({members.map((m, idx) => (
+                                  <span key={m.id} className="items-center gap-1">
+                                    <Link href={`/wrestlers/${m.id}`} className="items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"><FlagWithName code={m.country} name={m.name} /></Link>
+                                    {idx === 0 && members.length > 1 && <span className="mx-1">&amp;</span>}
                                   </span>
-                                ))}
-                                )
+                                ))})
                               </>
                             );
                           } else {
                             opponentBlock = (
-                              <Link
-                                href={`/wrestlers/${d.opponent_id}`}
-                                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                              >
-                                <FlagWithName
-                                  code={d.opponent_country}
-                                  name={d.opponent}
-                                />
+                              <Link href={`/wrestlers/${d.opponent_id}`} className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline">
+                                <FlagWithName code={d.opponent_country} name={d.opponent} />
                               </Link>
                             );
                           }
-
                           return (
                             <li key={i}>
                               ({d.score}) vs {opponentBlock} on{" "}
-                              {new Date(d.event_date).toLocaleDateString(
-                                "en-US",
-                                {
-                                  month: "long",
-                                  day: "numeric",
-                                  timeZone: "UTC",
-                                }
-                              )}
-                              ,{" "}
-                              <Link
-                                href={`/events/${d.event_id}`}
-                                className="text-blue-600 dark:text-blue-400 hover:underline"
-                              >
-                                {d.event_name}
-                              </Link>
+                              {new Date(d.event_date).toLocaleDateString("en-US", { month:"long", day:"numeric", timeZone:"UTC" })},{" "}
+                              <Link href={`/events/${d.event_id}`} className="text-blue-600 dark:text-blue-400 hover:underline">{d.event_name}</Link>
                             </li>
                           );
                         })}
@@ -971,246 +209,117 @@ export default function ChampionshipsPage() {
 
               <h2 className="text-2xl font-semibold">{champ?.title_name}</h2>
 
+              {/* ─── Tabla de reinados ──────────────────────────────────── */}
               <div className="overflow-x-auto no-scrollbar">
                 <table className="table-auto w-full border-collapse text-sm min-w-[800px]">
                   <thead>
                     <tr className="bg-gray-100 dark:bg-gray-700">
-                      {columns.map(({ label, key, widthClass }) => (
+                      {tableColumns.map(({ label, key, widthClass }) => (
                         <th
                           key={key}
                           onClick={() => handleSort(label)}
-                          className={`cursor-pointer border px-2 py-1 text-center ${
-                            widthClass || ""
-                          } ${
-                            key === "interpreter" && sel === 5 ? "hidden" : ""
-                          }`}
+                          className={`cursor-pointer border px-2 py-1 text-center ${widthClass||""} ${key==="interpreter"&&sel===5?"hidden":""}`}
                         >
-                          {label}
-                          {renderSortIcon(label)}
+                          {label}{renderSortIcon(label)}
                         </th>
                       ))}
                     </tr>
                   </thead>
-
                   <tbody className="divide-y">
                     {(() => {
                       let globalCounter = 0;
-
-                      const erasWithReigns = eras
-                        .map((era) => {
-                          const rows = sortedReigns.filter((r) => {
-                            const won = new Date(r.won_date || 0);
-                            const from = new Date(era.start_date);
-                            const to = era.end_date
-                              ? new Date(era.end_date)
-                              : null;
-                            return won >= from && (to === null || won <= to);
-                          });
-                          return { ...era, rows };
-                        })
+                      const erasWithReigns = orderedEraNames
+                        .map((eraName) => ({
+                          name: eraName,
+                          rows: sortedReigns.filter((r) => r.era_name === eraName),
+                        }))
                         .filter((era) => era.rows.length > 0);
 
-                      return erasWithReigns.map(
-                        ({ id: eraId, name: eraName, rows }) => (
-                          <React.Fragment key={eraId}>
-                            <tr className="bg-gray-200 dark:bg-gray-800">
-                              <td
-                                className="border px-2 py-1 font-semibold text-center"
-                                colSpan={visibleColumnsCount}
-                              >
-                                {eraName}
-                              </td>
-                            </tr>
-
-                            {rows.map((r) => {
-                              const displayIndex = r.isVacant
-                                ? "—"
-                                : ++globalCounter;
-                              if (r.isVacant) {
-                                return (
-                                  <tr
-                                    key={
-                                      r.id || `vacant-${eraId}-${displayIndex}`
-                                    }
-                                    className="bg-gray-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                  >
-                                    <td className="border px-2 py-1 text-center">
-                                      {displayIndex}
-                                    </td>
-                                    <td className="border px-2 py-1 font-semibold">
-                                      Vacant
-                                    </td>
-
-                                    {sel !== 5 && (
-                                      <td className="border px-2 py-1 text-center">
-                                        —
-                                      </td>
-                                    )}
-
-                                    <td className="border px-2 py-1 text-center">
-                                      {formatEnglishDate(r.won_date)}
-                                    </td>
-                                    <td className="border px-2 py-1 text-center">
-                                      —
-                                    </td>
-                                    <td className="border px-2 py-1 text-center">
-                                      —
-                                    </td>
-                                    <td className="border px-2 py-1 text-center">
-                                      —
-                                    </td>
-                                    <td className="border px-2 py-1 text-[12px] break-words">
-                                      —{" "}
-                                    </td>
-                                  </tr>
-                                );
-                              }
-
-                              const daysHeldRaw = calculateDaysHeld(
-                                r.won_date,
-                                r.lost_date
-                              );
-
+                      return erasWithReigns.map(({ name: eraName, rows }) => (
+                        <React.Fragment key={eraName}>
+                          <tr className="bg-gray-200 dark:bg-gray-800">
+                            <td className="border px-2 py-1 font-semibold text-center" colSpan={visibleColumnsCount}>{eraName}</td>
+                          </tr>
+                          {rows.map((r) => {
+                            const displayIndex = r.isVacant ? "—" : ++globalCounter;
+                            if (r.isVacant) {
                               return (
-                                <tr
-                                  key={r.id}
-                                  className="hover:bg-gray-50 dark:hover:bg-gray-800"
-                                >
-                                  <td className="border px-2 py-1 text-center">
-                                    {displayIndex}
-                                  </td>
-
-                                  <td className="border px-1 py-1 font-semibold">
-                                    {r.tag_team_id ? (
-                                      <>
-                                        <Link
-                                          href={`/stables/${r.tag_team_id}`}
-                                          className="font-semibold text-blue-600 dark:text-blue-400 hover:underline"
-                                        >
-                                          {r.team_name}
-                                        </Link>
-                                        <br />
-                                        <span className="text-xs">
-                                          (
-                                          {(r.team_members_raw
-                                            ? r.team_members_raw.split(",")
-                                            : []
-                                          ).map((item, i, arr) => {
-                                            const [
-                                              id,
-                                              name,
-                                              country,
-                                              indivReign,
-                                            ] = item.split("|");
-                                            return (
-                                              <span
-                                                key={id}
-                                                className="items-center"
-                                              >
-                                                <Link
-                                                  href={`/wrestlers/${id}`}
-                                                  className="items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                                                >
-                                                  <FlagWithName
-                                                    code={country}
-                                                    name={name}
-                                                  />
-                                                </Link>
-                                                &nbsp;({indivReign})
-                                                {i < arr.length - 1 ? ", " : ""}
-                                              </span>
-                                            );
-                                          })}
-                                          )
-                                        </span>
-                                      </>
-                                    ) : r.wrestler_id ? (
-                                      <Link
-                                        href={`/wrestlers/${r.wrestler_id}`}
-                                        className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                                      >
-                                        <FlagWithName
-                                          code={r.country}
-                                          name={r.wrestler}
-                                        />
-                                      </Link>
-                                    ) : (
-                                      "—"
-                                    )}
-                                  </td>
-
-                                  {sel !== 5 && (
-                                    <td className="border px-2 py-1">
-                                      {r.interpreter_id ? (
-                                        <Link
-                                          href={`/interpreters/${r.interpreter_id}`}
-                                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                                        >
-                                          <FlagWithName
-                                            code={r.nationality}
-                                            name={r.interpreter}
-                                          />
-                                        </Link>
-                                      ) : (
-                                        "—"
-                                      )}
-                                    </td>
-                                  )}
-
-                                  <td className="border px-2 py-1 text-center">
-                                    {formatEnglishDate(r.won_date)}
-                                  </td>
-
-                                  <td className="border px-2 py-1 text-center">
-                                    {r.event_id ? (
-                                      <Link
-                                        href={`/events/${r.event_id}`}
-                                        className="text-blue-600 dark:text-blue-400 hover:underline"
-                                      >
-                                        {r.event_name}
-                                      </Link>
-                                    ) : (
-                                      "—"
-                                    )}
-                                  </td>
-
-                                  <td className="border px-2 py-1 text-center">
-                                    {r.reign_number}
-                                  </td>
-
-                                  <td className="border px-2 py-1 text-center">
-                                    {r.lost_date === null
-                                      ? daysHeldRaw
-                                      : daysHeldRaw.replace("+", "")}
-                                  </td>
-
-                                  <td className="border px-2 py-1 text-[12px] break-words">
-                                    {translateNotesToEnglish(r.notes)}
-                                    {sel !== 2 && r.id === longestReignId && (
-                                      <span className="ml-1">
-                                        This is the longest reign in the history
-                                        of the championship.
-                                      </span>
-                                    )}
-                                  </td>
+                                <tr key={r.id || `vacant-${eraName}-${displayIndex}`} className="bg-gray-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800">
+                                  <td className="border px-2 py-1 text-center">{displayIndex}</td>
+                                  <td className="border px-2 py-1 font-semibold">Vacant</td>
+                                  {sel !== 5 && <td className="border px-2 py-1 text-center">—</td>}
+                                  <td className="border px-2 py-1 text-center">{formatEnglishDate(r.won_date)}</td>
+                                  <td className="border px-2 py-1 text-center">—</td>
+                                  <td className="border px-2 py-1 text-center">—</td>
+                                  <td className="border px-2 py-1 text-center">—</td>
+                                  <td className="border px-2 py-1 text-[12px] break-words">—</td>
                                 </tr>
                               );
-                            })}
-                          </React.Fragment>
-                        )
-                      );
+                            }
+                            const daysHeldRaw = r.__daysHeld;
+                            return (
+                              <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                                <td className="border px-2 py-1 text-center">{displayIndex}</td>
+                                <td className="border px-1 py-1 font-semibold">
+                                  {r.tag_team_id ? (
+                                    <>
+                                      <Link href={`/stables/${r.tag_team_id}`} className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">{r.team_name}</Link>
+                                      <br />
+                                      <span className="text-xs">
+                                        ({(r.team_members_raw ? r.team_members_raw.split(",") : []).map((item, i, arr) => {
+                                          const [id, name, country, indivReign] = item.split("|");
+                                          return (
+                                            <span key={id} className="items-center">
+                                              <Link href={`/wrestlers/${id}`} className="items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline">
+                                                <FlagWithName code={country} name={name} />
+                                              </Link>
+                                              &nbsp;({indivReign}){i < arr.length - 1 ? ", " : ""}
+                                            </span>
+                                          );
+                                        })})
+                                      </span>
+                                    </>
+                                  ) : r.wrestler_id ? (
+                                    <Link href={`/wrestlers/${r.wrestler_id}`} className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline">
+                                      <FlagWithName code={r.country} name={r.wrestler} />
+                                    </Link>
+                                  ) : "—"}
+                                </td>
+                                {sel !== 5 && (
+                                  <td className="border px-2 py-1">
+                                    {r.interpreter_id
+                                      ? <Link href={`/interpreters/${r.interpreter_id}`} className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"><FlagWithName code={r.nationality} name={r.interpreter} /></Link>
+                                      : "—"}
+                                  </td>
+                                )}
+                                <td className="border px-2 py-1 text-center">{formatEnglishDate(r.won_date)}</td>
+                                <td className="border px-2 py-1 text-center">
+                                  {r.event_id ? <Link href={`/events/${r.event_id}`} className="text-blue-600 dark:text-blue-400 hover:underline">{r.event_name}</Link> : "—"}
+                                </td>
+                                <td className="border px-2 py-1 text-center">{r.reign_number}</td>
+                                <td className="border px-2 py-1 text-center">{r.lost_date === null ? daysHeldRaw : daysHeldRaw.replace("+","")}</td>
+                                <td className="border px-2 py-1 text-[12px] break-words">
+                                  {r.notes || "—"}
+                                  {sel !== 2 && r.id === longestReignId && (
+                                    <span className="ml-1">This is the longest reign in the history of the championship.</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </React.Fragment>
+                      ));
                     })()}
                   </tbody>
                 </table>
               </div>
 
-              {/* resto de bloques (igual que antes) */}
+              {/* ─── Total days with the title ──────────────────────────── */}
               <div className="mt-8 mb-6">
-                <h3 className="text-xl font-semibold mb-2">
-                  Total days with the title
-                </h3>
+                <h3 className="text-xl font-semibold mb-2">Total days with the title</h3>
                 <p className="mb-4 text-sm">Updated as of {todayString}.</p>
 
+                {/* Tag team stats */}
                 {sel === 5 && teamStats.length > 0 && (
                   <div className="mb-8">
                     <h4 className="text-lg font-semibold mb-2">By Tag Team</h4>
@@ -1218,71 +327,32 @@ export default function ChampionshipsPage() {
                       <table className="table-auto w-full border-collapse text-sm min-w-[600px]">
                         <thead>
                           <tr className="bg-gray-100 dark:bg-gray-700">
-                            {aggColumns
-                              .filter((c) => c.label !== "Interpreter")
-                              .map(({ label }) => (
-                                <th
-                                  key={label}
-                                  onClick={() => handleTeamSort(label)}
-                                  className="border px-2 py-1 text-center cursor-pointer select-none"
-                                >
-                                  {label}
-                                  {renderTeamSortIcon(label)}
-                                </th>
-                              ))}
+                            {aggColumns.filter((c) => c.label !== "Interpreter").map(({ label }) => (
+                              <th key={label} onClick={() => handleTeamSort(label)} className="border px-2 py-1 text-center cursor-pointer select-none">
+                                {label}{renderTeamSortIcon(label)}
+                              </th>
+                            ))}
                           </tr>
                         </thead>
                         <tbody className="divide-y">
                           {teamStats.map((row, idx) => (
-                            <tr
-                              key={row.tagTeamId}
-                              className={`${
-                                row.isCurrent
-                                  ? "bg-yellow-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                  : "hover:bg-gray-50 dark:hover:bg-gray-800"
-                              }`}
-                            >
-                              <td className="border px-2 py-1 text-center">
-                                {idx + 1}
-                              </td>
+                            <tr key={row.tagTeamId} className={row.isCurrent ? "bg-yellow-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800" : "hover:bg-gray-50 dark:hover:bg-gray-800"}>
+                              <td className="border px-2 py-1 text-center">{idx + 1}</td>
                               <td className="border px-2 py-1">
-                                <Link
-                                  href={`/stables/${row.tagTeamId}`}
-                                  className="font-bold text-blue-600 dark:text-blue-400 hover:underline"
-                                >
-                                  {row.teamName}
-                                </Link>
+                                <Link href={`/stables/${row.tagTeamId}`} className="font-bold text-blue-600 dark:text-blue-400 hover:underline">{row.teamName}</Link>
                                 <br />
                                 <span className="text-xs">
-                                  (
-                                  {Array.from(row.members.values()).map(
-                                    (m, i, arr) => (
-                                      <span key={m.id}>
-                                        <Link
-                                          href={`/wrestlers/${m.id}`}
-                                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                                        >
-                                          <FlagWithName
-                                            code={m.country}
-                                            name={m.name}
-                                          />
-                                        </Link>
-                                        {i < arr.length - 1 && ", "}
-                                      </span>
-                                    )
-                                  )}
-                                  )
+                                  ({Array.from(row.members.values()).map((m, i, arr) => (
+                                    <span key={m.id}>
+                                      <Link href={`/wrestlers/${m.id}`} className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"><FlagWithName code={m.country} name={m.name} /></Link>
+                                      {i < arr.length - 1 && ", "}
+                                    </span>
+                                  ))})
                                 </span>
                               </td>
-                              <td className="border px-2 py-1 text-center">
-                                {row.reignCount}
-                              </td>
-                              <td className="border px-2 py-1 text-center">
-                                {row.defenses}
-                              </td>
-                              <td className="border px-2 py-1 text-center">
-                                {row.totalDaysLabel}
-                              </td>
+                              <td className="border px-2 py-1 text-center">{row.reignCount}</td>
+                              <td className="border px-2 py-1 text-center">{row.defenses}</td>
+                              <td className="border px-2 py-1 text-center">{row.totalDaysLabel}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -1291,104 +361,36 @@ export default function ChampionshipsPage() {
                   </div>
                 )}
 
+                {/* Tag individual stats */}
                 {sel === 5 && tagIndividualStats.length > 0 && (
                   <div className="mb-8">
-                    <h4 className="text-lg font-semibold mb-2">
-                      By Individual Wrestler
-                    </h4>
+                    <h4 className="text-lg font-semibold mb-2">By Individual Wrestler</h4>
                     <div className="overflow-x-auto no-scrollbar">
                       <table className="table-auto w-full border-collapse text-sm min-w-[600px]">
                         <thead>
                           <tr className="bg-gray-100 dark:bg-gray-700">
-                            <th
-                              onClick={() => handleIndSort("#")}
-                              className="border px-2 py-1 text-center cursor-pointer select-none"
-                            >
-                              #{renderIndSortIcon("#")}
-                            </th>
-                            <th
-                              onClick={() => handleIndSort("Champion")}
-                              className="border px-2 py-1 text-center cursor-pointer select-none font-semibold"
-                            >
-                              Champion{renderIndSortIcon("Champion")}
-                            </th>
-                            <th
-                              onClick={() => handleIndSort("Interpreter")}
-                              className="border px-2 py-1 text-center cursor-pointer select-none"
-                            >
-                              Interpreter{renderIndSortIcon("Interpreter")}
-                            </th>
-                            <th
-                              onClick={() => handleIndSort("Reigns")}
-                              className="border px-2 py-1 text-center cursor-pointer select-none"
-                            >
-                              Reigns{renderIndSortIcon("Reigns")}
-                            </th>
-                            <th
-                              onClick={() =>
-                                handleIndSort("Successful defenses")
-                              }
-                              className="border px-2 py-1 text-center cursor-pointer select-none"
-                            >
-                              Successful defenses
-                              {renderIndSortIcon("Successful defenses")}
-                            </th>
-                            <th
-                              onClick={() => handleIndSort("Total days")}
-                              className="border px-2 py-1 text-center cursor-pointer select-none"
-                            >
-                              Total days{renderIndSortIcon("Total days")}
-                            </th>
+                            {["#","Champion","Interpreter","Reigns","Successful defenses","Total days"].map((label) => (
+                              <th key={label} onClick={() => handleIndSort(label)} className="border px-2 py-1 text-center cursor-pointer select-none">
+                                {label}{renderIndSortIcon(label)}
+                              </th>
+                            ))}
                           </tr>
                         </thead>
                         <tbody className="divide-y">
                           {sortedIndStats.map((row, idx) => (
-                            <tr
-                              key={row.wrestlerId}
-                              className={
-                                row.isCurrent
-                                  ? "bg-yellow-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                  : "hover:bg-gray-50 dark:hover:bg-gray-800"
-                              }
-                            >
-                              <td className="border px-2 py-1 text-center">
-                                {idx + 1}
-                              </td>
+                            <tr key={row.wrestlerId} className={row.isCurrent ? "bg-yellow-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800" : "hover:bg-gray-50 dark:hover:bg-gray-800"}>
+                              <td className="border px-2 py-1 text-center">{idx + 1}</td>
                               <td className="border px-2 py-1 text-left font-semibold">
-                                <Link
-                                  href={`/wrestlers/${row.wrestlerId}`}
-                                  className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                                >
-                                  <FlagWithName
-                                    code={row.country}
-                                    name={row.wrestlerName}
-                                  />
-                                </Link>
+                                <Link href={`/wrestlers/${row.wrestlerId}`} className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"><FlagWithName code={row.country} name={row.wrestlerName} /></Link>
                               </td>
                               <td className="border px-2 py-1 text-left">
-                                {row.interpreterId ? (
-                                  <Link
-                                    href={`/interpreters/${row.interpreterId}`}
-                                    className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                                  >
-                                    <FlagWithName
-                                      code={row.interpreterCountry}
-                                      name={row.interpreterName}
-                                    />
-                                  </Link>
-                                ) : (
-                                  "—"
-                                )}
+                                {row.interpreterId
+                                  ? <Link href={`/interpreters/${row.interpreterId}`} className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"><FlagWithName code={row.interpreterCountry} name={row.interpreterName} /></Link>
+                                  : "—"}
                               </td>
-                              <td className="border px-2 py-1 text-center">
-                                {row.reignCount}
-                              </td>
-                              <td className="border px-2 py-1 text-center">
-                                {row.defenses}
-                              </td>
-                              <td className="border px-2 py-1 text-center">
-                                {row.totalDaysLabel}
-                              </td>
+                              <td className="border px-2 py-1 text-center">{row.reignCount}</td>
+                              <td className="border px-2 py-1 text-center">{row.defenses}</td>
+                              <td className="border px-2 py-1 text-center">{row.totalDaysLabel}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -1397,67 +399,32 @@ export default function ChampionshipsPage() {
                   </div>
                 )}
 
+                {/* Singles fighter stats */}
                 {sel !== 5 && fighterStats.length > 0 && (
                   <div className="mb-8 overflow-x-auto no-scrollbar">
                     <table className="table-auto w-full border-collapse text-sm min-w-[600px]">
                       <thead>
                         <tr className="bg-gray-100 dark:bg-gray-700">
                           {aggColumns.map(({ label }) => (
-                            <th
-                              key={label}
-                              onClick={() => handleSort(label, true)}
-                              className="border px-2 py-1 text-center cursor-pointer select-none"
-                            >
-                              {label}
-                              {renderSortIcon(label, true)}
+                            <th key={label} onClick={() => handleAggSort(label)} className="border px-2 py-1 text-center cursor-pointer select-none">
+                              {label}{renderAggSortIcon(label)}
                             </th>
                           ))}
                         </tr>
                       </thead>
                       <tbody className="divide-y">
                         {fighterStats.map((row, idx) => (
-                          <tr
-                            key={row.wrestlerId}
-                            className={`${
-                              row.isCurrent
-                                ? "bg-yellow-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                : "hover:bg-gray-50 dark:hover:bg-gray-800"
-                            }`}
-                          >
-                            <td className="border px-2 py-1 text-center">
-                              {idx + 1}
+                          <tr key={row.wrestlerId} className={row.isCurrent ? "bg-yellow-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800" : "hover:bg-gray-50 dark:hover:bg-gray-800"}>
+                            <td className="border px-2 py-1 text-center">{idx + 1}</td>
+                            <td className="border px-2 py-1">
+                              <Link href={`/wrestlers/${row.wrestlerId}`} className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"><FlagWithName code={row.country} name={row.wrestlerName} /></Link>
                             </td>
                             <td className="border px-2 py-1">
-                              <Link
-                                href={`/wrestlers/${row.wrestlerId}`}
-                                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
-                              >
-                                <FlagWithName
-                                  code={row.country}
-                                  name={row.wrestlerName}
-                                />
-                              </Link>
+                              <Link href={`/interpreters/${row.interpreterId}`} className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"><FlagWithName code={row.interpreterCountry} name={row.interpreterName} /></Link>
                             </td>
-                            <td className="border px-2 py-1">
-                              <Link
-                                href={`/interpreters/${row.interpreterId}`}
-                                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                              >
-                                <FlagWithName
-                                  code={row.interpreterCountry}
-                                  name={row.interpreterName}
-                                />
-                              </Link>
-                            </td>
-                            <td className="border px-2 py-1 text-center">
-                              {row.reignCount}
-                            </td>
-                            <td className="border px-2 py-1 text-center">
-                              {row.defenses}
-                            </td>
-                            <td className="border px-2 py-1 text-center">
-                              {row.totalDaysLabel}
-                            </td>
+                            <td className="border px-2 py-1 text-center">{row.reignCount}</td>
+                            <td className="border px-2 py-1 text-center">{row.defenses}</td>
+                            <td className="border px-2 py-1 text-center">{row.totalDaysLabel}</td>
                           </tr>
                         ))}
                       </tbody>
