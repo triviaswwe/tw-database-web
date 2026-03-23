@@ -7,7 +7,11 @@ import pool from "../../lib/db";
 import FlagWithName from "../../components/FlagWithName";
 import MatchCard from "../../components/MatchCard";
 import { formatDateDDMMYYYY } from "../../lib/matchUtils";
-import { useQueryFilter, useQueryToggle, usePagination } from "../../hooks/useQueryFilter";
+import {
+  useQueryFilter,
+  useQueryToggle,
+  usePagination,
+} from "../../hooks/useQueryFilter";
 
 export async function getServerSideProps({ params, query }) {
   try {
@@ -34,6 +38,7 @@ export async function getServerSideProps({ params, query }) {
     const filterEvent     = query.filter    ? query.filter.trim()    : "";
     const filterTitle     = query.title     === "1";
     const filterStip      = query.stip      === "1";
+    const filterOne       = query.one       === "1";
     const filterChamp     = query.champ     ? query.champ.trim()     : "";
     const filterMatchType = query.matchtype ? query.matchtype.trim() : "";
 
@@ -54,8 +59,26 @@ export async function getServerSideProps({ params, query }) {
       extraClauses.push(`AND LOWER(e.name) LIKE ?`);
       extraParams.push(`%${filterEvent.toLowerCase()}%`);
     }
-    if (filterTitle)     extraClauses.push(`AND m.title_match = 1`);
-    if (filterStip)      extraClauses.push(`AND m.match_type_id NOT IN (1, 2)`);
+    if (filterTitle) extraClauses.push(`AND m.title_match = 1`);
+    if (filterStip)  extraClauses.push(`AND m.match_type_id NOT IN (1, 2, 23, 32)`);
+    if (filterOne) {
+      extraClauses.push(`
+        AND (
+          SELECT COUNT(DISTINCT mp_c.team_number)
+          FROM match_participants mp_c
+          WHERE mp_c.match_id = m.id
+        ) = 2
+        AND (
+          SELECT MAX(t.cnt)
+          FROM (
+            SELECT COUNT(*) AS cnt
+            FROM match_participants mp_i
+            WHERE mp_i.match_id = m.id
+            GROUP BY mp_i.team_number
+          ) t
+        ) = 1
+      `);
+    }
     if (filterChamp) {
       extraClauses.push(`AND LOWER(c.title_name) LIKE ?`);
       extraParams.push(`%${filterChamp.toLowerCase()}%`);
@@ -161,7 +184,8 @@ export async function getServerSideProps({ params, query }) {
     return {
       props: {
         interpreter, currentWrestler, formerWrestlers,
-        filterWrestler, filterEvent, filterTitle, filterStip, filterChamp, filterMatchType,
+        filterWrestler, filterEvent, filterTitle, filterStip, filterOne,
+        filterChamp, filterMatchType,
         matches: {
           stats, matches: matchesList,
           pagination: { page, limit, total: matchesTotal, totalPages: Math.ceil(matchesTotal / limit) },
@@ -179,7 +203,8 @@ export default function InterpreterDetail({
   interpreter,
   currentWrestler,
   formerWrestlers = [],
-  filterWrestler, filterEvent, filterTitle, filterStip, filterChamp, filterMatchType,
+  filterWrestler, filterEvent, filterTitle, filterStip, filterOne,
+  filterChamp, filterMatchType,
   matches,
 }) {
   const router = useRouter();
@@ -200,6 +225,7 @@ export default function InterpreterDetail({
   const { input: matchTypeInput, setInput: setMatchTypeInput } = useQueryFilter("matchtype", filterMatchType, router);
   const toggleTitle = useQueryToggle("title", filterTitle, router);
   const toggleStip  = useQueryToggle("stip",  filterStip,  router);
+  const toggleOne   = useQueryToggle("one",   filterOne,   router);
   const { goToPage, renderPageButtons } = usePagination(pagination, router);
 
   const inputClass = "w-full border dark:bg-zinc-950 border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600";
@@ -270,8 +296,15 @@ export default function InterpreterDetail({
             <input type="text" placeholder="Filter by stipulation"   value={matchTypeInput} onChange={(e) => setMatchTypeInput(e.target.value)} className={inputClass} />
           </div>
           <div className="flex flex-wrap gap-2">
-            <button onClick={toggleTitle} className={`px-4 py-2 rounded font-semibold ${filterTitle ? "bg-blue-600 text-white shadow" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"}`}>Championship matches</button>
-            <button onClick={toggleStip}  className={`px-4 py-2 rounded font-semibold ${filterStip  ? "bg-blue-600 text-white shadow" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"}`}>Stipulation matches</button>
+            <button onClick={toggleTitle} className={`px-4 py-2 rounded font-semibold ${filterTitle ? "bg-blue-600 text-white shadow" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"}`}>
+              Championship matches
+            </button>
+            <button onClick={toggleStip} className={`px-4 py-2 rounded font-semibold ${filterStip ? "bg-blue-600 text-white shadow" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"}`}>
+              Stipulation matches
+            </button>
+            <button onClick={toggleOne} className={`px-4 py-2 rounded font-semibold ${filterOne ? "bg-blue-600 text-white shadow" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"}`}>
+              1-on-1
+            </button>
           </div>
         </div>
 
@@ -279,8 +312,14 @@ export default function InterpreterDetail({
           {matches.matches.length === 0 ? (
             <p className="text-gray-500 dark:text-gray-400">No matches found.</p>
           ) : (
-            matches.matches.map((match) => (
-              <MatchCard key={`${match.id}-${match.team_number}`} match={match} currentId={currentWrestler?.id} idType="wrestler" />
+            matches.matches.map((match, idx) => (
+              <MatchCard
+                key={`${match.id}-${match.team_number}`}
+                match={match}
+                currentId={currentWrestler?.id}
+                idType="wrestler"
+                number={(pagination.page - 1) * pagination.limit + idx + 1}
+              />
             ))
           )}
         </ul>

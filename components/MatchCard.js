@@ -1,18 +1,16 @@
 // components/MatchCard.js
 //
 // Componente compartido para renderizar un match individual.
-// Reemplaza el bloque duplicado en wrestlers/[id].js, interpreters/[id].js,
-// stables/[id].js y events/[id].js.
-//
 // Props:
-//   match        — objeto del match serializado
-//   currentId    — wrestler_id o tag_team_id que se debe resaltar en negrita
-//   idType       — "wrestler" | "stable" (para saber qué campo comparar)
+//   match    — objeto del match serializado
+//   currentId — wrestler_id o tag_team_id a resaltar en negrita
+//   idType   — "wrestler" | "stable"
+//   number   — número de orden del combate (opcional, ej: 1, 2, 3...)
 
 import Link from "next/link";
 import { formatDateDDMMYYYY, getPhrase, buildTopLine, buildTeamsMap, buildScoreMap } from "../lib/matchUtils";
 
-export default function MatchCard({ match, currentId, idType = "wrestler" }) {
+export default function MatchCard({ match, currentId, idType = "wrestler", number }) {
   const { teamsMap, allTeamNumbers, mainTeam, rivalTeams } = buildTeamsMap(
     match.participants,
     match.team_number,
@@ -25,11 +23,7 @@ export default function MatchCard({ match, currentId, idType = "wrestler" }) {
 
   const renderTeam = (team, highlightFirst = false) =>
     team.map((p, i) => {
-      const isCurrent =
-        idType === "wrestler"
-          ? p.wrestler_id === currentId
-          : false; // stables no resalta individualmente
-
+      const isCurrent = idType === "wrestler" ? p.wrestler_id === currentId : false;
       const nameNode =
         isCurrent || highlightFirst ? (
           <strong key={p.wrestler_id}>{p.wrestler}</strong>
@@ -42,7 +36,6 @@ export default function MatchCard({ match, currentId, idType = "wrestler" }) {
             {p.wrestler}
           </Link>
         );
-
       return (
         <span key={p.wrestler_id}>
           {i > 0 && " & "}
@@ -53,15 +46,22 @@ export default function MatchCard({ match, currentId, idType = "wrestler" }) {
 
   return (
     <li className="border p-3 rounded shadow bg-white dark:bg-zinc-950">
-      {/* Fecha y evento */}
-      <p className="font-medium">
-        {formatDateDDMMYYYY(match.event_date)} —{" "}
-        <Link
-          href={`/events/${match.event_id}`}
-          className="text-blue-600 dark:text-sky-300 hover:underline"
-        >
-          {match.event || match.event_name}
-        </Link>
+      {/* Número de combate + fecha + evento */}
+      <p className="font-medium flex items-baseline gap-2">
+        {number != null && (
+          <span className="text-xs font-bold text-gray-400 dark:text-gray-500 min-w-[1.5rem]">
+            #{number}
+          </span>
+        )}
+        <span>
+          {formatDateDDMMYYYY(match.event_date)} —{" "}
+          <Link
+            href={`/events/${match.event_id}`}
+            className="text-blue-600 dark:text-sky-300 hover:underline"
+          >
+            {match.event || match.event_name}
+          </Link>
+        </span>
       </p>
 
       {/* Campeonato / estipulación */}
@@ -78,20 +78,16 @@ export default function MatchCard({ match, currentId, idType = "wrestler" }) {
           <>
             {match.result === "LOSS" ? (
               (() => {
-                const winningTeams = rivalTeams.filter((tn) =>
-                  teamsMap[tn].some((p) => p.result === "WIN"),
-                );
+                const winningTeams        = rivalTeams.filter((tn) => teamsMap[tn].some((p) => p.result === "WIN"));
                 const winnersParticipants = winningTeams.flatMap((tn) => teamsMap[tn]);
-                const otherTeams = rivalTeams.filter((tn) => !winningTeams.includes(tn));
+                const otherTeams          = rivalTeams.filter((tn) => !winningTeams.includes(tn));
                 return (
                   <>
                     defeated by {renderTeam(winnersParticipants)}
                     {otherTeams.length > 0 && (
                       <>
                         {" "}(Other participants:{" "}
-                        {otherTeams
-                          .map((tn) => renderTeam(teamsMap[tn]))
-                          .reduce((prev, curr) => [prev, ", ", curr])}
+                        {otherTeams.map((tn) => renderTeam(teamsMap[tn])).reduce((prev, curr) => [prev, ", ", curr])}
                         )
                       </>
                     )}
@@ -101,9 +97,7 @@ export default function MatchCard({ match, currentId, idType = "wrestler" }) {
             ) : (
               <>
                 {getPhrase(match.result)}{" "}
-                {rivalTeams
-                  .map((tn) => renderTeam(teamsMap[tn]))
-                  .reduce((prev, curr) => [prev, ", ", curr])}
+                {rivalTeams.map((tn) => renderTeam(teamsMap[tn])).reduce((prev, curr) => [prev, ", ", curr])}
               </>
             )}
           </>
@@ -125,11 +119,11 @@ export default function MatchCard({ match, currentId, idType = "wrestler" }) {
           <span>
             {[
               <span key="main">{scoreMap[mainTeamNumber] ?? 0}</span>,
-              ...rivalTeams.map((teamNumber) => {
-                const team  = renderTeam(teamsMap[teamNumber]);
-                const score = scoreMap[teamNumber] ?? 0;
-                return <span key={teamNumber}>{team} {score}</span>;
-              }),
+              ...rivalTeams.map((teamNumber) => (
+                <span key={teamNumber}>
+                  {renderTeam(teamsMap[teamNumber])} {scoreMap[teamNumber] ?? 0}
+                </span>
+              )),
             ].reduce((prev, curr) => [prev, " - ", curr])}
           </span>
         )}
