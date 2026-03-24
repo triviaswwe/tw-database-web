@@ -1,26 +1,16 @@
 // hooks/useQueryFilter.js
-//
-// Hooks de alto nivel para filtros, toggles y paginación con Next.js router.
-// Usa useDebounce internamente.
 
 import { useState, useEffect } from "react";
 import { useDebounce } from "./useDebounce";
 
 /**
  * Mantiene el estado local de un input de texto y lo sincroniza
- * con un query param de la URL tras 500ms de inactividad.
- *
- * @param {string} paramKey    - Nombre del query param (ej. "filter", "wrestler")
- * @param {string} serverValue - Valor actual del param que vino del servidor (prop)
- * @param {object} router      - useRouter() del componente
- * @param {number} [delay=500] - Milisegundos de debounce
- * @returns {{ input: string, setInput: Function }}
+ * con un query param de la URL tras el delay de debounce.
  */
 export function useQueryFilter(paramKey, serverValue, router, delay = 500) {
   const [input, setInput] = useState(serverValue || "");
   const debounced = useDebounce(input, delay);
 
-  // Cuando el valor debounced cambia y es distinto al del servidor → router.push
   useEffect(() => {
     const trimmed = debounced.trim();
     if (trimmed === (serverValue || "")) return;
@@ -32,7 +22,6 @@ export function useQueryFilter(paramKey, serverValue, router, delay = 500) {
     });
   }, [debounced]);
 
-  // Sincronizar input si el usuario navega con back/forward
   useEffect(() => {
     setInput(serverValue || "");
   }, [serverValue]);
@@ -42,11 +31,6 @@ export function useQueryFilter(paramKey, serverValue, router, delay = 500) {
 
 /**
  * Toggle para filtros booleanos (?paramKey=1).
- *
- * @param {string}  paramKey - Nombre del query param (ej. "title", "stip")
- * @param {boolean} isActive - Estado actual del filtro
- * @param {object}  router   - useRouter()
- * @returns {Function}       - toggleFn para llamar en onClick
  */
 export function useQueryToggle(paramKey, isActive, router) {
   return () => {
@@ -60,11 +44,8 @@ export function useQueryToggle(paramKey, isActive, router) {
 }
 
 /**
- * Paginación estilo Events (ventana deslizante de 3 botones).
- *
- * @param {{ page: number, totalPages: number }} pagination
- * @param {object} router - useRouter()
- * @returns {{ goToPage: Function, renderPageButtons: Function }}
+ * Paginación con ventana deslizante de 3 botones
+ * + botones de primera y última página (|< y >|).
  */
 export function usePagination(pagination, router) {
   const goToPage = (p) => {
@@ -77,26 +58,75 @@ export function usePagination(pagination, router) {
 
   const renderPageButtons = () => {
     const { page, totalPages } = pagination;
+
+    // Clases compartidas
+    const base   = "px-3 py-1 rounded transition-colors";
+    const active = "bg-blue-600 text-white shadow";
+    const normal = "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700";
+    const disabled = "bg-gray-300 dark:bg-gray-900 dark:text-white cursor-not-allowed opacity-50";
+
+    // Ventana deslizante de 3 botones numéricos
     let start = Math.max(1, page - 1);
     let end   = Math.min(totalPages, start + 2);
     if (end - start < 2) start = Math.max(1, end - 2);
-    const buttons = [];
+
+    const numberButtons = [];
     for (let i = start; i <= end; i++) {
-      buttons.push(
+      numberButtons.push(
         <button
           key={i}
           onClick={() => goToPage(i)}
-          className={`px-3 py-1 rounded ${
-            page === i
-              ? "bg-blue-600 text-white shadow"
-              : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"
-          }`}
+          className={`${base} ${page === i ? active : normal}`}
         >
           {i}
         </button>,
       );
     }
-    return buttons;
+
+    return (
+      <>
+        {/* |< Primera página */}
+        <button
+          onClick={() => goToPage(1)}
+          disabled={page === 1}
+          className={`${base} ${page === 1 ? disabled : normal}`}
+          title="First page"
+        >
+          &#171;
+        </button>
+
+        {/* < Página anterior */}
+        <button
+          onClick={() => goToPage(Math.max(1, page - 1))}
+          disabled={page === 1}
+          className={`${base} ${page === 1 ? disabled : normal}`}
+        >
+          &lt;
+        </button>
+
+        {/* Números */}
+        {numberButtons}
+
+        {/* > Página siguiente */}
+        <button
+          onClick={() => goToPage(Math.min(totalPages, page + 1))}
+          disabled={page === totalPages}
+          className={`${base} ${page === totalPages ? disabled : normal}`}
+        >
+          &gt;
+        </button>
+
+        {/* >| Última página */}
+        <button
+          onClick={() => goToPage(totalPages)}
+          disabled={page === totalPages}
+          className={`${base} ${page === totalPages ? disabled : normal}`}
+          title="Last page"
+        >
+          &#187;
+        </button>
+      </>
+    );
   };
 
   return { goToPage, renderPageButtons };

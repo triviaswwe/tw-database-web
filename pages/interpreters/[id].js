@@ -25,25 +25,25 @@ export async function getServerSideProps({ params, query }) {
     if (!interpreterRow) return { notFound: true };
 
     const interpreter = {
-      id:          interpreterRow.id,
+      id: interpreterRow.id,
       interpreter: interpreterRow.interpreter,
       nationality: interpreterRow.nationality,
-      status:      interpreterRow.status,
+      status: interpreterRow.status,
     };
 
-    const page            = Math.max(1, parseInt(query.page)  || 1);
-    const limit           = Math.min(50, parseInt(query.limit) || 20);
-    const offset          = (page - 1) * limit;
-    const filterWrestler  = query.wrestler  ? query.wrestler.trim()  : "";
-    const filterEvent     = query.filter    ? query.filter.trim()    : "";
-    const filterTitle     = query.title     === "1";
-    const filterStip      = query.stip      === "1";
-    const filterOne       = query.one       === "1";
-    const filterChamp     = query.champ     ? query.champ.trim()     : "";
+    const page = Math.max(1, parseInt(query.page) || 1);
+    const limit = Math.min(50, parseInt(query.limit) || 20);
+    const offset = (page - 1) * limit;
+    const filterWrestler = query.wrestler ? query.wrestler.trim() : "";
+    const filterEvent = query.filter ? query.filter.trim() : "";
+    const filterTitle = query.title === "1";
+    const filterStip = query.stip === "1";
+    const filterOne = query.one === "1";
+    const filterChamp = query.champ ? query.champ.trim() : "";
     const filterMatchType = query.matchtype ? query.matchtype.trim() : "";
 
     const extraClauses = [];
-    const extraParams  = [];
+    const extraParams = [];
 
     if (filterWrestler) {
       extraClauses.push(`
@@ -60,7 +60,8 @@ export async function getServerSideProps({ params, query }) {
       extraParams.push(`%${filterEvent.toLowerCase()}%`);
     }
     if (filterTitle) extraClauses.push(`AND m.title_match = 1`);
-    if (filterStip)  extraClauses.push(`AND m.match_type_id NOT IN (1, 2, 23, 32)`);
+    if (filterStip)
+      extraClauses.push(`AND m.match_type_id NOT IN (1, 2, 23, 32)`);
     if (filterOne) {
       extraClauses.push(`
         AND (
@@ -91,20 +92,17 @@ export async function getServerSideProps({ params, query }) {
     const extraSql = extraClauses.join("\n");
 
     // ─── Grupo 1: datos del header (3 conexiones simultáneas) ─────────────
-    const [
-      [assocWrestlers],
-      [[statsRow]],
-      [[lastWrestlerRow]],
-    ] = await Promise.all([
-      pool.query(
-        `SELECT wi.wrestler_id, w.wrestler AS wrestler_name, w.country AS wrestler_country
+    const [[assocWrestlers], [[statsRow]], [[lastWrestlerRow]]] =
+      await Promise.all([
+        pool.query(
+          `SELECT wi.wrestler_id, w.wrestler AS wrestler_name, w.country AS wrestler_country
          FROM wrestler_interpreter wi
          JOIN wrestlers w ON wi.wrestler_id = w.id
          WHERE wi.interpreter_id = ?`,
-        [interpreterId],
-      ),
-      pool.query(
-        `SELECT COUNT(*) AS total,
+          [interpreterId],
+        ),
+        pool.query(
+          `SELECT COUNT(*) AS total,
            SUM(CASE WHEN mp.result='WIN'  THEN 1 ELSE 0 END) AS wins,
            SUM(CASE WHEN mp.result='DRAW' THEN 1 ELSE 0 END) AS draws,
            SUM(CASE WHEN mp.result='LOSS' THEN 1 ELSE 0 END) AS losses,
@@ -113,23 +111,20 @@ export async function getServerSideProps({ params, query }) {
          JOIN matches m ON mp.match_id = m.id
          JOIN events  e ON m.event_id  = e.id
          WHERE mp.interpreter_id = ?`,
-        [interpreterId],
-      ),
-      pool.query(
-        `SELECT mp.wrestler_id, w.wrestler AS wrestler_name, w.country AS wrestler_country
+          [interpreterId],
+        ),
+        pool.query(
+          `SELECT mp.wrestler_id, w.wrestler AS wrestler_name, w.country AS wrestler_country
          FROM match_participants mp JOIN matches m ON mp.match_id=m.id
          JOIN events e ON m.event_id=e.id JOIN wrestlers w ON mp.wrestler_id=w.id
          WHERE mp.interpreter_id=?
          ORDER BY e.event_date DESC LIMIT 1`,
-        [interpreterId],
-      ),
-    ]);
+          [interpreterId],
+        ),
+      ]);
 
     // ─── Grupo 2: matches paginados + count (2 conexiones simultáneas) ────
-    const [
-      [rawMatches],
-      [[{ total: matchesTotal }]],
-    ] = await Promise.all([
+    const [[rawMatches], [[{ total: matchesTotal }]]] = await Promise.all([
       pool.query(
         `SELECT m.id, m.event_id, m.title_match, e.name AS event, e.event_date, m.match_order,
            mp.team_number, mp.result, mt.id AS match_type_id, mt.name AS match_type_name,
@@ -161,40 +156,81 @@ export async function getServerSideProps({ params, query }) {
     let formerWrestlers = [];
 
     if (interpreter.status === "Inactive") {
-      formerWrestlers = assocWrestlers.map((r) => ({ id: r.wrestler_id, name: r.wrestler_name, country: r.wrestler_country }));
+      formerWrestlers = assocWrestlers.map((r) => ({
+        id: r.wrestler_id,
+        name: r.wrestler_name,
+        country: r.wrestler_country,
+      }));
     } else if (lastWrestlerRow?.wrestler_id) {
-      currentWrestler = { id: lastWrestlerRow.wrestler_id, name: lastWrestlerRow.wrestler_name, country: lastWrestlerRow.wrestler_country };
+      currentWrestler = {
+        id: lastWrestlerRow.wrestler_id,
+        name: lastWrestlerRow.wrestler_name,
+        country: lastWrestlerRow.wrestler_country,
+      };
       formerWrestlers = assocWrestlers
         .filter((r) => r.wrestler_id !== lastWrestlerRow.wrestler_id)
-        .map((r) => ({ id: r.wrestler_id, name: r.wrestler_name, country: r.wrestler_country }));
+        .map((r) => ({
+          id: r.wrestler_id,
+          name: r.wrestler_name,
+          country: r.wrestler_country,
+        }));
     } else {
-      formerWrestlers = assocWrestlers.map((r) => ({ id: r.wrestler_id, name: r.wrestler_name, country: r.wrestler_country }));
+      formerWrestlers = assocWrestlers.map((r) => ({
+        id: r.wrestler_id,
+        name: r.wrestler_name,
+        country: r.wrestler_country,
+      }));
     }
 
     const matchesList = rawMatches.map((row) => ({
-      id: row.id, event_id: row.event_id, event: row.event,
-      event_date: row.event_date.toISOString(), match_order: row.match_order,
-      team_number: row.team_number, result: row.result, title_match: row.title_match === 1,
-      match_type_id: row.match_type_id, match_type_name: row.match_type_name,
-      championship_id: row.championship_id, championship_name: row.championship_name,
-      participants: row.participants || [], scores: row.scores || [],
+      id: row.id,
+      event_id: row.event_id,
+      event: row.event,
+      event_date: row.event_date.toISOString(),
+      match_order: row.match_order,
+      team_number: row.team_number,
+      result: row.result,
+      title_match: row.title_match === 1,
+      match_type_id: row.match_type_id,
+      match_type_name: row.match_type_name,
+      championship_id: row.championship_id,
+      championship_name: row.championship_name,
+      participants: row.participants || [],
+      scores: row.scores || [],
     }));
 
     const stats = {
-      total: statsRow?.total || 0, wins: statsRow?.wins || 0,
-      draws: statsRow?.draws || 0, losses: statsRow?.losses || 0,
-      firstMatch: statsRow?.firstMatch ? statsRow.firstMatch.toISOString() : null,
-      lastMatch:  statsRow?.lastMatch  ? statsRow.lastMatch.toISOString()  : null,
+      total: statsRow?.total || 0,
+      wins: statsRow?.wins || 0,
+      draws: statsRow?.draws || 0,
+      losses: statsRow?.losses || 0,
+      firstMatch: statsRow?.firstMatch
+        ? statsRow.firstMatch.toISOString()
+        : null,
+      lastMatch: statsRow?.lastMatch ? statsRow.lastMatch.toISOString() : null,
     };
 
     return {
       props: {
-        interpreter, currentWrestler, formerWrestlers,
-        filterWrestler, filterEvent, filterTitle, filterStip, filterOne,
-        filterChamp, filterMatchType,
+        interpreter,
+        currentWrestler,
+        formerWrestlers,
+        filterWrestler,
+        filterEvent,
+        filterTitle,
+        filterStip,
+        filterOne,
+        filterChamp,
+        filterMatchType,
         matches: {
-          stats, matches: matchesList,
-          pagination: { page, limit, total: matchesTotal, totalPages: Math.ceil(matchesTotal / limit) },
+          stats,
+          matches: matchesList,
+          pagination: {
+            page,
+            limit,
+            total: matchesTotal,
+            totalPages: Math.ceil(matchesTotal / limit),
+          },
         },
       },
     };
@@ -209,8 +245,13 @@ export default function InterpreterDetail({
   interpreter,
   currentWrestler,
   formerWrestlers = [],
-  filterWrestler, filterEvent, filterTitle, filterStip, filterOne,
-  filterChamp, filterMatchType,
+  filterWrestler,
+  filterEvent,
+  filterTitle,
+  filterStip,
+  filterOne,
+  filterChamp,
+  filterMatchType,
   matches,
 }) {
   const router = useRouter();
@@ -219,59 +260,100 @@ export default function InterpreterDetail({
     return (
       <div className="p-8 text-center">
         <h1 className="text-2xl font-bold mb-2">Error al cargar</h1>
-        <p className="text-gray-500">No se pudo conectar a la base de datos. Intentá de nuevo en unos segundos.</p>
+        <p className="text-gray-500">
+          No se pudo conectar a la base de datos. Intentá de nuevo en unos
+          segundos.
+        </p>
       </div>
     );
   }
 
   const { pagination } = matches;
-  const { input: wrestlerInput,  setInput: setWrestlerInput }  = useQueryFilter("wrestler",  filterWrestler,  router);
-  const { input: eventInput,     setInput: setEventInput }     = useQueryFilter("filter",    filterEvent,     router);
-  const { input: champInput,     setInput: setChampInput }     = useQueryFilter("champ",     filterChamp,     router);
-  const { input: matchTypeInput, setInput: setMatchTypeInput } = useQueryFilter("matchtype", filterMatchType, router);
+  const { input: wrestlerInput, setInput: setWrestlerInput } = useQueryFilter(
+    "wrestler",
+    filterWrestler,
+    router,
+  );
+  const { input: eventInput, setInput: setEventInput } = useQueryFilter(
+    "filter",
+    filterEvent,
+    router,
+  );
+  const { input: champInput, setInput: setChampInput } = useQueryFilter(
+    "champ",
+    filterChamp,
+    router,
+  );
+  const { input: matchTypeInput, setInput: setMatchTypeInput } = useQueryFilter(
+    "matchtype",
+    filterMatchType,
+    router,
+  );
   const toggleTitle = useQueryToggle("title", filterTitle, router);
-  const toggleStip  = useQueryToggle("stip",  filterStip,  router);
-  const toggleOne   = useQueryToggle("one",   filterOne,   router);
+  const toggleStip = useQueryToggle("stip", filterStip, router);
+  const toggleOne = useQueryToggle("one", filterOne, router);
   const { goToPage, renderPageButtons } = usePagination(pagination, router);
 
-  const inputClass = "w-full border dark:bg-zinc-950 border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600";
+  const inputClass =
+    "w-full border dark:bg-zinc-950 border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600";
 
   return (
     <>
       <Head>
         <title>{interpreter.interpreter} — Trivias WWE</title>
-        <meta name="description" content={`Historial de matches y stats de ${interpreter.interpreter} como intérprete en Trivias WWE.`} />
+        <meta
+          name="description"
+          content={`Historial de matches y stats de ${interpreter.interpreter} como intérprete en Trivias WWE.`}
+        />
       </Head>
 
       <div className="p-4 max-w-3xl mx-auto">
         <h1 className="text-3xl font-bold mb-2">{interpreter.interpreter}</h1>
 
         <p className="text-gray-600 mb-1 dark:text-white">
-          Nationality: {interpreter.nationality ? <FlagWithName code={interpreter.nationality} /> : "Unknown"}
+          Nationality:{" "}
+          {interpreter.nationality ? (
+            <FlagWithName code={interpreter.nationality} />
+          ) : (
+            "Unknown"
+          )}
         </p>
         <p className="text-gray-600 mb-1 dark:text-white">
-          Debut: {matches.stats.firstMatch ? formatDateDDMMYYYY(matches.stats.firstMatch) : "—"}
+          Debut:{" "}
+          {matches.stats.firstMatch
+            ? formatDateDDMMYYYY(matches.stats.firstMatch)
+            : "—"}
         </p>
 
-        {interpreter.status === "Active" && (
-          currentWrestler ? (
+        {interpreter.status === "Active" &&
+          (currentWrestler ? (
             <p className="text-gray-600 mb-1 dark:text-white">
               Wrestler:{" "}
-              <Link href={`/wrestlers/${currentWrestler.id}`} className="text-blue-600 dark:text-sky-300 hover:underline">
-                <FlagWithName code={currentWrestler.country} name={currentWrestler.name} />
+              <Link
+                href={`/wrestlers/${currentWrestler.id}`}
+                className="text-blue-600 dark:text-sky-300 hover:underline"
+              >
+                <FlagWithName
+                  code={currentWrestler.country}
+                  name={currentWrestler.name}
+                />
               </Link>
             </p>
           ) : (
-            <p className="text-gray-600 mb-1 dark:text-white">Wrestler: <strong>None</strong></p>
-          )
-        )}
+            <p className="text-gray-600 mb-1 dark:text-white">
+              Wrestler: <strong>None</strong>
+            </p>
+          ))}
 
         {formerWrestlers.length > 0 && (
           <p className="text-gray-600 mb-4 dark:text-white">
             Former wrestlers:{" "}
             {formerWrestlers.map((w, idx) => (
               <span key={w.id}>
-                <Link href={`/wrestlers/${w.id}`} className="text-blue-600 dark:text-sky-300 hover:underline">
+                <Link
+                  href={`/wrestlers/${w.id}`}
+                  className="text-blue-600 dark:text-sky-300 hover:underline"
+                >
                   <FlagWithName code={w.country} name={w.name} />
                 </Link>
                 {idx < formerWrestlers.length - 1 && ", "}
@@ -286,31 +368,82 @@ export default function InterpreterDetail({
           <li>Wins: {matches.stats.wins}</li>
           <li>Draws: {matches.stats.draws}</li>
           <li>Losses: {matches.stats.losses}</li>
-          <li>First match: {matches.stats.firstMatch ? formatDateDDMMYYYY(matches.stats.firstMatch) : "—"}</li>
-          <li>Last match:  {matches.stats.lastMatch  ? formatDateDDMMYYYY(matches.stats.lastMatch)  : "—"}</li>
+          <li>
+            First match:{" "}
+            {matches.stats.firstMatch
+              ? formatDateDDMMYYYY(matches.stats.firstMatch)
+              : "—"}
+          </li>
+          <li>
+            Last match:{" "}
+            {matches.stats.lastMatch
+              ? formatDateDDMMYYYY(matches.stats.lastMatch)
+              : "—"}
+          </li>
         </ul>
 
         <h2 className="text-2xl font-semibold mb-3">Matches</h2>
 
         <div className="flex flex-col gap-3 mb-4">
           <div className="flex flex-col sm:flex-row gap-3">
-            <input type="text" placeholder="Filter by wrestler name" value={wrestlerInput}  onChange={(e) => setWrestlerInput(e.target.value)}  className={inputClass} />
-            <input type="text" placeholder="Filter by event name"    value={eventInput}     onChange={(e) => setEventInput(e.target.value)}     className={inputClass} />
+            <input
+              type="text"
+              placeholder="Filter by wrestler name"
+              value={wrestlerInput}
+              onChange={(e) => setWrestlerInput(e.target.value)}
+              className={inputClass}
+            />
+            <input
+              type="text"
+              placeholder="Filter by event name"
+              value={eventInput}
+              onChange={(e) => setEventInput(e.target.value)}
+              className={inputClass}
+            />
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
-            <input type="text" placeholder="Filter by championship"  value={champInput}     onChange={(e) => setChampInput(e.target.value)}     className={inputClass} />
-            <input type="text" placeholder="Filter by stipulation"   value={matchTypeInput} onChange={(e) => setMatchTypeInput(e.target.value)} className={inputClass} />
+            <input
+              type="text"
+              placeholder="Filter by championship"
+              value={champInput}
+              onChange={(e) => setChampInput(e.target.value)}
+              className={inputClass}
+            />
+            <input
+              type="text"
+              placeholder="Filter by stipulation"
+              value={matchTypeInput}
+              onChange={(e) => setMatchTypeInput(e.target.value)}
+              className={inputClass}
+            />
           </div>
           <div className="flex flex-wrap gap-2">
-            <button onClick={toggleTitle} className={`px-4 py-2 rounded font-semibold ${filterTitle ? "bg-blue-600 text-white shadow" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"}`}>Championship matches</button>
-            <button onClick={toggleStip}  className={`px-4 py-2 rounded font-semibold ${filterStip  ? "bg-blue-600 text-white shadow" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"}`}>Stipulation matches</button>
-            <button onClick={toggleOne}   className={`px-4 py-2 rounded font-semibold ${filterOne   ? "bg-blue-600 text-white shadow" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"}`}>1-on-1</button>
+            <button
+              onClick={toggleTitle}
+              className={`px-4 py-2 rounded font-semibold ${filterTitle ? "bg-blue-600 text-white shadow" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"}`}
+            >
+              Championship matches
+            </button>
+            <button
+              onClick={toggleStip}
+              className={`px-4 py-2 rounded font-semibold ${filterStip ? "bg-blue-600 text-white shadow" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"}`}
+            >
+              Stipulation matches
+            </button>
+            <button
+              onClick={toggleOne}
+              className={`px-4 py-2 rounded font-semibold ${filterOne ? "bg-blue-600 text-white shadow" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"}`}
+            >
+              1-on-1
+            </button>
           </div>
         </div>
 
         <ul className="space-y-3">
           {matches.matches.length === 0 ? (
-            <p className="text-gray-500 dark:text-gray-400">No matches found.</p>
+            <p className="text-gray-500 dark:text-gray-400">
+              No matches found.
+            </p>
           ) : (
             matches.matches.map((match, idx) => (
               <MatchCard
@@ -326,15 +459,7 @@ export default function InterpreterDetail({
 
         {pagination && pagination.totalPages > 1 && (
           <div className="mt-8 flex justify-center space-x-2 items-center">
-            <button onClick={() => goToPage(Math.max(1, pagination.page - 1))} disabled={pagination.page === 1}
-              className={`px-3 py-1 rounded transition-colors ${pagination.page === 1 ? "bg-gray-300 dark:bg-gray-900 dark:text-white cursor-not-allowed" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700"}`}>
-              &lt;
-            </button>
             {renderPageButtons()}
-            <button onClick={() => goToPage(Math.min(pagination.totalPages, pagination.page + 1))} disabled={pagination.page === pagination.totalPages}
-              className={`px-3 py-1 rounded transition-colors ${pagination.page === pagination.totalPages ? "bg-gray-300 dark:bg-gray-900 dark:text-white cursor-not-allowed" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700"}`}>
-              &gt;
-            </button>
           </div>
         )}
       </div>
