@@ -33,13 +33,13 @@ Las preguntas se desarrollarán según estos años:
     "Elimination Chamber": `Empiezan 2 luchadores, mientras los 4 restantes esperan su turno en cada cámara.
 Cada luchador tendrá 4 vidas.
 Cada 3 preguntas, entrará un nuevo luchador.
-Tendrán 5 minutos para presentarse cuando les toque entrar.
+Tendrán 3 minutos para presentarse cuando les toque entrar.
 La persona que responda último correctamente en cada pregunta o no responda, perderá una vida.
 Ganará el luchador que termine con todas las vidas de sus adversarios.`,
     "Elimination Chamber Tag Team": `Empiezan 2 equipos, mientras los 4 equipos restantes esperan su turno en cada cámara.
 Cada equipo tendrá 4 vidas.
 Cada 3 preguntas, entrará un nuevo equipo.
-Tendrán 5 minutos para presentarse cuando les toque entrar.
+Tendrán 3 minutos para presentarse cuando les toque entrar.
 La persona que responda último correctamente en cada pregunta o no responda, su equipo perderá una vida.
 Cabe aclarar que en cada pregunta sólo uno de los dos participantes de cada equipo podrá responder, y ya se ha establecido el orden del mismo para que la lucha sea lo más diversa posible.
 Ganará el equipo que termine con todas las vidas de sus adversarios.`,

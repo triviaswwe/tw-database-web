@@ -93,12 +93,11 @@ export async function getServerSideProps({ params, query }) {
 
     const extraSql = extraClauses.join("\n");
 
+    // ─── Grupo 1: datos del header (3 conexiones simultáneas) ─────────────
     const [
       [assocInterpreters],
       [[statsRow]],
-      [rawMatches],
       [[lastInterpRow]],
-      [[{ total: matchesTotal }]],
     ] = await Promise.all([
       pool.query(
         `SELECT wi.interpreter_id, i.interpreter AS interpreter_name, i.nationality AS interpreter_country
@@ -120,6 +119,21 @@ export async function getServerSideProps({ params, query }) {
         [wrestlerId],
       ),
       pool.query(
+        `SELECT mp.interpreter_id, i.interpreter AS interpreter_name, i.nationality AS interpreter_country
+         FROM match_participants mp JOIN matches m ON mp.match_id=m.id
+         JOIN events e ON m.event_id=e.id JOIN interpreters i ON mp.interpreter_id=i.id
+         WHERE mp.wrestler_id=? AND mp.interpreter_id IS NOT NULL
+         ORDER BY e.event_date DESC LIMIT 1`,
+        [wrestlerId],
+      ),
+    ]);
+
+    // ─── Grupo 2: matches paginados + count (2 conexiones simultáneas) ────
+    const [
+      [rawMatches],
+      [[{ total: matchesTotal }]],
+    ] = await Promise.all([
+      pool.query(
         `SELECT m.id, m.event_id, m.title_match, e.name AS event, e.event_date, m.match_order,
            mp.team_number, mp.result, mt.id AS match_type_id, mt.name AS match_type_name,
            c.id AS championship_id, c.title_name AS championship_name,
@@ -135,14 +149,6 @@ export async function getServerSideProps({ params, query }) {
          GROUP BY m.id,mp.team_number,mp.result,m.match_order,m.event_id,e.name,e.event_date,mt.id,mt.name,c.id,c.title_name
          ORDER BY e.event_date DESC, m.match_order DESC LIMIT ? OFFSET ?`,
         [wrestlerId, ...extraParams, limit, offset],
-      ),
-      pool.query(
-        `SELECT mp.interpreter_id, i.interpreter AS interpreter_name, i.nationality AS interpreter_country
-         FROM match_participants mp JOIN matches m ON mp.match_id=m.id
-         JOIN events e ON m.event_id=e.id JOIN interpreters i ON mp.interpreter_id=i.id
-         WHERE mp.wrestler_id=? AND mp.interpreter_id IS NOT NULL
-         ORDER BY e.event_date DESC LIMIT 1`,
-        [wrestlerId],
       ),
       pool.query(
         `SELECT COUNT(*) AS total FROM match_participants mp
@@ -310,15 +316,9 @@ export default function WrestlerDetail({
             <input type="text" placeholder="Filter by stipulation"   value={matchTypeInput} onChange={(e) => setMatchTypeInput(e.target.value)} className={inputClass} />
           </div>
           <div className="flex flex-wrap gap-2">
-            <button onClick={toggleTitle} className={`px-4 py-2 rounded font-semibold ${filterTitle ? "bg-blue-600 text-white shadow" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"}`}>
-              Championship matches
-            </button>
-            <button onClick={toggleStip} className={`px-4 py-2 rounded font-semibold ${filterStip ? "bg-blue-600 text-white shadow" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"}`}>
-              Stipulation matches
-            </button>
-            <button onClick={toggleOne} className={`px-4 py-2 rounded font-semibold ${filterOne ? "bg-blue-600 text-white shadow" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"}`}>
-              1-on-1
-            </button>
+            <button onClick={toggleTitle} className={`px-4 py-2 rounded font-semibold ${filterTitle ? "bg-blue-600 text-white shadow" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"}`}>Championship matches</button>
+            <button onClick={toggleStip}  className={`px-4 py-2 rounded font-semibold ${filterStip  ? "bg-blue-600 text-white shadow" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"}`}>Stipulation matches</button>
+            <button onClick={toggleOne}   className={`px-4 py-2 rounded font-semibold ${filterOne   ? "bg-blue-600 text-white shadow" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"}`}>1-on-1</button>
           </div>
         </div>
 
