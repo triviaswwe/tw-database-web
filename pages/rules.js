@@ -47,7 +47,6 @@ export default function Rules() {
           <ul className="list-disc list-inside text-base">
             <li>RAW: Todos los lunes a partir de las 20:00hs Argentina.</li>
             <li>NXT: Todos los martes a partir de las 20:00hs Argentina.</li>
-            <li>Speed: Todos los jueves a partir de las 20:00hs Argentina.</li>
             <li>SmackDown: Todos los viernes a partir de las 20:00hs Argentina.</li>
             <li>PPVs y Lives: Días y horarios a definir.</li>
           </ul>
@@ -109,23 +108,6 @@ export default function Rules() {
             <li>No se tomará en cuenta como respuesta un mensaje editado que contenía anteriormente una respuesta incorrecta; se deberá contestar la pregunta en un nuevo mensaje.</li>
             <li>A la hora de responder preguntas como "Finisher de" o "Theme Song de", se tomará válida cualquier canción o finisher que haya tenido el luchador mencionado en toda su carrera, a menos que el árbitro especifique lo contrario.</li>
           </ul>
-        </section>
-
-        <section id="speed" className="mb-6">
-          <h2 className="text-2xl font-semibold mb-2">Reglamento Campeonato Speed</h2>
-          <p className="text-base whitespace-pre-line">
-            Podrán competir por este título aquellos competidores que no sean o
-            hayan sido campeones individuales de otro título (Undisputed WWE
-            Championship, World Heavyweight Championship, Intercontinental
-            Championship, United States Championship, NXT Championship). Además,
-            si eres el vigente poseedor del Tag Team Championship no podrás
-            competir en la división, pudiendo hacerlo solo luego de perder el
-            mismo. El formato de los combates no titulares será de 3 preguntas
-            cortas de rápida respuesta, la cual deberá estar de manera completa
-            (no se aceptan abreviaciones). El formato de los combates titulares
-            será de 5 preguntas cortas de rápida respuesta, la cual deberá estar
-            de manera completa (no se aceptan abreviaciones).
-          </p>
         </section>
 
         <section id="disputas" className="mb-6">
