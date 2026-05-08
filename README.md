@@ -1,3 +1,5 @@
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/triviaswwe/tw-database-web)
+
 # CodeViz Research Context
 
 > **Note**: This file contains research context from CodeViz. Most recent contexts are at the bottom.
