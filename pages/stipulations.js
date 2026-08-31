@@ -73,14 +73,14 @@ El ganador será el luchador que llegue a 6 puntos.
 El portador del maletín puede canjearlo siempre y cuando el campeón esté luchando en algún show.
 Se deberá esperar a que el campeón termine su lucha para hacer efectivo el canjeo.
 La lucha será a 5 preguntas, y Mr. Money in the Bank solo necesitará una para capturar el campeonato.`,
-    "No Holds Barred": `Lucha a 10 preguntas.
+    "No Holds Barred": `Lucha a 7 preguntas, (10 si es titular).
 La primera pregunta la elige el árbitro como de costumbre.
 El ganador de la primera pregunta (salvo que sea nula) debe elegir una palabra o un conjunto numérico para darle temática a la pregunta siguiente.
 Siempre elegirá la temática de la pregunta siguiente quien gane la pregunta actual.
 En caso de nulas, pregunta normal del árbitro.`,
-    "Only-One-Shot": `Lucha a 10 preguntas.
+    "Only-One-Shot": `Lucha a 7 preguntas, (10 si es titular).
 Esta estipulación consiste en que solo pueden responder UNA única vez por cada pregunta hecha por el árbitro.`,
-    "Pitch Black": `Lucha a 10 preguntas.
+    "Pitch Black": `Lucha a 7 preguntas, (10 si es titular).
 Las preguntas estarán encriptadas sustituyendo las letras por números. Ejemplo: Luch4 p0r 3l WW3 Ch4mp10nsh1p.`,
     "Royal Rumble": `Para presentarse, deben subir su imagen con número de entrada.
 Cada 3 preguntas entra un luchador nuevo al ring.
@@ -90,9 +90,9 @@ Al ser un combate largo, el árbitro debe empezar a contar "Nula en..." a partir
 Cuando ingresa el #30, se deshabilita la opción de sumarse vidas.
 Gana el único que quede con vida dentro del ring y se gana la posibilidad de retar a un campeón mundial en WrestleMania.`,
     "Steel Cage": `Lucha a 10 puntos, pero si uno contesta 3 seguidas ganará la lucha por salir del ring. En esa pregunta clave, el rival deberá evitar eso contestando correctamente y cortando la racha.`,
-    "Street Fight": `Lucha a 7 preguntas (10 si es titular).
+    "Street Fight": `Lucha a 7 preguntas, (10 si es titular).
 Abreviaciones no permitidas en 2 letras; a partir de 3 válido.`,
-    Tables: `Lucha a 10 preguntas.
+    Tables: `Lucha a 7 preguntas, (10 si es titular).
 El árbitro establece temática cada ronda.
 Los competidores tendrán 20 segundos para UNA respuesta con tantas sub-respuestas como quieran.
 Cada respuesta incorrecta resta una correcta.
@@ -104,7 +104,7 @@ Para ganar: más aciertos; en empate menos fallos; si persiste, primero en respo
     "Tribal Combat": `Lucha a 7 preguntas.
 Preguntas samoanas con su traducción.
 El ganador se quedará con el Ula Fala y será reconocido como Jefe Tribal.`,
-    "Undisputed Era Rules": `Lucha a 10 preguntas.
+    "Undisputed Era Rules": `Lucha a 7 preguntas, (10 si es titular).
 Undisputed Era con reglas especiales (escribir "ERA" para permitir que cualquier miembro responda).
 Los rivales con reglas normales.`,
     WarGames: `Dos luchadores de equipos distintos comienzan en jaulas.
