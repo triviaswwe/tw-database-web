@@ -6,7 +6,7 @@ import pool from "../lib/db";
 export async function getServerSideProps() {
   try {
     const [rows] = await pool.query(
-      `SELECT id, name FROM match_types ORDER BY id`
+      `SELECT id, name FROM match_types ORDER BY id`,
     );
     return { props: { stipulations: rows } };
   } catch (err) {
@@ -90,6 +90,8 @@ Al ser un combate largo, el árbitro debe empezar a contar "Nula en..." a partir
 Cuando ingresa el #30, se deshabilita la opción de sumarse vidas.
 Gana el único que quede con vida dentro del ring y se gana la posibilidad de retar a un campeón mundial en WrestleMania.`,
     "Steel Cage": `Lucha a 10 puntos, pero si uno contesta 3 seguidas ganará la lucha por salir del ring. En esa pregunta clave, el rival deberá evitar eso contestando correctamente y cortando la racha.`,
+    "Street Fight": `Lucha a 7 preguntas (10 si es titular).
+Abreviaciones no permitidas en 2 letras; a partir de 3 válido.`,
     Tables: `Lucha a 10 preguntas.
 El árbitro establece temática cada ronda.
 Los competidores tendrán 20 segundos para UNA respuesta con tantas sub-respuestas como quieran.
@@ -116,7 +118,10 @@ Gana el equipo que deje al otro con 0 puntos.`,
     return (
       <div className="p-8 text-center">
         <h1 className="text-2xl font-bold mb-2">Error al cargar</h1>
-        <p className="text-gray-500">No se pudo conectar a la base de datos. Intentá de nuevo en unos segundos.</p>
+        <p className="text-gray-500">
+          No se pudo conectar a la base de datos. Intentá de nuevo en unos
+          segundos.
+        </p>
       </div>
     );
   }
@@ -125,7 +130,10 @@ Gana el equipo que deje al otro con 0 puntos.`,
     <>
       <Head>
         <title>Stipulations — Trivias WWE</title>
-        <meta name="description" content="Reglas de todas las estipulaciones del Campeonato de Trivias WWE: Ladder, Hell in a Cell, Royal Rumble, WarGames y más." />
+        <meta
+          name="description"
+          content="Reglas de todas las estipulaciones del Campeonato de Trivias WWE: Ladder, Hell in a Cell, Royal Rumble, WarGames y más."
+        />
       </Head>
 
       <div className="p-4 max-w-3xl mx-auto">
@@ -135,7 +143,8 @@ Gana el equipo que deje al otro con 0 puntos.`,
             <li key={name}>
               <h2 className="text-2xl font-semibold mb-1">{name}</h2>
               <p className="text-base whitespace-pre-line">
-                {descriptions[name] || "No hay reglas especiales para esta estipulación."}
+                {descriptions[name] ||
+                  "No hay reglas especiales para esta estipulación."}
               </p>
             </li>
           ))}
