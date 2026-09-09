@@ -2,9 +2,11 @@
 
 import Head from "next/head";
 import { useEffect } from "react";
+import ChampionsSection from "../components/ChampionsSection";
+import { getCurrentChampions } from "../lib/champions";
 
-export default function Home() {
-  // Carga el script de embeds de Instagram una sola vez
+
+export default function Home({ champions }) {
   useEffect(() => {
     if (window.instgrm) {
       window.instgrm.Embeds.process();
@@ -15,6 +17,7 @@ export default function Home() {
     script.async = true;
     document.body.appendChild(script);
   }, []);
+
 
   return (
     <div className="min-h-screen px-4 py-6 max-w-5xl mx-auto bg-white text-black dark:bg-zinc-950 dark:text-white transition-colors duration-300">
@@ -31,13 +34,14 @@ export default function Home() {
       </h1>
 
       <p className="text-lg mb-10 max-w-3xl mx-auto text-center">
-        Esta es la página oficial del{" "}
-        <strong>Campeonato de Trivias de WWE</strong>, un torneo competitivo donde
-        fanáticos de la lucha libre responden preguntas sobre luchadores, eventos
-        históricos, títulos, movimientos y mucho más. Representá a tu luchador
-        favorito en RAW, SmackDown o NXT y acumulá victorias para llegar a
-        lo más alto del ranking.
+        Esta es la página oficial del <strong>Campeonato de Trivias de WWE</strong>,
+        un torneo competitivo donde fanáticos de la lucha libre responden
+        preguntas sobre luchadores, eventos históricos, títulos, movimientos y
+        mucho más. Representá a tu luchador favorito en RAW, SmackDown o NXT y
+        acumulá victorias para llegar a lo más alto del ranking.
       </p>
+
+      <ChampionsSection champions={champions} />
 
       {/* ── Sección Instagram ─────────────────────────────────────────────── */}
       <h2 className="text-2xl font-semibold mb-6 text-center">
@@ -135,4 +139,12 @@ export default function Home() {
       </footer>
     </div>
   );
+}
+
+export async function getStaticProps() {
+  const champions = await getCurrentChampions();
+  return {
+    props: { champions },
+    revalidate: 300,
+  };
 }
