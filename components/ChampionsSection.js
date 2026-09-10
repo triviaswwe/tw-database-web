@@ -30,30 +30,51 @@ export default function ChampionsSection({ champions }) {
               <div
                 className={`relative w-full ${
                   c.isTagTeam ? "aspect-[3/2]" : "aspect-[3/4]"
-                } rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-900`}
+                } rounded-lg overflow-hidden bg-zinc-900`}
               >
                 {c.isTagTeam ? (
                   <div className="grid grid-cols-2 h-full">
-                    {c.images.slice(0, 2).map((img, i) => (
-                      <div key={i} className="relative h-full">
+                    {c.wrestlers.slice(0, 2).map((w, i) => (
+                      <div key={w.id} className="relative h-full">
+                        {/* Fondo de brand, detrás del luchador */}
+                        {w.background && (
+                          <Image
+                            src={w.background}
+                            alt=""
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 768px) 25vw, 12vw"
+                          />
+                        )}
                         <Image
-                          src={img}
-                          alt={c.wrestlers[i]?.name ?? c.championship}
+                          src={c.images[i]}
+                          alt={w.name}
                           fill
                           className="object-cover"
-                          sizes="(max-width: 768px) 50vw, 25vw"
+                          sizes="(max-width: 768px) 25vw, 12vw"
                         />
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <Image
-                    src={c.images[0]}
-                    alt={c.wrestlers[0]?.name ?? c.championship}
-                    fill
-                    className="object-cover transition-transform duration-500 hover:scale-105"
-                    sizes="(max-width: 768px) 50vw, 25vw"
-                  />
+                  <>
+                    {c.wrestlers[0]?.background && (
+                      <Image
+                        src={c.wrestlers[0].background}
+                        alt=""
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 50vw, 25vw"
+                      />
+                    )}
+                    <Image
+                      src={c.images[0]}
+                      alt={c.wrestlers[0]?.name}
+                      fill
+                      className="object-cover transition-transform duration-500 hover:scale-105"
+                      sizes="(max-width: 768px) 50vw, 25vw"
+                    />
+                  </>
                 )}
 
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-3">
@@ -64,7 +85,7 @@ export default function ChampionsSection({ champions }) {
                   {hasTeamName && (
                     <Link
                       href={`/stables/${c.tagTeamId}`}
-                      className="block text-white font-bold leading-tight"
+                      className="block text-white font-bold leading-tight hover:underline"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {c.tagTeamName}
@@ -82,7 +103,7 @@ export default function ChampionsSection({ champions }) {
                       <span key={w.id}>
                         <Link
                           href={`/wrestlers/${w.id}`}
-                          className=""
+                          className="hover:underline"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {w.name}

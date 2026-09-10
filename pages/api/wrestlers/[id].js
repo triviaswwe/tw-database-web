@@ -26,7 +26,6 @@ export default async function handler(req, res) {
 
     const wrestler = rows[0];
 
-    // Opcional: traer interpreters asociados
     const [interpreters] = await pool.query(
       `SELECT i.id, i.interpreter, i.nationality
        FROM interpreters i

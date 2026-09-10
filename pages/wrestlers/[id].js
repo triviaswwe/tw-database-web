@@ -28,7 +28,7 @@ export async function getServerSideProps({ params, query }) {
       id: wrestlerRow.id,
       wrestler: wrestlerRow.wrestler,
       country: wrestlerRow.country,
-      status: wrestlerRow.status,
+      brand: wrestlerRow.brand,
       debut_date: wrestlerRow.debut_date
         ? wrestlerRow.debut_date.toISOString()
         : null,
@@ -160,7 +160,7 @@ export async function getServerSideProps({ params, query }) {
     let currentInterpreter = null;
     let formerInterpreters = [];
 
-    if (wrestler.status === "Inactive") {
+      if (wrestler.brand === "Alumni") {
       formerInterpreters = assocInterpreters.map((r) => ({
         id: r.interpreter_id,
         name: r.interpreter_name,
@@ -345,7 +345,7 @@ export default function WrestlerDetail({
                   />
                 </Link>
               </p>
-            ) : wrestler.status === "Active" ? (
+                        ) : wrestler.brand !== "Alumni" ? (
               <p className="text-gray-600 mb-1 dark:text-white">
                 Interpreter: <strong>None</strong>
               </p>

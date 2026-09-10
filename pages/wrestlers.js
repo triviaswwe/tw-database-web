@@ -8,10 +8,20 @@ import FlagWithName from "../components/FlagWithName";
 
 const WRESTLERS_PER_PAGE = 33;
 
-const wrestlerTypeOptions = [
-  { label: "All", value: "" },
+// Pestañas principales
+const mainTabOptions = [
+  { label: "All", value: "all" },
   { label: "Active", value: "active" },
   { label: "Inactive", value: "inactive" },
+];
+
+// Chips secundarios, solo visibles dentro de la pestaña "Active".
+// Los valores son el brand EXACTO tal cual está en la DB.
+const activeBrandOptions = [
+  { label: "All brands", value: "" },
+  { label: "RAW", value: "RAW" },
+  { label: "SmackDown", value: "SmackDown" },
+  { label: "NXT", value: "NXT" },
 ];
 
 export default function WrestlersPage() {
@@ -19,7 +29,11 @@ export default function WrestlersPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("");
+
+  // "all" | "active" | "inactive"
+  const [mainTab, setMainTab] = useState("active");
+  // solo aplica cuando mainTab === "active": "" (All brands) | "RAW" | "SmackDown" | "NXT"
+  const [brandFilter, setBrandFilter] = useState("");
   const [nameFilter, setNameFilter] = useState("");
 
   useEffect(() => {
@@ -29,8 +43,19 @@ export default function WrestlersPage() {
         const params = new URLSearchParams();
         params.append("page", page);
         params.append("limit", WRESTLERS_PER_PAGE);
-        if (statusFilter) params.append("status", statusFilter);
         if (nameFilter) params.append("filter", nameFilter);
+
+        if (mainTab === "inactive") {
+          params.append("group", "inactive");
+        } else if (mainTab === "active") {
+          if (brandFilter) {
+            params.append("brand", brandFilter);
+          } else {
+            params.append("group", "active");
+          }
+        }
+        // mainTab === "all": no se manda ni group ni brand -> trae todos
+
         const res = await fetch(`/api/wrestlers?${params.toString()}`);
         const data = await res.json();
         setWrestlers(data.wrestlers || []);
@@ -44,7 +69,18 @@ export default function WrestlersPage() {
       }
     }
     fetchWrestlers();
-  }, [page, statusFilter, nameFilter]);
+  }, [page, mainTab, brandFilter, nameFilter]);
+
+  const selectMainTab = (tab) => {
+    setMainTab(tab);
+    setBrandFilter("");
+    setPage(1);
+  };
+
+  const selectBrandFilter = (value) => {
+    setBrandFilter(value);
+    setPage(1);
+  };
 
   const renderPageButtons = () => {
     let start = Math.max(1, page - 1);
@@ -71,27 +107,44 @@ export default function WrestlersPage() {
         <title>Wrestlers — Trivias WWE</title>
         <meta
           name="description"
-          content="Listado completo de wrestlers del Campeonato de Trivias WWE. Filtrá por status y nombre."
+          content="Listado completo de wrestlers del Campeonato de Trivias WWE. Filtrá por brand y nombre."
         />
       </Head>
 
       <div className="p-6 max-w-5xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">Wrestlers</h1>
 
-        <div className="mb-4 flex flex-wrap gap-2">
-          {wrestlerTypeOptions.map(({ label, value }) => (
+        {/* Pestañas principales */}
+        <div className="mb-3 flex gap-2 border-b border-gray-300 dark:border-gray-700">
+          {mainTabOptions.map(({ label, value }) => (
             <button
               key={value}
-              onClick={() => {
-                setStatusFilter(value);
-                setPage(1);
-              }}
-              className={`px-4 py-2 rounded font-semibold ${statusFilter === value ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"}`}
+              onClick={() => selectMainTab(value)}
+              className={`px-4 py-2 font-semibold border-b-2 -mb-px transition-colors ${
+                mainTab === value
+                  ? "border-blue-600 text-blue-600 dark:text-sky-300 dark:border-sky-300"
+                  : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white"
+              }`}
             >
               {label}
             </button>
           ))}
         </div>
+
+        {/* Chips de brand, solo dentro de Active */}
+        {mainTab === "active" && (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {activeBrandOptions.map(({ label, value }) => (
+              <button
+                key={value}
+                onClick={() => selectBrandFilter(value)}
+                className={`px-4 py-2 rounded font-semibold ${brandFilter === value ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <input
           type="text"
@@ -131,7 +184,7 @@ export default function WrestlersPage() {
                         <h2 className="text-xl font-bold">{w.wrestler}</h2>
                       </div>
                       <p className="text-sm text-gray-600 dark:text-white">
-                        Status: {w.status}
+                        Brand: {w.brand}
                       </p>
                     </div>
                   </div>

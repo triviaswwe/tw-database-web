@@ -8,16 +8,20 @@ export default async function handler(req, res) {
     const limit  = Math.min(33, parseInt(req.query.limit)|| 33);
     const offset = (page - 1) * limit;
 
-    const status = req.query.status || '';
+    const brand = req.query.brand || ''; // valor exacto: 'RAW' | 'SmackDown' | 'NXT' | 'Alumni'
+    const group = req.query.group || ''; // 'active' | 'inactive'
     const filter = req.query.filter || '';
 
-    // construir WHERE dinámico
     const where = [];
     const params = [];
 
-    if (status) {
-      where.push('w.status = ?');
-      params.push(status.charAt(0).toUpperCase() + status.slice(1));
+    if (group === 'active') {
+      where.push("w.brand IN ('RAW', 'SmackDown', 'NXT')");
+    } else if (group === 'inactive') {
+      where.push("w.brand = 'Alumni'");
+    } else if (brand) {
+      where.push('w.brand = ?');
+      params.push(brand);
     }
 
     if (filter) {
@@ -27,7 +31,6 @@ export default async function handler(req, res) {
 
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
-    // total de registros
     const [[{ total }]] = await pool.query(
       `SELECT COUNT(*) AS total
        FROM wrestlers w
@@ -35,12 +38,11 @@ export default async function handler(req, res) {
       params
     );
 
-    // datos paginados (ahora incluyendo country e image_url)
     const [rows] = await pool.query(
       `SELECT 
          w.id, 
          w.wrestler, 
-         w.status, 
+         w.brand, 
          w.country, 
          w.image_url
        FROM wrestlers w
