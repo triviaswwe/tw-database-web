@@ -77,7 +77,7 @@ export async function getServerSideProps({ params, query }) {
     // ─── Grupo 1: miembros + stats (2 conexiones simultáneas) ─────────────
     const [[memberRows], [[statsRow]]] = await Promise.all([
       pool.query(
-        `SELECT tm.wrestler_id, w.wrestler AS name, w.country
+        `SELECT tm.wrestler_id, tm.status, w.wrestler AS name, w.country
          FROM tag_team_members tm JOIN wrestlers w ON w.id = tm.wrestler_id
          WHERE tm.tag_team_id = ?`,
         [stableId],
@@ -126,11 +126,13 @@ export async function getServerSideProps({ params, query }) {
       ),
     ]);
 
-    const members = memberRows.map((r) => ({
-      id: r.wrestler_id,
-      name: r.name,
-      country: r.country,
-    }));
+    const activeMembers = memberRows
+      .filter((r) => r.status === "Active")
+      .map((r) => ({ id: r.wrestler_id, name: r.name, country: r.country }));
+
+    const formerMembers = memberRows
+      .filter((r) => r.status !== "Active")
+      .map((r) => ({ id: r.wrestler_id, name: r.name, country: r.country }));
 
     const stats = {
       total: statsRow?.total || 0,
@@ -163,7 +165,8 @@ export async function getServerSideProps({ params, query }) {
     return {
       props: {
         stable,
-        members,
+        activeMembers,
+        formerMembers,
         stats,
         filterWrestler,
         filterEvent,
@@ -189,7 +192,8 @@ export async function getServerSideProps({ params, query }) {
 export default function StableDetail({
   error,
   stable,
-  members,
+  activeMembers = [],
+  formerMembers = [],
   stats,
   filterWrestler,
   filterEvent,
@@ -256,20 +260,43 @@ export default function StableDetail({
           <div className="md:flex-1">
             <h1 className="text-3xl font-bold mb-2">{stable.name}</h1>
 
-            <h2 className="text-2xl font-semibold mb-2">Members</h2>
-            <ul className="flex flex-wrap mb-4">
-              {members.map((m, idx) => (
-                <li key={m.id}>
-                  <Link
-                    href={`/wrestlers/${m.id}`}
-                    className="text-blue-600 dark:text-sky-300 hover:underline"
-                  >
-                    <FlagWithName code={m.country} name={m.name} />
-                  </Link>
-                  {idx < members.length - 1 && <span>, </span>}
-                </li>
-              ))}
-            </ul>
+            {activeMembers.length > 0 ? (
+              <p className="text-gray-600 mb-1 dark:text-white">
+                Members:{" "}
+                {activeMembers.map((m, idx) => (
+                  <span key={m.id}>
+                    <Link
+                      href={`/wrestlers/${m.id}`}
+                      className="text-blue-600 dark:text-sky-300 hover:underline"
+                    >
+                      <FlagWithName code={m.country} name={m.name} />
+                    </Link>
+                    {idx < activeMembers.length - 1 && ", "}
+                  </span>
+                ))}
+              </p>
+            ) : (
+              <p className="text-gray-600 mb-1 dark:text-white">
+                Members: <strong>None</strong>
+              </p>
+            )}
+
+            {formerMembers.length > 0 && (
+              <p className="text-gray-600 mb-4 dark:text-white">
+                Former members:{" "}
+                {formerMembers.map((m, idx) => (
+                  <span key={m.id}>
+                    <Link
+                      href={`/wrestlers/${m.id}`}
+                      className="text-blue-600 dark:text-sky-300 hover:underline"
+                    >
+                      <FlagWithName code={m.country} name={m.name} />
+                    </Link>
+                    {idx < formerMembers.length - 1 && ", "}
+                  </span>
+                ))}
+              </p>
+            )}
 
             <h2 className="text-2xl font-semibold mb-2">Stats</h2>
             <ul className="mb-6 space-y-1">

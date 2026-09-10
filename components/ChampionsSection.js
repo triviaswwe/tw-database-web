@@ -6,6 +6,10 @@ function getChampionLabel(title, isTagTeam) {
   return title.replace(/Championship/i, isTagTeam ? "Champions" : "Champion");
 }
 
+// Altura FIJA e IGUAL para todas las tarjetas (individuales y tag team),
+// responsive por breakpoint pero nunca calculada a partir del ancho.
+const CARD_HEIGHT = "h-[220px] sm:h-[260px] md:h-[300px] lg:h-[340px]";
+
 export default function ChampionsSection({ champions }) {
   if (!champions || champions.length === 0) return null;
 
@@ -28,21 +32,18 @@ export default function ChampionsSection({ champions }) {
               } rounded-lg shadow-lg shadow-black/30 dark:shadow-black/60 transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl`}
             >
               <div
-                className={`relative w-full ${
-                  c.isTagTeam ? "aspect-[3/2]" : "aspect-[3/4]"
-                } rounded-lg overflow-hidden bg-zinc-900`}
+                className={`relative w-full ${CARD_HEIGHT} rounded-lg overflow-hidden bg-zinc-900`}
               >
                 {c.isTagTeam ? (
-                  <div className="grid grid-cols-2 h-full">
+                  <div className="relative z-0 grid grid-cols-2 h-full">
                     {c.wrestlers.slice(0, 2).map((w, i) => (
                       <div key={w.id} className="relative h-full">
-                        {/* Fondo de brand, detrás del luchador */}
                         {w.background && (
                           <Image
                             src={w.background}
                             alt=""
                             fill
-                            className="object-cover"
+                            className="object-cover z-0"
                             sizes="(max-width: 768px) 25vw, 12vw"
                           />
                         )}
@@ -50,9 +51,18 @@ export default function ChampionsSection({ champions }) {
                           src={c.images[i]}
                           alt={w.name}
                           fill
-                          className="object-cover"
+                          className="object-cover z-10"
                           sizes="(max-width: 768px) 25vw, 12vw"
                         />
+                        {c.plate && (
+                          <Image
+                            src={c.plate}
+                            alt=""
+                            fill
+                            className="object-cover z-20 pointer-events-none"
+                            sizes="(max-width: 768px) 25vw, 12vw"
+                          />
+                        )}
                       </div>
                     ))}
                   </div>
@@ -63,7 +73,7 @@ export default function ChampionsSection({ champions }) {
                         src={c.wrestlers[0].background}
                         alt=""
                         fill
-                        className="object-cover"
+                        className="object-cover z-0"
                         sizes="(max-width: 768px) 50vw, 25vw"
                       />
                     )}
@@ -71,13 +81,22 @@ export default function ChampionsSection({ champions }) {
                       src={c.images[0]}
                       alt={c.wrestlers[0]?.name}
                       fill
-                      className="object-cover transition-transform duration-500 hover:scale-105"
+                      className="object-cover z-10 transition-transform duration-500 hover:scale-105"
                       sizes="(max-width: 768px) 50vw, 25vw"
                     />
+                    {c.plate && (
+                      <Image
+                        src={c.plate}
+                        alt=""
+                        fill
+                        className="object-cover z-20 pointer-events-none"
+                        sizes="(max-width: 768px) 50vw, 25vw"
+                      />
+                    )}
                   </>
                 )}
 
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-3">
+                <div className="absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/85 to-transparent p-3">
                   <p className="text-[11px] uppercase tracking-wider text-white font-semibold">
                     {label}
                   </p>
@@ -85,7 +104,7 @@ export default function ChampionsSection({ champions }) {
                   {hasTeamName && (
                     <Link
                       href={`/stables/${c.tagTeamId}`}
-                      className="block text-white font-bold leading-tight hover:underline"
+                      className="block text-white font-bold leading-tight"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {c.tagTeamName}
@@ -103,7 +122,6 @@ export default function ChampionsSection({ champions }) {
                       <span key={w.id}>
                         <Link
                           href={`/wrestlers/${w.id}`}
-                          className="hover:underline"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {w.name}
