@@ -6,7 +6,7 @@ import pool from "../lib/db";
 export async function getServerSideProps() {
   try {
     const [rows] = await pool.query(
-      `SELECT id, name FROM match_types ORDER BY name`,
+      `SELECT name FROM match_types ORDER BY order_in_page`,
     );
     return { props: { stipulations: rows } };
   } catch (err) {
