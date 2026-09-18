@@ -6,7 +6,7 @@ import pool from "../lib/db";
 export async function getServerSideProps() {
   try {
     const [rows] = await pool.query(
-      `SELECT id, name FROM match_types ORDER BY id`,
+      `SELECT id, name FROM match_types ORDER BY name`,
     );
     return { props: { stipulations: rows } };
   } catch (err) {
@@ -17,6 +17,33 @@ export async function getServerSideProps() {
 
 export default function Stipulations({ stipulations, error }) {
   const descriptions = {
+    "Tag Team": `Lucha a 5 preguntas donde dos luchadores forman un equipo.
+El árbitro informa cual luchador de cada tag team va a disputar las primeras 4 preguntas de la lucha, de modo tal que todos se enfrenten con todos en 1 pregunta.
+En la última pregunta, cada tag team debe decidir qué luchador va a disputarla e informarla al árbitro del encuentro.
+Está totalmente prohibido que un luchador responda una pregunta que no le corresponda responder. De lo contrario, el punto a disputar se lo llevará automáticamente el tag team rival.
+
+Ejemplo: Supongamos que se enfrentan Daniel Bryan & Jon Moxley vs. Seth Rollins & Bron Breakker.
+El árbitro del encuentro escribirá lo siguiente:
+• Primera pregunta para Bryan & Seth
+• Segunda pregunta para Moxley & Bron
+• Tercera pregunta para Bryan & Bron
+• Cuarta pregunta para Moxley & Seth
+• Última pregunta, ¿quién de cada tag team responde?`,
+    "6-Man Tag Team": `Lucha a 9 preguntas donde tres luchadores forman un equipo.
+El árbitro informa cual luchador de cada trío va a disputar las preguntas de la lucha, de modo tal que todos se enfrenten con todos en 1 pregunta.
+Está totalmente prohibido que un luchador responda una pregunta que no le corresponda responder. De lo contrario, el punto a disputar se lo llevará automáticamente el tag team rival.
+
+Ejemplo: Supongamos que se enfrentan Daniel Bryan, Jon Moxley & Cody Rhodes vs. Seth Rollins, Bron Breakker & Buddy Murphy.
+El árbitro del encuentro escribirá lo siguiente:
+• Primera pregunta para Bryan & Seth
+• Segunda pregunta para Moxley & Bron
+• Tercera pregunta para Cody & Murphy
+• Cuarta pregunta para Bryan & Bron
+• Quinta pregunta para Cody & Seth
+• Sexta pregunta para Moxley & Murphy
+• Séptima pregunta para Cody & Bron
+• Octava pregunta para Bryan & Murphy
+• Novena pregunta para Moxley & Seth`,
     "2 out of 3 Falls": `3 rondas; cada ronda la gana el primero que llega a 5 (en lugar de 5 preguntas).`,
     Death: `Combate titular a 7 preguntas que consiste en ir subiendo de nivel mediante las épocas en las que WWE (y sus derivados a través del tiempo) funcionó como empresa.
 Se correrá la regla conocida como Only-One-Shot (no se puede responder más de una vez cada pregunta).

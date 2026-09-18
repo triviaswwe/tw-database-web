@@ -24,6 +24,14 @@ const activeBrandOptions = [
   { label: "NXT", value: "NXT" },
 ];
 
+// Fondo por brand, exacto según el valor de w.brand en la DB
+const BRAND_BACKGROUNDS = {
+  RAW: "/brands/wrestlers_bg_raw.png",
+  SmackDown: "/brands/wrestlers_bg_smackdown.png",
+  NXT: "/brands/wrestlers_bg_nxt.png",
+  Alumni: "/brands/wrestlers_bg_alumni.png",
+};
+
 export default function WrestlersPage() {
   const [wrestlers, setWrestlers] = useState([]);
   const [page, setPage] = useState(1);
@@ -164,32 +172,51 @@ export default function WrestlersPage() {
             {wrestlers.length === 0 ? (
               <p>No wrestlers found.</p>
             ) : (
-              wrestlers.map((w) => (
-                <Link key={w.id} href={`/wrestlers/${w.id}`}>
-                  <div className="flex items-center p-4 dark:bg-zinc-950 border rounded shadow hover:shadow-lg transform transition-transform duration-200 ease-in-out hover:scale-105 cursor-pointer">
-                    {w.image_url && (
-                      <div className="w-16 h-16 overflow-hidden relative flex-shrink-0">
+              wrestlers.map((w) => {
+                const brandBg = BRAND_BACKGROUNDS[w.brand] ?? null;
+
+                return (
+                  <Link key={w.id} href={`/wrestlers/${w.id}`}>
+                    {/* 1. Agregamos min-h-[6rem] para asegurar que la tarjeta no pierda altura */}
+                    <div className="relative overflow-hidden flex items-center p-4 min-h-[6rem] border rounded shadow hover:shadow-lg transform transition-transform duration-200 ease-in-out hover:scale-105 cursor-pointer">
+                      {/* Fondo de brand */}
+                      {brandBg && (
                         <img
-                          src={w.image_url}
-                          alt={w.wrestler}
-                          className="w-full h-full object-cover"
-                          style={{ objectPosition: "top" }}
+                          src={brandBg}
+                          alt=""
+                          className="absolute inset-0 w-full h-full object-cover"
                         />
-                        <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-white to-transparent dark:from-zinc-950" />
+                      )}
+
+                      {/* Overlay para que el texto/imagen sigan legibles */}
+                      <div className="absolute inset-0 bg-black/40" />
+
+                      {/* 2. Hacemos que el contenedor de la imagen sea absoluto y anclado abajo */}
+                      {w.image_url && (
+                        <div className="absolute bottom-0 left-4 w-16 md:w-[80px]">
+                          <img
+                            src={w.image_url}
+                            alt={w.wrestler}
+                            className="w-full h-auto object-bottom"
+                          />
+                        </div>
+                      )}
+
+                      {/* 3. Aumentamos el margen izquierdo (ml-20) del texto para compensar el espacio de la imagen absoluta */}
+                      <div
+                        className={`relative flex-1 ${w.image_url ? "ml-20 md:ml-24" : ""}`}
+                      >
+                        <div className="flex items-center">
+                          <FlagWithName code={w.country} />
+                          <h2 className="text-xl font-bold text-white">
+                            {w.wrestler}
+                          </h2>
+                        </div>
                       </div>
-                    )}
-                    <div className="ml-4 flex-1">
-                      <div className="flex items-center">
-                        <FlagWithName code={w.country} />
-                        <h2 className="text-xl font-bold">{w.wrestler}</h2>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-white">
-                        Brand: {w.brand}
-                      </p>
                     </div>
-                  </div>
-                </Link>
-              ))
+                  </Link>
+                );
+              })
             )}
           </div>
         )}
