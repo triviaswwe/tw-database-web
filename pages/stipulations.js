@@ -17,6 +17,10 @@ export async function getServerSideProps() {
 
 export default function Stipulations({ stipulations, error }) {
   const descriptions = {
+    Singles: `Lucha clásica a 5 preguntas (10 si es titular).`,
+    "Triple Threat": `Lucha de tres integrantes a 7 preguntas (10 si es titular).`,
+    "Fatal 4-Way": `Lucha de cuatro integrantes a 9 preguntas (10 si es titular).`,
+    "Samoan Tag Team": `Las reglas son las mismas que una combate Tag Team clásico, pero con la particularidad de que las preguntas estarán referidas a los samoanos y su historia en la lucha libre profesional.`,
     "Tag Team": `Lucha a 5 preguntas donde dos luchadores forman un equipo.
 El árbitro informa cual luchador de cada tag team va a disputar las primeras 4 preguntas de la lucha, de modo tal que todos se enfrenten con todos en 1 pregunta.
 En la última pregunta, cada tag team debe decidir qué luchador va a disputarla e informarla al árbitro del encuentro.
@@ -31,7 +35,7 @@ El árbitro del encuentro escribirá lo siguiente:
 • Última pregunta, ¿quién de cada tag team responde?`,
     "6-Man Tag Team": `Lucha a 9 preguntas donde tres luchadores forman un equipo.
 El árbitro informa cual luchador de cada trío va a disputar las preguntas de la lucha, de modo tal que todos se enfrenten con todos en 1 pregunta.
-Está totalmente prohibido que un luchador responda una pregunta que no le corresponda responder. De lo contrario, el punto a disputar se lo llevará automáticamente el tag team rival.
+Está totalmente prohibido que un luchador responda una pregunta que no le corresponda responder. De lo contrario, el punto a disputar se lo llevará automáticamente el trío rival.
 
 Ejemplo: Supongamos que se enfrentan Daniel Bryan, Jon Moxley & Cody Rhodes vs. Seth Rollins, Bron Breakker & Buddy Murphy.
 El árbitro del encuentro escribirá lo siguiente:
@@ -44,6 +48,8 @@ El árbitro del encuentro escribirá lo siguiente:
 • Séptima pregunta para Cody & Bron
 • Octava pregunta para Bryan & Murphy
 • Novena pregunta para Moxley & Seth`,
+    "Mask vs Hair": `Lucha de apuestas con estipulación de por medio dependiendo la rivalidad.`,
+    "Mask vs Mask": `Lucha de apuestas con estipulación de por medio dependiendo la rivalidad.`,
     "2 out of 3 Falls": `3 rondas; cada ronda la gana el primero que llega a 5 (en lugar de 5 preguntas).`,
     Death: `Combate titular a 7 preguntas que consiste en ir subiendo de nivel mediante las épocas en las que WWE (y sus derivados a través del tiempo) funcionó como empresa.
 Se correrá la regla conocida como Only-One-Shot (no se puede responder más de una vez cada pregunta).
