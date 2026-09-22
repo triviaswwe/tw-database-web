@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { Sun, Moon } from "lucide-react";
 
+// Tu dominio base de Vercel Blob
+const BLOB_BASE_URL = 'https://ljejfdquofuxccca.public.blob.vercel-storage.com';
+
 export default function Layout({ children, isDark, setIsDark }) {
   const router = useRouter();
 
@@ -22,11 +25,11 @@ export default function Layout({ children, isDark, setIsDark }) {
   return (
     <div className="min-h-screen bg-background-light text-black dark:bg-zinc-950 dark:text-white">
       <nav className="bg-gray-900 dark:bg-gray-700 p-4 text-white flex items-center">
-        {/* 1) Logo fijo */}
+        {/* 1) Logo fijo apuntando a Vercel Blob */}
         <div className="flex-shrink-0 mr-4">
           <Link href="/">
             <img
-              src="/logo.png"
+              src={`${BLOB_BASE_URL}/logo.png`}
               alt="Logo"
               className="h-10 w-auto cursor-pointer"
             />
