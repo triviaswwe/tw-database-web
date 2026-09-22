@@ -143,7 +143,7 @@ export async function getServerSideProps({ params, query }) {
          LEFT JOIN match_types mt ON m.match_type_id=mt.id
          LEFT JOIN championships c ON m.championship_id=c.id
          WHERE mp.wrestler_id=? ${extraSql}
-         GROUP BY m.id,mp.team_number,mp.result,m.match_order,m.event_id,e.name,e.event_date,mt.id,mt.name,c.id,c.title_name
+         GROUP BY m.id,mp.team_number,mp.result,m.match_order,m.event_id,e.name,e.event_date,mt.id,mt.name,c.id,c.title_name,m.title_match
          ORDER BY e.event_date DESC, m.match_order DESC LIMIT ? OFFSET ?`,
         [wrestlerId, ...extraParams, limit, offset],
       ),
@@ -160,7 +160,7 @@ export async function getServerSideProps({ params, query }) {
     let currentInterpreter = null;
     let formerInterpreters = [];
 
-      if (wrestler.brand === "Alumni") {
+    if (wrestler.brand === "Alumni") {
       formerInterpreters = assocInterpreters.map((r) => ({
         id: r.interpreter_id,
         name: r.interpreter_name,
@@ -337,7 +337,7 @@ export default function WrestlerDetail({
                 Interpreter:{" "}
                 <Link
                   href={`/interpreters/${currentInterpreter.id}`}
-                  className="text-blue-600 dark:text-sky-300 hover:underline"
+                  className="text-blue-600 dark:text-sky-300 "
                 >
                   <FlagWithName
                     code={currentInterpreter.country}
@@ -345,7 +345,7 @@ export default function WrestlerDetail({
                   />
                 </Link>
               </p>
-                        ) : wrestler.brand !== "Alumni" ? (
+            ) : wrestler.brand !== "Alumni" ? (
               <p className="text-gray-600 mb-1 dark:text-white">
                 Interpreter: <strong>None</strong>
               </p>
@@ -358,7 +358,7 @@ export default function WrestlerDetail({
                   <span key={intp.id}>
                     <Link
                       href={`/interpreters/${intp.id}`}
-                      className="text-blue-600 dark:text-sky-300 hover:underline"
+                      className="text-blue-600 dark:text-sky-300 "
                     >
                       <FlagWithName code={intp.country} name={intp.name} />
                     </Link>

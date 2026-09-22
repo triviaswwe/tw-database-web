@@ -103,7 +103,7 @@ export default function Home({ champions }) {
             href="https://www.instagram.com/triviaswwe"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sky-600 dark:text-sky-300 hover:underline"
+            className="text-sky-600 dark:text-sky-300 "
           >
             Instagram
           </a>{" "}
@@ -112,7 +112,7 @@ export default function Home({ champions }) {
             href="https://www.youtube.com/@TriviasWWE"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-red-600 dark:text-red-400 hover:underline"
+            className="text-red-600 dark:text-red-400 "
           >
             YouTube
           </a>{" "}
@@ -121,7 +121,7 @@ export default function Home({ champions }) {
             href="https://discord.gg/YmBJQPfQ"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-indigo-600 dark:text-indigo-400 hover:underline"
+            className="text-indigo-600 dark:text-indigo-400 "
           >
             Discord
           </a>{" "}
@@ -130,7 +130,7 @@ export default function Home({ champions }) {
             href="https://chat.whatsapp.com/D7vkfUKTujZ8nr6xlQj02C"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-green-600 dark:text-green-400 hover:underline"
+            className="text-green-600 dark:text-green-400 "
           >
             WhatsApp
           </a>

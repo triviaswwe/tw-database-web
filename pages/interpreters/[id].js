@@ -138,7 +138,7 @@ export async function getServerSideProps({ params, query }) {
          LEFT JOIN match_types mt ON m.match_type_id=mt.id
          LEFT JOIN championships c ON m.championship_id=c.id
          WHERE mp.interpreter_id=? ${extraSql}
-         GROUP BY m.id,mp.team_number,mp.result,m.match_order,m.event_id,e.name,e.event_date,mt.id,mt.name,c.id,c.title_name
+         GROUP BY m.id,mp.team_number,mp.result,m.match_order,m.event_id,e.name,e.event_date,mt.id,mt.name,c.id,c.title_name,m.title_match
          ORDER BY e.event_date DESC, m.match_order DESC LIMIT ? OFFSET ?`,
         [interpreterId, ...extraParams, limit, offset],
       ),
@@ -151,7 +151,6 @@ export async function getServerSideProps({ params, query }) {
         [interpreterId, ...extraParams],
       ),
     ]);
-
     let currentWrestler = null;
     let formerWrestlers = [];
 
@@ -331,7 +330,7 @@ export default function InterpreterDetail({
               Wrestler:{" "}
               <Link
                 href={`/wrestlers/${currentWrestler.id}`}
-                className="text-blue-600 dark:text-sky-300 hover:underline"
+                className="text-blue-600 dark:text-sky-300 "
               >
                 <FlagWithName
                   code={currentWrestler.country}
@@ -352,7 +351,7 @@ export default function InterpreterDetail({
               <span key={w.id}>
                 <Link
                   href={`/wrestlers/${w.id}`}
-                  className="text-blue-600 dark:text-sky-300 hover:underline"
+                  className="text-blue-600 dark:text-sky-300 "
                 >
                   <FlagWithName code={w.country} name={w.name} />
                 </Link>

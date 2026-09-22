@@ -23,7 +23,7 @@ export default function ChampionshipReigns() {
           <li key={r.id}>
             <Link
               href={`/championships/${query.id}/reigns/${r.id}`}
-              className="text-blue-600 dark:text-blue-400 hover:underline"
+              className="text-blue-600 dark:text-blue-400 "
             >
               Reign #{r.reign_number} — {r.days_held} days
             </Link>

@@ -24,7 +24,7 @@ export default function ChampionshipMatches() {
           <li key={m.id}>
             <Link
               href={`/events/${m.event_id}`}
-              className="text-blue-600 dark:text-blue-400 hover:underline"
+              className="text-blue-600 dark:text-blue-400 "
             >
               {m.match_order}. {m.match_type} — {m.event_name}
             </Link>{' '}

@@ -18,7 +18,14 @@ export default async function handler(req, res) {
      JOIN reign_members rm ON rm.tag_team_id = tt.id
      JOIN championship_reigns tr ON tr.id = rm.reign_id
      WHERE tr.championship_id = ?
-     GROUP BY tt.id, tr.id
+     GROUP BY 
+       tt.id, 
+       tt.name, 
+       tr.id, 
+       tr.reign_number, 
+       tr.won_date, 
+       tr.lost_date, 
+       tr.days_held
      ORDER BY tr.won_date`,
     [id]
   );

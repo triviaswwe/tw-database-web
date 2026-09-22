@@ -111,7 +111,7 @@ export async function getServerSideProps({ params, query }) {
          LEFT JOIN match_types mt ON m.match_type_id=mt.id
          LEFT JOIN championships c ON m.championship_id=c.id
          WHERE mp.tag_team_id=? ${extraSql}
-         GROUP BY m.id,mp.team_number,mp.result,m.event_id,e.name,e.event_date,mt.id,mt.name,c.id,c.title_name
+         GROUP BY m.id, m.title_match, e.id, e.name, e.event_date, mp.team_number, mp.result, mt.id, mt.name, c.id, c.title_name
          ORDER BY e.event_date DESC, m.match_order DESC LIMIT ? OFFSET ?`,
         [stableId, ...extraParams, limit, offset],
       ),
@@ -267,7 +267,7 @@ export default function StableDetail({
                   <span key={m.id}>
                     <Link
                       href={`/wrestlers/${m.id}`}
-                      className="text-blue-600 dark:text-sky-300 hover:underline"
+                      className="text-blue-600 dark:text-sky-300 "
                     >
                       <FlagWithName code={m.country} name={m.name} />
                     </Link>
@@ -288,7 +288,7 @@ export default function StableDetail({
                   <span key={m.id}>
                     <Link
                       href={`/wrestlers/${m.id}`}
-                      className="text-blue-600 dark:text-sky-300 hover:underline"
+                      className="text-blue-600 dark:text-sky-300 "
                     >
                       <FlagWithName code={m.country} name={m.name} />
                     </Link>

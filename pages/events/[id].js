@@ -173,7 +173,7 @@ export default function EventDetail({ error, event, matches }) {
                   teamArray.map((p, i) => (
                     <span key={p.wrestler_id}>
                       {i > 0 && " & "}
-                      <Link href={`/wrestlers/${p.wrestler_id}`} className="text-blue-600 dark:text-sky-300 hover:underline">
+                      <Link href={`/wrestlers/${p.wrestler_id}`} className="text-blue-600 dark:text-sky-300 ">
                         {p.result === "WIN" ? <strong>{p.wrestler}</strong> : p.wrestler}
                       </Link>
                     </span>

@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       memberDefRows.map((r) => [`${r.reign_id}_${r.wrestler_id}`, r.defenses])
     );
 
-    // 2) Traer miembros individuales e intérprete
+    // 2) Traer miembros individuales e intérprete calculando los días directo en SQL (DATEDIFF)
     const [memberRows] = await pool.query(
       `
       SELECT
@@ -54,7 +54,8 @@ export default async function handler(req, res) {
         i.interpreter    AS interpreterName,
         i.nationality    AS interpreterCountry,
         rm.start_date,
-        rm.end_date
+        rm.end_date,
+        DATEDIFF(IFNULL(rm.end_date, UTC_DATE()), rm.start_date) AS exact_days
       FROM reign_members rm
       JOIN championship_reigns cr
         ON cr.id = rm.reign_id
@@ -65,21 +66,18 @@ export default async function handler(req, res) {
       [championshipId]
     );
 
-    // 3) Acumular stats por luchador
-    const now = new Date();
+    // 3) Acumular stats por luchador usando el cálculo exacto de la base de datos
     const byWrestler = new Map();
 
     for (const mr of memberRows) {
       const {
         reign_id, wrestler_id, wrestlerName, country,
         interpreter_id, interpreterName, interpreterCountry,
-        start_date, end_date,
+        end_date, exact_days
       } = mr;
 
-      const start = new Date(start_date);
-      const end   = end_date ? new Date(end_date) : now;
-      const days  = Math.floor((end - start) / (1000 * 60 * 60 * 24));
-      const defs  = defMap.get(`${reign_id}_${wrestler_id}`) || 0;
+      const days = exact_days || 0;
+      const defs = defMap.get(`${reign_id}_${wrestler_id}`) || 0;
 
       if (!byWrestler.has(wrestler_id)) {
         byWrestler.set(wrestler_id, {

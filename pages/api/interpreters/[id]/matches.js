@@ -23,7 +23,7 @@ export default async function handler(req, res) {
        JOIN events e             ON m.event_id       = e.id
        LEFT JOIN match_types mt  ON m.match_type_id  = mt.id
        WHERE mp.interpreter_id = ?
-       GROUP BY m.id, e.name, e.event_date, m.match_order, mt.name
+       GROUP BY m.id, m.event_id, e.name, e.event_date, m.match_order, mt.name
        ORDER BY e.event_date DESC, m.match_order ASC`,
       [id]
     );

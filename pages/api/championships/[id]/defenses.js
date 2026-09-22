@@ -12,7 +12,7 @@ export default async function handler(req, res) {
 
   try {
     /* ------------------------------------------------------------------ */
-    /* 1. Lista de reinados                                                */
+    /* 1. Lista de reinados                                               */
     /* ------------------------------------------------------------------ */
     const [reignsRows] = await pool.query(
       `SELECT id AS reign_id, wrestler_id, tag_team_id, won_date, lost_date
@@ -68,17 +68,69 @@ export default async function handler(req, res) {
         e.id                     AS event_id,
         e.name                   AS event_name,
 
-        CASE WHEN cr.tag_team_id IS NULL THEN mp_opp.wrestler_id END      AS opponent_id,
-        CASE WHEN cr.tag_team_id IS NULL THEN w_opp.wrestler    END      AS opponent,
-        CASE WHEN cr.tag_team_id IS NULL THEN w_opp.country     END      AS opponent_country,
+        /* Subconsultas para evitar duplicados en los cruces de JOINs */
+        (
+          SELECT w_opp.id
+          FROM match_participants mp_opp
+          JOIN wrestlers w_opp ON w_opp.id = mp_opp.wrestler_id
+          WHERE cr.tag_team_id IS NULL 
+            AND mp_opp.match_id = m.id
+            AND mp_opp.wrestler_id <> cr.wrestler_id
+          LIMIT 1
+        ) AS opponent_id,
 
-        CASE WHEN cr.tag_team_id IS NOT NULL THEN mp_opp.tag_team_id END  AS opponent_tag_team_id,
-        CASE WHEN cr.tag_team_id IS NOT NULL THEN ot.name             END AS opponent_team_name,
-        CASE WHEN cr.tag_team_id IS NOT NULL THEN GROUP_CONCAT(
-             DISTINCT CONCAT(opp_part.wrestler_id,'|', wot.wrestler,'|', wot.country)
-             ORDER BY wot.wrestler
-             SEPARATOR ','
-        ) END                                                             AS opponent_team_members_raw
+        (
+          SELECT w_opp.wrestler
+          FROM match_participants mp_opp
+          JOIN wrestlers w_opp ON w_opp.id = mp_opp.wrestler_id
+          WHERE cr.tag_team_id IS NULL 
+            AND mp_opp.match_id = m.id
+            AND mp_opp.wrestler_id <> cr.wrestler_id
+          LIMIT 1
+        ) AS opponent,
+
+        (
+          SELECT w_opp.country
+          FROM match_participants mp_opp
+          JOIN wrestlers w_opp ON w_opp.id = mp_opp.wrestler_id
+          WHERE cr.tag_team_id IS NULL 
+            AND mp_opp.match_id = m.id
+            AND mp_opp.wrestler_id <> cr.wrestler_id
+          LIMIT 1
+        ) AS opponent_country,
+
+        (
+          SELECT ot.id
+          FROM match_participants mp_opp
+          JOIN tag_teams ot ON ot.id = mp_opp.tag_team_id
+          WHERE cr.tag_team_id IS NOT NULL 
+            AND mp_opp.match_id = m.id
+            AND mp_opp.tag_team_id <> cr.tag_team_id
+          LIMIT 1
+        ) AS opponent_tag_team_id,
+
+        (
+          SELECT GROUP_CONCAT(DISTINCT ot.name SEPARATOR ' & ')
+          FROM match_participants mp_opp
+          JOIN tag_teams ot ON ot.id = mp_opp.tag_team_id
+          WHERE cr.tag_team_id IS NOT NULL 
+            AND mp_opp.match_id = m.id
+            AND mp_opp.tag_team_id <> cr.tag_team_id
+        ) AS opponent_team_name,
+
+        (
+          SELECT GROUP_CONCAT(
+            DISTINCT CONCAT(opp_part.wrestler_id, '|', wot.wrestler, '|', wot.country)
+            ORDER BY wot.wrestler
+            SEPARATOR ','
+          )
+          FROM match_participants mp_opp
+          JOIN match_participants opp_part ON opp_part.match_id = m.id AND opp_part.tag_team_id = mp_opp.tag_team_id
+          JOIN wrestlers wot ON wot.id = opp_part.wrestler_id
+          WHERE cr.tag_team_id IS NOT NULL 
+            AND mp_opp.match_id = m.id
+            AND mp_opp.tag_team_id <> cr.tag_team_id
+        ) AS opponent_team_members_raw
 
       FROM   championship_reigns cr
 
@@ -98,6 +150,8 @@ export default async function handler(req, res) {
               OR (cr.tag_team_id IS NOT NULL AND mp_champ.tag_team_id  = cr.tag_team_id)
                 )
 
+      /* Usamos LIMIT 1 en el JOIN oponente para anclar el team_number de la puntuación rival, 
+         sin multiplicar la fila base */
       JOIN   match_participants mp_opp
              ON mp_opp.match_id = m.id
             AND (
@@ -105,22 +159,26 @@ export default async function handler(req, res) {
               OR (cr.tag_team_id IS NOT NULL AND mp_opp.tag_team_id  <> cr.tag_team_id)
                 )
 
-      LEFT JOIN wrestlers w_opp ON w_opp.id = mp_opp.wrestler_id
-      LEFT JOIN tag_teams ot   ON ot.id = mp_opp.tag_team_id
-      LEFT JOIN match_participants opp_part
-             ON opp_part.match_id    = m.id
-            AND opp_part.tag_team_id = mp_opp.tag_team_id
-      LEFT JOIN wrestlers wot ON wot.id = opp_part.wrestler_id
-
-      JOIN match_team_scores mts_champ
+      LEFT JOIN match_team_scores mts_champ
              ON mts_champ.match_id   = m.id
             AND mts_champ.team_number = mp_champ.team_number
-      JOIN match_team_scores mts_opp
+      LEFT JOIN match_team_scores mts_opp
              ON mts_opp.match_id   = m.id
             AND mts_opp.team_number = mp_opp.team_number
 
       WHERE  cr.championship_id = ?
-      GROUP  BY cr.id, e.id
+      
+      /* Agrupación ultra-limpia asegurando unicidad por match */
+      GROUP  BY 
+        cr.id, 
+        m.id,
+        e.id, 
+        mts_champ.score, 
+        mts_opp.score, 
+        e.event_date, 
+        e.name, 
+        cr.tag_team_id,
+        cr.wrestler_id
       ORDER  BY e.event_date
       `,
       [championshipId]
@@ -137,7 +195,7 @@ export default async function handler(req, res) {
     const details = detailRows.map((r, idx) => ({
       order:                    idx + 1,
       reign_id:                 r.reign_id,
-      score:                    `${r.champion_score}-${r.opponent_score}`,
+      score:                    `${r.champion_score || 0}-${r.opponent_score || 0}`,
       opponent_id:              r.opponent_id,
       opponent:                 r.opponent,
       opponent_country:         r.opponent_country,

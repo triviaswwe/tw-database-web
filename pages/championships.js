@@ -238,7 +238,7 @@ export default function ChampionshipsPage() {
             <>
               <Link
                 href={`/stables/${r.tag_team_id}`}
-                className="font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                className="font-semibold text-blue-600 dark:text-blue-400 "
               >
                 {r.team_name}
               </Link>
@@ -252,7 +252,7 @@ export default function ChampionshipsPage() {
                       <span key={id} className="items-center">
                         <Link
                           href={`/wrestlers/${id}`}
-                          className="items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                          className="items-center gap-1 text-blue-600 dark:text-blue-400 "
                         >
                           <FlagWithName code={country} name={name} />
                         </Link>
@@ -268,7 +268,7 @@ export default function ChampionshipsPage() {
           ) : r.wrestler_id ? (
             <Link
               href={`/wrestlers/${r.wrestler_id}`}
-              className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+              className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 "
             >
               <FlagWithName code={r.country} name={r.wrestler} />
             </Link>
@@ -281,7 +281,7 @@ export default function ChampionshipsPage() {
             {r.interpreter_id ? (
               <Link
                 href={`/interpreters/${r.interpreter_id}`}
-                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 "
               >
                 <FlagWithName code={r.nationality} name={r.interpreter} />
               </Link>
@@ -297,7 +297,7 @@ export default function ChampionshipsPage() {
           {r.event_id ? (
             <Link
               href={`/events/${r.event_id}`}
-              className="text-blue-600 dark:text-blue-400 hover:underline"
+              className="text-blue-600 dark:text-blue-400 "
             >
               {r.event_name}
             </Link>
@@ -385,7 +385,7 @@ export default function ChampionshipsPage() {
                           The current champions are{" "}
                           <Link
                             href={`/stables/${currentReignText.tagTeamId}`}
-                            className="text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                            className="text-blue-600 dark:text-blue-400  font-semibold"
                           >
                             {currentReignText.teamName}
                           </Link>{" "}
@@ -397,7 +397,7 @@ export default function ChampionshipsPage() {
                             >
                               <Link
                                 href={`/wrestlers/${m.wrestlerId}`}
-                                className="items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                                className="items-center gap-1 text-blue-600 dark:text-blue-400  font-semibold"
                               >
                                 <FlagWithName
                                   code={m.country}
@@ -415,7 +415,7 @@ export default function ChampionshipsPage() {
                           The current champion is{" "}
                           <Link
                             href={`/wrestlers/${currentReignText.wrestlerId}`}
-                            className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                            className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400  font-semibold"
                           >
                             <FlagWithName
                               code={currentReignText.wrestlerCountry}
@@ -430,7 +430,7 @@ export default function ChampionshipsPage() {
                         <>
                           <Link
                             href={`/stables/${currentReignText.opponentTeamId}`}
-                            className="text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                            className="text-blue-600 dark:text-blue-400  font-semibold"
                           >
                             {currentReignText.opponentTeamName}
                           </Link>{" "}
@@ -442,7 +442,7 @@ export default function ChampionshipsPage() {
                             >
                               <Link
                                 href={`/wrestlers/${m.wrestlerId}`}
-                                className="items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                className="items-center gap-1 text-blue-600 dark:text-blue-400 "
                               >
                                 <FlagWithName
                                   code={m.country}
@@ -457,7 +457,7 @@ export default function ChampionshipsPage() {
                       ) : currentReignText.defeatedOpponentId ? (
                         <Link
                           href={`/wrestlers/${currentReignText.defeatedOpponentId}`}
-                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400  font-semibold"
                         >
                           <FlagWithName
                             code={currentReignText.defeatedOpponentCountry}
@@ -471,7 +471,7 @@ export default function ChampionshipsPage() {
                       {currentReignText.eventId ? (
                         <Link
                           href={`/events/${currentReignText.eventId}`}
-                          className="text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                          className="text-blue-600 dark:text-blue-400  font-semibold"
                         >
                           {currentReignText.eventName}
                         </Link>
@@ -509,7 +509,7 @@ export default function ChampionshipsPage() {
                                 <>
                                   <Link
                                     href={`/stables/${d.opponent_tag_team_id}`}
-                                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                                    className="text-blue-600 dark:text-blue-400 "
                                   >
                                     {d.opponent_team_name}
                                   </Link>{" "}
@@ -521,7 +521,7 @@ export default function ChampionshipsPage() {
                                     >
                                       <Link
                                         href={`/wrestlers/${m.id}`}
-                                        className="items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                        className="items-center gap-1 text-blue-600 dark:text-blue-400 "
                                       >
                                         <FlagWithName
                                           code={m.country}
@@ -540,7 +540,7 @@ export default function ChampionshipsPage() {
                               opponentBlock = (
                                 <Link
                                   href={`/wrestlers/${d.opponent_id}`}
-                                  className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                  className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 "
                                 >
                                   <FlagWithName
                                     code={d.opponent_country}
@@ -563,7 +563,7 @@ export default function ChampionshipsPage() {
                                 ,{" "}
                                 <Link
                                   href={`/events/${d.event_id}`}
-                                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                                  className="text-blue-600 dark:text-blue-400 "
                                 >
                                   {d.event_name}
                                 </Link>
@@ -691,7 +691,7 @@ export default function ChampionshipsPage() {
                                 <td className="border px-2 py-1">
                                   <Link
                                     href={`/stables/${row.tagTeamId}`}
-                                    className="font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                                    className="font-bold text-blue-600 dark:text-blue-400 "
                                   >
                                     {row.teamName}
                                   </Link>
@@ -703,7 +703,7 @@ export default function ChampionshipsPage() {
                                         <span key={m.id}>
                                           <Link
                                             href={`/wrestlers/${m.id}`}
-                                            className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                            className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 "
                                           >
                                             <FlagWithName
                                               code={m.country}
@@ -779,7 +779,7 @@ export default function ChampionshipsPage() {
                                 <td className="border px-2 py-1 text-left font-semibold">
                                   <Link
                                     href={`/wrestlers/${row.wrestlerId}`}
-                                    className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                    className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 "
                                   >
                                     <FlagWithName
                                       code={row.country}
@@ -791,7 +791,7 @@ export default function ChampionshipsPage() {
                                   {row.interpreterId ? (
                                     <Link
                                       href={`/interpreters/${row.interpreterId}`}
-                                      className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                      className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 "
                                     >
                                       <FlagWithName
                                         code={row.interpreterCountry}
@@ -859,7 +859,7 @@ export default function ChampionshipsPage() {
                                       <td className="border px-2 py-1">
                                         <Link
                                           href={`/wrestlers/${row.wrestlerId}`}
-                                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400  font-semibold"
                                         >
                                           <FlagWithName
                                             code={row.country}
@@ -870,7 +870,7 @@ export default function ChampionshipsPage() {
                                       <td className="border px-2 py-1">
                                         <Link
                                           href={`/interpreters/${row.interpreterId}`}
-                                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 "
                                         >
                                           <FlagWithName
                                             code={row.interpreterCountry}
@@ -937,7 +937,7 @@ export default function ChampionshipsPage() {
                                       <td className="border px-2 py-1 font-semibold">
                                         <Link
                                           href={`/interpreters/${row.interpreterId}`}
-                                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 "
                                         >
                                           <FlagWithName
                                             code={row.interpreterCountry}
@@ -950,7 +950,7 @@ export default function ChampionshipsPage() {
                                           <React.Fragment key={champ.id}>
                                             <Link
                                               href={`/wrestlers/${champ.id}`}
-                                              className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                                              className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400  font-semibold"
                                             >
                                               <FlagWithName code={champ.country} name={champ.name} />
                                             </Link>
@@ -1002,7 +1002,7 @@ export default function ChampionshipsPage() {
                                   <td className="border px-2 py-1">
                                     <Link
                                       href={`/wrestlers/${row.wrestlerId}`}
-                                      className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                                      className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400  font-semibold"
                                     >
                                       <FlagWithName
                                         code={row.country}
@@ -1013,7 +1013,7 @@ export default function ChampionshipsPage() {
                                   <td className="border px-2 py-1">
                                     <Link
                                       href={`/interpreters/${row.interpreterId}`}
-                                      className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                      className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 "
                                     >
                                       <FlagWithName
                                         code={row.interpreterCountry}
