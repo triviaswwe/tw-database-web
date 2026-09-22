@@ -1,7 +1,7 @@
 // pages/championships.js
 // Refactorizado: lógica extraída a hooks/useChampionshipSort y hooks/useChampionshipStats
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import Head from "next/head";
 import useSWR from "swr";
 import Link from "next/link";
@@ -33,7 +33,8 @@ const tableColumns = [
 ];
 
 export default function ChampionshipsPage() {
-  const [sel, setSel] = React.useState(null);
+  const [sel, setSel] = useState(null);
+  const [interpreterSort, setInterpreterSort] = useState({ key: "Total days", dir: "desc" });
 
   // ─── Datos desde API ──────────────────────────────────────────────────────
   const { data: championsList } = useSWR("/api/championships", fetcher);
@@ -70,6 +71,7 @@ export default function ChampionshipsPage() {
 
   // ─── Hooks de lógica ─────────────────────────────────────────────────────
   const {
+    sortKey,
     handleSort,
     renderSortIcon,
     sortedReigns,
@@ -111,6 +113,213 @@ export default function ChampionshipsPage() {
       }),
     [],
   );
+
+  // ─── Lógica para agrupar por Interpreter ─────────────────────────────────
+  const interpreterStats = useMemo(() => {
+    if (!fighterStats || fighterStats.length === 0) return [];
+
+    const map = new Map();
+
+    fighterStats.forEach((fighter) => {
+      if (!fighter.interpreterId) return;
+
+      if (!map.has(fighter.interpreterId)) {
+        map.set(fighter.interpreterId, {
+          interpreterId: fighter.interpreterId,
+          interpreterName: fighter.interpreterName,
+          interpreterCountry: fighter.interpreterCountry,
+          champions: [],
+          reigns: 0,
+          defenses: 0,
+          totalDaysNumber: 0,
+          isCurrent: false,
+        });
+      }
+
+      const stats = map.get(fighter.interpreterId);
+
+      // Agregar campeón si no está en la lista del intérprete
+      if (!stats.champions.find((c) => c.id === fighter.wrestlerId)) {
+        stats.champions.push({
+          id: fighter.wrestlerId,
+          name: fighter.wrestlerName,
+          country: fighter.country,
+        });
+      }
+
+      stats.reigns += fighter.reignCount;
+      stats.defenses += fighter.defenses;
+
+      const daysLabel = fighter.totalDaysLabel ? fighter.totalDaysLabel.toString() : "0";
+      const isPlus = daysLabel.includes("+");
+      const daysNum = parseInt(daysLabel.replace("+", ""), 10) || 0;
+
+      stats.totalDaysNumber += daysNum;
+      if (isPlus || fighter.isCurrent) {
+        stats.isCurrent = true;
+      }
+    });
+
+    let arr = Array.from(map.values()).map((stat) => ({
+      ...stat,
+      totalDaysLabel: stat.isCurrent ? `${stat.totalDaysNumber}+` : stat.totalDaysNumber.toString(),
+    }));
+
+    // Ordenamiento local para la tabla de intérpretes
+    arr.sort((a, b) => {
+      let valA, valB;
+      if (interpreterSort.key === "Interpreter") {
+        valA = a.interpreterName.toLowerCase();
+        valB = b.interpreterName.toLowerCase();
+      } else if (interpreterSort.key === "Reigns") {
+        valA = a.reigns;
+        valB = b.reigns;
+      } else if (interpreterSort.key === "Successful defenses") {
+        valA = a.defenses;
+        valB = b.defenses;
+      } else {
+        valA = a.totalDaysNumber;
+        valB = b.totalDaysNumber;
+      }
+
+      if (valA < valB) return interpreterSort.dir === "asc" ? -1 : 1;
+      if (valA > valB) return interpreterSort.dir === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return arr;
+  }, [fighterStats, interpreterSort]);
+
+  // Booleano dinámico: revisa si AL MENOS UN intérprete usó más de un luchador distinto
+  const hasMultipleWrestlersPerInterpreter = useMemo(() => {
+    return interpreterStats.some((stat) => stat.champions.length > 1);
+  }, [interpreterStats]);
+
+  const handleInterpreterSort = (key) => {
+    setInterpreterSort((prev) => ({
+      key,
+      dir: prev.key === key && prev.dir === "desc" ? "asc" : "desc",
+    }));
+  };
+
+  const renderInterpreterSortIcon = (key) => {
+    if (interpreterSort.key !== key) return null;
+    return interpreterSort.dir === "asc" ? " ▲" : " ▼";
+  };
+
+  // ─── Render de una fila de la tabla de reinados (vacante o normal) ───────
+  function renderReignRow(r, displayIndex) {
+    if (r.isVacant) {
+      return (
+        <tr
+          key={r.id || `vacant-${displayIndex}`}
+          className="bg-gray-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+        >
+          <td className="border px-2 py-1 text-center">{displayIndex}</td>
+          <td className="border px-2 py-1 font-semibold">Vacant</td>
+          {sel !== 5 && <td className="border px-2 py-1 text-center">—</td>}
+          <td className="border px-2 py-1 text-center">
+            {formatEnglishDate(r.won_date)}
+          </td>
+          <td className="border px-2 py-1 text-center">—</td>
+          <td className="border px-2 py-1 text-center">—</td>
+          <td className="border px-2 py-1 text-center">—</td>
+          <td className="border px-2 py-1 text-[12px] break-words">—</td>
+        </tr>
+      );
+    }
+
+    const daysHeldRaw = r.__daysHeld;
+    return (
+      <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+        <td className="border px-2 py-1 text-center">{displayIndex}</td>
+        <td className="border px-1 py-1 font-semibold">
+          {r.tag_team_id ? (
+            <>
+              <Link
+                href={`/stables/${r.tag_team_id}`}
+                className="font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                {r.team_name}
+              </Link>
+              <br />
+              <span className="text-xs">
+                (
+                {(r.team_members_raw ? r.team_members_raw.split(",") : []).map(
+                  (item, i, arr) => {
+                    const [id, name, country, indivReign] = item.split("|");
+                    return (
+                      <span key={id} className="items-center">
+                        <Link
+                          href={`/wrestlers/${id}`}
+                          className="items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          <FlagWithName code={country} name={name} />
+                        </Link>
+                        &nbsp;({indivReign})
+                        {i < arr.length - 1 ? ", " : ""}
+                      </span>
+                    );
+                  },
+                )}
+                )
+              </span>
+            </>
+          ) : r.wrestler_id ? (
+            <Link
+              href={`/wrestlers/${r.wrestler_id}`}
+              className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              <FlagWithName code={r.country} name={r.wrestler} />
+            </Link>
+          ) : (
+            "—"
+          )}
+        </td>
+        {sel !== 5 && (
+          <td className="border px-2 py-1">
+            {r.interpreter_id ? (
+              <Link
+                href={`/interpreters/${r.interpreter_id}`}
+                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                <FlagWithName code={r.nationality} name={r.interpreter} />
+              </Link>
+            ) : (
+              "—"
+            )}
+          </td>
+        )}
+        <td className="border px-2 py-1 text-center">
+          {formatEnglishDate(r.won_date)}
+        </td>
+        <td className="border px-2 py-1 text-center">
+          {r.event_id ? (
+            <Link
+              href={`/events/${r.event_id}`}
+              className="text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              {r.event_name}
+            </Link>
+          ) : (
+            "—"
+          )}
+        </td>
+        <td className="border px-2 py-1 text-center">{r.reign_number}</td>
+        <td className="border px-2 py-1 text-center">
+          {r.lost_date === null ? daysHeldRaw : daysHeldRaw.replace("+", "")}
+        </td>
+        <td className="border px-2 py-1 text-[12px] break-words">
+          {r.notes || "—"}
+          {sel !== 2 && r.id === longestReignId && (
+            <span className="ml-1">
+              This is the longest reign in the history of the championship.
+            </span>
+          )}
+        </td>
+      </tr>
+    );
+  }
 
   return (
     <>
@@ -387,191 +596,50 @@ export default function ChampionshipsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {(() => {
-                        let globalCounter = 0;
-                        const erasWithReigns = orderedEraNames
-                          .map((eraName) => ({
-                            name: eraName,
-                            rows: sortedReigns.filter(
-                              (r) => r.era_name === eraName,
-                            ),
-                          }))
-                          .filter((era) => era.rows.length > 0);
+                      {sortKey === null ? (
+                        // ─── Orden predeterminado ("#"): agrupado por Era ──
+                        (() => {
+                          let globalCounter = 0;
+                          const erasWithReigns = orderedEraNames
+                            .map((eraName) => ({
+                              name: eraName,
+                              rows: sortedReigns.filter(
+                                (r) => r.era_name === eraName,
+                              ),
+                            }))
+                            .filter((era) => era.rows.length > 0);
 
-                        return erasWithReigns.map(({ name: eraName, rows }) => (
-                          <React.Fragment key={eraName}>
-                            <tr className="bg-gray-200 dark:bg-gray-800">
-                              <td
-                                className="border px-2 py-1 font-semibold text-center"
-                                colSpan={visibleColumnsCount}
-                              >
-                                {eraName}
-                              </td>
-                            </tr>
-                            {rows.map((r) => {
-                              const displayIndex = r.isVacant
-                                ? "—"
-                                : ++globalCounter;
-                              if (r.isVacant) {
-                                return (
-                                  <tr
-                                    key={
-                                      r.id ||
-                                      `vacant-${eraName}-${displayIndex}`
-                                    }
-                                    className="bg-gray-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                  >
-                                    <td className="border px-2 py-1 text-center">
-                                      {displayIndex}
-                                    </td>
-                                    <td className="border px-2 py-1 font-semibold">
-                                      Vacant
-                                    </td>
-                                    {sel !== 5 && (
-                                      <td className="border px-2 py-1 text-center">
-                                        —
-                                      </td>
-                                    )}
-                                    <td className="border px-2 py-1 text-center">
-                                      {formatEnglishDate(r.won_date)}
-                                    </td>
-                                    <td className="border px-2 py-1 text-center">
-                                      —
-                                    </td>
-                                    <td className="border px-2 py-1 text-center">
-                                      —
-                                    </td>
-                                    <td className="border px-2 py-1 text-center">
-                                      —
-                                    </td>
-                                    <td className="border px-2 py-1 text-[12px] break-words">
-                                      —
-                                    </td>
-                                  </tr>
-                                );
-                              }
-                              const daysHeldRaw = r.__daysHeld;
-                              return (
-                                <tr
-                                  key={r.id}
-                                  className="hover:bg-gray-50 dark:hover:bg-gray-800"
+                          return erasWithReigns.map(({ name: eraName, rows }) => (
+                            <React.Fragment key={eraName}>
+                              <tr className="bg-gray-200 dark:bg-gray-800">
+                                <td
+                                  className="border px-2 py-1 font-semibold text-center"
+                                  colSpan={visibleColumnsCount}
                                 >
-                                  <td className="border px-2 py-1 text-center">
-                                    {displayIndex}
-                                  </td>
-                                  <td className="border px-1 py-1 font-semibold">
-                                    {r.tag_team_id ? (
-                                      <>
-                                        <Link
-                                          href={`/stables/${r.tag_team_id}`}
-                                          className="font-semibold text-blue-600 dark:text-blue-400 hover:underline"
-                                        >
-                                          {r.team_name}
-                                        </Link>
-                                        <br />
-                                        <span className="text-xs">
-                                          (
-                                          {(r.team_members_raw
-                                            ? r.team_members_raw.split(",")
-                                            : []
-                                          ).map((item, i, arr) => {
-                                            const [
-                                              id,
-                                              name,
-                                              country,
-                                              indivReign,
-                                            ] = item.split("|");
-                                            return (
-                                              <span
-                                                key={id}
-                                                className="items-center"
-                                              >
-                                                <Link
-                                                  href={`/wrestlers/${id}`}
-                                                  className="items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                                                >
-                                                  <FlagWithName
-                                                    code={country}
-                                                    name={name}
-                                                  />
-                                                </Link>
-                                                &nbsp;({indivReign})
-                                                {i < arr.length - 1 ? ", " : ""}
-                                              </span>
-                                            );
-                                          })}
-                                          )
-                                        </span>
-                                      </>
-                                    ) : r.wrestler_id ? (
-                                      <Link
-                                        href={`/wrestlers/${r.wrestler_id}`}
-                                        className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                                      >
-                                        <FlagWithName
-                                          code={r.country}
-                                          name={r.wrestler}
-                                        />
-                                      </Link>
-                                    ) : (
-                                      "—"
-                                    )}
-                                  </td>
-                                  {sel !== 5 && (
-                                    <td className="border px-2 py-1">
-                                      {r.interpreter_id ? (
-                                        <Link
-                                          href={`/interpreters/${r.interpreter_id}`}
-                                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                                        >
-                                          <FlagWithName
-                                            code={r.nationality}
-                                            name={r.interpreter}
-                                          />
-                                        </Link>
-                                      ) : (
-                                        "—"
-                                      )}
-                                    </td>
-                                  )}
-                                  <td className="border px-2 py-1 text-center">
-                                    {formatEnglishDate(r.won_date)}
-                                  </td>
-                                  <td className="border px-2 py-1 text-center">
-                                    {r.event_id ? (
-                                      <Link
-                                        href={`/events/${r.event_id}`}
-                                        className="text-blue-600 dark:text-blue-400 hover:underline"
-                                      >
-                                        {r.event_name}
-                                      </Link>
-                                    ) : (
-                                      "—"
-                                    )}
-                                  </td>
-                                  <td className="border px-2 py-1 text-center">
-                                    {r.reign_number}
-                                  </td>
-                                  <td className="border px-2 py-1 text-center">
-                                    {r.lost_date === null
-                                      ? daysHeldRaw
-                                      : daysHeldRaw.replace("+", "")}
-                                  </td>
-                                  <td className="border px-2 py-1 text-[12px] break-words">
-                                    {r.notes || "—"}
-                                    {sel !== 2 && r.id === longestReignId && (
-                                      <span className="ml-1">
-                                        This is the longest reign in the history
-                                        of the championship.
-                                      </span>
-                                    )}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </React.Fragment>
-                        ));
-                      })()}
+                                  {eraName}
+                                </td>
+                              </tr>
+                              {rows.map((r) => {
+                                const displayIndex = r.isVacant
+                                  ? "—"
+                                  : ++globalCounter;
+                                return renderReignRow(r, displayIndex);
+                              })}
+                            </React.Fragment>
+                          ));
+                        })()
+                      ) : (
+                        // ─── Cualquier otra columna: lista plana, sin Eras ─
+                        (() => {
+                          let globalCounter = 0;
+                          return sortedReigns.map((r) => {
+                            const displayIndex = r.isVacant
+                              ? "—"
+                              : ++globalCounter;
+                            return renderReignRow(r, displayIndex);
+                          });
+                        })()
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -753,71 +821,222 @@ export default function ChampionshipsPage() {
 
                   {/* Singles fighter stats */}
                   {sel !== 5 && fighterStats.length > 0 && (
-                    <div className="mb-8 overflow-x-auto no-scrollbar">
-                      <table className="table-auto w-full border-collapse text-sm min-w-[600px]">
-                        <thead>
-                          <tr className="bg-gray-100 dark:bg-gray-700">
-                            {aggColumns.map(({ label }) => (
-                              <th
-                                key={label}
-                                onClick={() => handleAggSort(label)}
-                                className="border px-2 py-1 text-center cursor-pointer select-none"
-                              >
-                                {label}
-                                {renderAggSortIcon(label)}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                          {fighterStats.map((row, idx) => (
-                            <tr
-                              key={row.wrestlerId}
-                              className={
-                                row.isCurrent
-                                  ? "bg-yellow-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                  : "hover:bg-gray-50 dark:hover:bg-gray-800"
-                              }
-                            >
-                              <td className="border px-2 py-1 text-center">
-                                {idx + 1}
-                              </td>
-                              <td className="border px-2 py-1">
-                                <Link
-                                  href={`/wrestlers/${row.wrestlerId}`}
-                                  className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                    <>
+                      {hasMultipleWrestlersPerInterpreter ? (
+                        <>
+                          {/* Per Wrestler Table */}
+                          <div className="mb-8">
+                            <h4 className="text-lg font-semibold mb-2">Per wrestler</h4>
+                            <div className="overflow-x-auto no-scrollbar">
+                              <table className="table-auto w-full border-collapse text-sm min-w-[600px]">
+                                <thead>
+                                  <tr className="bg-gray-100 dark:bg-gray-700">
+                                    {aggColumns.map(({ label }) => (
+                                      <th
+                                        key={label}
+                                        onClick={() => handleAggSort(label)}
+                                        className="border px-2 py-1 text-center cursor-pointer select-none"
+                                      >
+                                        {label}
+                                        {renderAggSortIcon(label)}
+                                      </th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                  {fighterStats.map((row, idx) => (
+                                    <tr
+                                      key={row.wrestlerId}
+                                      className={
+                                        row.isCurrent
+                                          ? "bg-yellow-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                          : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                                      }
+                                    >
+                                      <td className="border px-2 py-1 text-center">
+                                        {idx + 1}
+                                      </td>
+                                      <td className="border px-2 py-1">
+                                        <Link
+                                          href={`/wrestlers/${row.wrestlerId}`}
+                                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                                        >
+                                          <FlagWithName
+                                            code={row.country}
+                                            name={row.wrestlerName}
+                                          />
+                                        </Link>
+                                      </td>
+                                      <td className="border px-2 py-1">
+                                        <Link
+                                          href={`/interpreters/${row.interpreterId}`}
+                                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                        >
+                                          <FlagWithName
+                                            code={row.interpreterCountry}
+                                            name={row.interpreterName}
+                                          />
+                                        </Link>
+                                      </td>
+                                      <td className="border px-2 py-1 text-center">
+                                        {row.reignCount}
+                                      </td>
+                                      <td className="border px-2 py-1 text-center">
+                                        {row.defenses}
+                                      </td>
+                                      <td className="border px-2 py-1 text-center">
+                                        {row.totalDaysLabel}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+
+                          {/* Per Interpreter Table */}
+                          <div className="mb-8">
+                            <h4 className="text-lg font-semibold mb-2">Per interpreter</h4>
+                            <div className="overflow-x-auto no-scrollbar">
+                              <table className="table-auto w-full border-collapse text-sm min-w-[600px]">
+                                <thead>
+                                  <tr className="bg-gray-100 dark:bg-gray-700">
+                                    {[
+                                      "#,none",
+                                      "Interpreter,Interpreter",
+                                      "Champion(s),none",
+                                      "Reigns,Reigns",
+                                      "Successful defenses,Successful defenses",
+                                      "Total days,Total days",
+                                    ].map((headerInfo) => {
+                                      const [label, sortKey] = headerInfo.split(",");
+                                      return (
+                                        <th
+                                          key={label}
+                                          onClick={() => sortKey !== "none" && handleInterpreterSort(sortKey)}
+                                          className={`border px-2 py-1 text-center select-none ${sortKey !== "none" ? "cursor-pointer" : ""}`}
+                                        >
+                                          {label}
+                                          {sortKey !== "none" && renderInterpreterSortIcon(sortKey)}
+                                        </th>
+                                      );
+                                    })}
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                  {interpreterStats.map((row, idx) => (
+                                    <tr
+                                      key={row.interpreterId}
+                                      className={
+                                        row.isCurrent
+                                          ? "bg-yellow-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                          : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                                      }
+                                    >
+                                      <td className="border px-2 py-1 text-center">{idx + 1}</td>
+                                      <td className="border px-2 py-1 font-semibold">
+                                        <Link
+                                          href={`/interpreters/${row.interpreterId}`}
+                                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                        >
+                                          <FlagWithName
+                                            code={row.interpreterCountry}
+                                            name={row.interpreterName}
+                                          />
+                                        </Link>
+                                      </td>
+                                      <td className="border px-2 py-1">
+                                        {row.champions.map((champ, cIdx) => (
+                                          <React.Fragment key={champ.id}>
+                                            <Link
+                                              href={`/wrestlers/${champ.id}`}
+                                              className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                                            >
+                                              <FlagWithName code={champ.country} name={champ.name} />
+                                            </Link>
+                                            {cIdx < row.champions.length - 1 && <br />}
+                                          </React.Fragment>
+                                        ))}
+                                      </td>
+                                      <td className="border px-2 py-1 text-center">{row.reigns}</td>
+                                      <td className="border px-2 py-1 text-center">{row.defenses}</td>
+                                      <td className="border px-2 py-1 text-center">{row.totalDaysLabel}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        /* Original view without subheadings */
+                        <div className="mb-8 overflow-x-auto no-scrollbar">
+                          <table className="table-auto w-full border-collapse text-sm min-w-[600px]">
+                            <thead>
+                              <tr className="bg-gray-100 dark:bg-gray-700">
+                                {aggColumns.map(({ label }) => (
+                                  <th
+                                    key={label}
+                                    onClick={() => handleAggSort(label)}
+                                    className="border px-2 py-1 text-center cursor-pointer select-none"
+                                  >
+                                    {label}
+                                    {renderAggSortIcon(label)}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                              {fighterStats.map((row, idx) => (
+                                <tr
+                                  key={row.wrestlerId}
+                                  className={
+                                    row.isCurrent
+                                      ? "bg-yellow-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                      : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  }
                                 >
-                                  <FlagWithName
-                                    code={row.country}
-                                    name={row.wrestlerName}
-                                  />
-                                </Link>
-                              </td>
-                              <td className="border px-2 py-1">
-                                <Link
-                                  href={`/interpreters/${row.interpreterId}`}
-                                  className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                                >
-                                  <FlagWithName
-                                    code={row.interpreterCountry}
-                                    name={row.interpreterName}
-                                  />
-                                </Link>
-                              </td>
-                              <td className="border px-2 py-1 text-center">
-                                {row.reignCount}
-                              </td>
-                              <td className="border px-2 py-1 text-center">
-                                {row.defenses}
-                              </td>
-                              <td className="border px-2 py-1 text-center">
-                                {row.totalDaysLabel}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                                  <td className="border px-2 py-1 text-center">
+                                    {idx + 1}
+                                  </td>
+                                  <td className="border px-2 py-1">
+                                    <Link
+                                      href={`/wrestlers/${row.wrestlerId}`}
+                                      className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                                    >
+                                      <FlagWithName
+                                        code={row.country}
+                                        name={row.wrestlerName}
+                                      />
+                                    </Link>
+                                  </td>
+                                  <td className="border px-2 py-1">
+                                    <Link
+                                      href={`/interpreters/${row.interpreterId}`}
+                                      className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                    >
+                                      <FlagWithName
+                                        code={row.interpreterCountry}
+                                        name={row.interpreterName}
+                                      />
+                                    </Link>
+                                  </td>
+                                  <td className="border px-2 py-1 text-center">
+                                    {row.reignCount}
+                                  </td>
+                                  <td className="border px-2 py-1 text-center">
+                                    {row.defenses}
+                                  </td>
+                                  <td className="border px-2 py-1 text-center">
+                                    {row.totalDaysLabel}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </>
