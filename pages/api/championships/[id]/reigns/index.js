@@ -1,11 +1,11 @@
 // pages/api/championships/[id]/reigns/index.js
 
-import pool from '../../../../../lib/db';
-import { setCacheHeaders } from '../../../../../lib/db';
+import pool from "../../../../../lib/db";
+import { setCacheHeaders } from "../../../../../lib/db";
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET')
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== "GET")
+    return res.status(405).json({ error: "Method not allowed" });
 
   const { id: championshipId } = req.query;
 
@@ -129,17 +129,36 @@ export default async function handler(req, res) {
       LEFT JOIN wrestlers wot ON wot.id = opp_part.wrestler_id
 
       WHERE r.championship_id = ?
-      GROUP BY r.id, era.name
+      GROUP BY 
+        r.id, 
+        r.reign_number, 
+        r.won_date, 
+        r.lost_date, 
+        r.days_held, 
+        r.wrestler_id, 
+        w.wrestler, 
+        w.country, 
+        r.interpreter_id, 
+        i.interpreter, 
+        i.nationality, 
+        r.tag_team_id, 
+        t.name, 
+        mp_opp.tag_team_id, 
+        ot.name, 
+        r.event_id, 
+        e.name, 
+        m.notes, 
+        era.name
       ORDER BY era.start_date, r.won_date
       `,
-      [championshipId]
+      [championshipId],
     );
 
     // Historial de reinados cambia solo cuando hay nuevo campeón — cachear 2 minutos
     setCacheHeaders(res, 120);
     return res.status(200).json(rows);
   } catch (err) {
-    console.error('Database error in /api/championships/[id]/reigns:', err);
-    return res.status(500).json({ error: 'Database error' });
+    console.error("Database error in /api/championships/[id]/reigns:", err);
+    return res.status(500).json({ error: "Database error" });
   }
 }
