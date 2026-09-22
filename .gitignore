@@ -4,3 +4,5 @@ node_modules/
 
 # Configuración local
 .env.local
+.vercel
+.env*

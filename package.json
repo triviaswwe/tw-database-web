@@ -9,6 +9,7 @@
   "dependencies": {
     "@headlessui/react": "^2.2.4",
     "@shadcn/ui": "latest",
+    "@vercel/blob": "^2.8.0",
     "autoprefixer": "^10.0.0",
     "axios": "^1.11.0",
     "lucide-react": "^0.511.0",
