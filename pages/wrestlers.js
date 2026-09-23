@@ -8,6 +8,9 @@ import FlagWithName from "../components/FlagWithName";
 
 const WRESTLERS_PER_PAGE = 33;
 
+// Dominio base de Vercel Blob
+const BLOB_BASE_URL = 'https://ljejfdquofuxccca.public.blob.vercel-storage.com';
+
 // Pestañas principales
 const mainTabOptions = [
   { label: "All", value: "all" },
@@ -24,12 +27,12 @@ const activeBrandOptions = [
   { label: "NXT", value: "NXT" },
 ];
 
-// Fondo por brand, exacto según el valor de w.brand en la DB
+// Fondos de brand actualizados con las rutas absolutas de Vercel Blob
 const BRAND_BACKGROUNDS = {
-  RAW: "/brands/wrestlers_bg_raw.png",
-  SmackDown: "/brands/wrestlers_bg_smackdown.png",
-  NXT: "/brands/wrestlers_bg_nxt.png",
-  Alumni: "/brands/wrestlers_bg_alumni.png",
+  RAW: `${BLOB_BASE_URL}/brands/wrestlers_bg_raw.png`,
+  SmackDown: `${BLOB_BASE_URL}/brands/wrestlers_bg_smackdown.png`,
+  NXT: `${BLOB_BASE_URL}/brands/wrestlers_bg_nxt.png`,
+  Alumni: `${BLOB_BASE_URL}/brands/wrestlers_bg_alumni.png`,
 };
 
 export default function WrestlersPage() {
@@ -177,7 +180,6 @@ export default function WrestlersPage() {
 
                 return (
                   <Link key={w.id} href={`/wrestlers/${w.id}`}>
-                    {/* 1. Agregamos min-h-[6rem] para asegurar que la tarjeta no pierda altura */}
                     <div className="relative overflow-hidden flex items-center p-4 min-h-[6rem] border rounded shadow hover:shadow-lg transform transition-transform duration-200 ease-in-out hover:scale-105 cursor-pointer">
                       {/* Fondo de brand */}
                       {brandBg && (
@@ -191,7 +193,7 @@ export default function WrestlersPage() {
                       {/* Overlay para que el texto/imagen sigan legibles */}
                       <div className="absolute inset-0 bg-black/40" />
 
-                      {/* 2. Hacemos que el contenedor de la imagen sea absoluto y anclado abajo */}
+                      {/* Contenedor de la imagen */}
                       {w.image_url && (
                         <div className="absolute bottom-0 left-4 w-16 md:w-[80px]">
                           <img
@@ -202,7 +204,7 @@ export default function WrestlersPage() {
                         </div>
                       )}
 
-                      {/* 3. Aumentamos el margen izquierdo (ml-20) del texto para compensar el espacio de la imagen absoluta */}
+                      {/* Margen izquierdo del texto */}
                       <div
                         className={`relative flex-1 ${w.image_url ? "ml-20 md:ml-24" : ""}`}
                       >
