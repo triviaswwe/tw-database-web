@@ -9,7 +9,7 @@ export default function Document() {
   return (
     <Html>
       <Head>
-        <link rel="icon" type="image/x-icon" href={`${BLOB_BASE_URL}/favicon.ico`} />
+        <link rel="icon" type="image/x-icon" href={`${BLOB_BASE_URL}/favicon2026.ico`} />
         <meta name="theme-color" content="#000000" />
       </Head>
       <body>
