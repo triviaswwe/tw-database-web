@@ -7,6 +7,9 @@ import Spinner from "../components/Spinner";
 
 const EVENTS_PER_PAGE = 33;
 
+// Dominio base de Vercel Blob
+const BLOB_BASE_URL = 'https://ljejfdquofuxccca.public.blob.vercel-storage.com';
+
 const eventTypeOptions = [
   { label: "All", value: "" },
   { label: "Weekly", value: "weekly" },
@@ -21,26 +24,26 @@ const dateOptions = [
   { label: "Upcoming events", value: "upcoming" },
 ];
 
-// Mapea show_id a archivo de imagen en /public
+// Mapea show_id a archivo de imagen en Vercel Blob
 const showImageMap = {
-  1: "/raw.png",
-  2: "/sd.png",
-  3: "/nxt.png",
-  4: "/speed.png",
-  5: "/wwelive.png",
+  1: `${BLOB_BASE_URL}/raw.png`,
+  2: `${BLOB_BASE_URL}/sd.png`,
+  3: `${BLOB_BASE_URL}/nxt.png`,
+  4: `${BLOB_BASE_URL}/speed.png`,
+  5: `${BLOB_BASE_URL}/wwelive.png`,
 };
 
-// Mapea ple_id a archivo de imagen en /public
+// Mapea ple_id a archivo de imagen en Vercel Blob
 const pleImageMap = {
-  4: "/tlc.png",
-  6: "/noc.png",
-  7: "/mitb.png",
-  11: "/bb.png",
-  12: "/snme.png",
-  13: "/payback.png",
-  14: "/fastlane.png",
-  17: "/bib.png",
-  18: "/takeover.png",
+  4: `${BLOB_BASE_URL}/tlc.png`,
+  6: `${BLOB_BASE_URL}/noc.png`,
+  7: `${BLOB_BASE_URL}/mitb.png`,
+  11: `${BLOB_BASE_URL}/bb.png`,
+  12: `${BLOB_BASE_URL}/snme.png`,
+  13: `${BLOB_BASE_URL}/payback.png`,
+  14: `${BLOB_BASE_URL}/fastlane.png`,
+  17: `${BLOB_BASE_URL}/bib.png`,
+  18: `${BLOB_BASE_URL}/takeover.png`,
 };
 
 export default function EventsPage() {
