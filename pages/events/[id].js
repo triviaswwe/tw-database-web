@@ -138,7 +138,7 @@ export async function getServerSideProps({ params }) {
       getAdjacent("", [], true),
     ]);
 
-    // 2. SHOW / SPECIAL Chronology
+    // 2. SHOW / LIVE Chronology
     let prevShow = null, nextShow = null;
     let showNavLabel = "";
     
@@ -147,7 +147,7 @@ export async function getServerSideProps({ params }) {
         getAdjacent("LOWER(e.event_type) = 'special'", [], false),
         getAdjacent("LOWER(e.event_type) = 'special'", [], true),
       ]);
-      showNavLabel = "Special Chronology";
+      showNavLabel = "Live Chronology";
     } else if (showId) {
       [prevShow, nextShow] = await Promise.all([
         getAdjacent("e.show_id = ?", [showId], false),

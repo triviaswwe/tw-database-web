@@ -72,6 +72,12 @@ export default function Layout({ children, isDark, setIsDark }) {
             >
               Stipulations
             </Link>
+                        <Link
+              href="/records"
+              className={navLinkClass("/records")}
+            >
+              Records
+            </Link>
             {/* Añade más links aquí si los necesitas */}
           </div>
         </div>
