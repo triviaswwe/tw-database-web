@@ -400,11 +400,11 @@ export default function RecordsPage({
   const renderMatchDetail = (m, indexNumber, isBreaker = false) => {
     const resultColor =
       m.result === "WIN"
-        ? "text-[#93c47d]"
+        ? "text-[#16a34a] dark:text-[#93c47d]"
         : m.result === "LOSS"
           ? "text-red-500"
           : m.result === "DRAW"
-            ? "text-[#ffe599]"
+            ? "text-[#d97706] dark:text-[#ffe599]"
             : "text-gray-500";
     return (
       <li key={indexNumber} className="pl-1 flex items-start text-sm">
@@ -520,7 +520,7 @@ export default function RecordsPage({
                       <FlagWithName code={w.country} name={w.name} />
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-right font-bold text-[#93c47d]">
+                  <td className="px-4 py-3 text-right font-bold text-[#16a34a] dark:text-[#93c47d]">
                     {w.total}
                   </td>
                 </>
@@ -587,7 +587,7 @@ export default function RecordsPage({
                       <FlagWithName code={s.country} name={s.name} />
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right font-bold text-yellow-600 dark:text-yellow-500">
+                  <td className="px-4 py-3 text-right font-bold text-[#16a34a] dark:text-[#93c47d]">
                     {s.count}
                   </td>
                 </>
@@ -643,7 +643,7 @@ export default function RecordsPage({
                     <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-300">
                       {i.total_matches}
                     </td>
-                    <td className="px-4 py-3 text-right font-bold text-[#93c47d]">
+                    <td className="px-4 py-3 text-right font-bold text-[#16a34a] dark:text-[#93c47d]">
                       {i.wins}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-sm">
