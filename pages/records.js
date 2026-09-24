@@ -938,7 +938,7 @@ export default function RecordsPage({
                     )}
                   </td>
                   <td
-                    className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 truncate max-w-[120px]"
+                    className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300"
                     title={r.title_name}
                   >
                     {(r.title_name || "").replace(" Championship", "")}
@@ -978,7 +978,7 @@ export default function RecordsPage({
                     )}
                   </td>
                   <td
-                    className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 truncate max-w-[120px]"
+                    className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300"
                     title={r.title_name}
                   >
                     {(r.title_name || "").replace(" Championship", "")}
