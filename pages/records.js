@@ -322,6 +322,7 @@ export async function getServerSideProps() {
           if (champPart) { myTeam = champPart.team_number; myResult = champPart.result; }
       }
 
+      // Si no compitieron (ej. porque el título se dejó vacante y este match corona a otro), ignoramos la lucha
       if (myTeam === null) continue;
 
       const scoreMap = scores.reduce((acc, s) => { acc[s.team_number] = s.score; return acc; }, {});
@@ -356,10 +357,10 @@ export async function getServerSideProps() {
           matchDetail.partners = defendingWrestlers.map(x => ({ id: x.wrestler_id, name: x.wrestler }));
       }
 
-      // Si el título cambió de manos, es el Streak Breaker (sin importar si el resultado fue LOSS o DRAW en combates múltiples)
-      if (match.title_changed === 1) {
+      // El título cambió de manos Y ellos no ganaron (blindaje para reinados vacantes)
+      if (match.title_changed === 1 && myResult !== 'WIN') {
           breakerByReign[match.reign_id] = matchDetail;
-      } else {
+      } else if (match.title_changed === 0) {
           if (!defensesByReign[match.reign_id]) defensesByReign[match.reign_id] = [];
           defensesByReign[match.reign_id].push(matchDetail);
       }
@@ -721,7 +722,7 @@ export default function RecordsPage({ error, mostMatches, mostWins, bestInterpre
           {/* Grilla Inferior con las Tablas de Reinados y Defensas */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start mt-8">
             
-            {/* Reinados más Largos (Solo muestra Days, No Expandible, Link exclusivo en el nombre) */}
+            {/* Reinados más Largos */}
             {renderTable(
               "Longest Reigns",
               sortedLongestReigns,
@@ -753,7 +754,7 @@ export default function RecordsPage({ error, mostMatches, mostWins, bestInterpre
               null
             )}
 
-            {/* Reinados con más Defensas (Solo muestra Defenses, Expandible, SIN Link) */}
+            {/* Reinados con más Defensas */}
             {renderTable(
               "Most Defenses in a Reign",
               sortedMostDefenses,
