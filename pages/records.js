@@ -8,9 +8,19 @@ import FlagWithName from "../components/FlagWithName";
 
 export async function getServerSideProps() {
   try {
-    // 1. Luchadores con más matches
+    // 1. Luchadores con más matches (Con desglose de intérpretes)
     const [matchesRows] = await pool.query(`
-      SELECT w.id, w.wrestler AS name, w.country, COUNT(mp.match_id) AS total
+      SELECT w.id, w.wrestler AS name, w.country, COUNT(mp.match_id) AS total,
+        (
+          SELECT JSON_ARRAYAGG(JSON_OBJECT('id', i.id, 'name', IFNULL(i.interpreter, 'Unknown'), 'count', sub.cnt))
+          FROM (
+            SELECT interpreter_id, COUNT(match_id) as cnt
+            FROM match_participants
+            WHERE wrestler_id = w.id
+            GROUP BY interpreter_id
+          ) sub
+          LEFT JOIN interpreters i ON sub.interpreter_id = i.id
+        ) AS interpreters_breakdown
       FROM match_participants mp
       JOIN wrestlers w ON mp.wrestler_id = w.id
       GROUP BY w.id, w.wrestler, w.country
@@ -18,15 +28,38 @@ export async function getServerSideProps() {
       LIMIT 10
     `);
 
-    // 2. Luchadores con más victorias
+    // 2. Luchadores con más victorias (Con desglose de intérpretes)
     const [winsRows] = await pool.query(`
-      SELECT w.id, w.wrestler AS name, w.country, SUM(CASE WHEN mp.result = 'WIN' THEN 1 ELSE 0 END) AS total
+      SELECT w.id, w.wrestler AS name, w.country, SUM(CASE WHEN mp.result = 'WIN' THEN 1 ELSE 0 END) AS total,
+        (
+          SELECT JSON_ARRAYAGG(JSON_OBJECT('id', i.id, 'name', IFNULL(i.interpreter, 'Unknown'), 'count', sub.cnt))
+          FROM (
+            SELECT interpreter_id, SUM(CASE WHEN result = 'WIN' THEN 1 ELSE 0 END) as cnt
+            FROM match_participants
+            WHERE wrestler_id = w.id
+            GROUP BY interpreter_id
+            HAVING cnt > 0
+          ) sub
+          LEFT JOIN interpreters i ON sub.interpreter_id = i.id
+        ) AS interpreters_breakdown
       FROM match_participants mp
       JOIN wrestlers w ON mp.wrestler_id = w.id
       GROUP BY w.id, w.wrestler, w.country
       ORDER BY total DESC
       LIMIT 10
     `);
+
+    const processInterpreters = (rows) => rows.map(r => {
+      let breakdown = r.interpreters_breakdown;
+      if (typeof breakdown === 'string') {
+        try { breakdown = JSON.parse(breakdown); } 
+        catch (e) { breakdown = []; }
+      }
+      return { ...r, interpreters_breakdown: breakdown || [] };
+    });
+
+    const processedMatches = processInterpreters(matchesRows);
+    const processedWins = processInterpreters(winsRows);
 
     // 3. Intérpretes
     const [interpreterRows] = await pool.query(`
@@ -454,8 +487,8 @@ export async function getServerSideProps() {
 
     return {
       props: {
-        mostMatches: JSON.parse(JSON.stringify(matchesRows)),
-        mostWins: JSON.parse(JSON.stringify(winsRows)),
+        mostMatches: JSON.parse(JSON.stringify(processedMatches)),
+        mostWins: JSON.parse(JSON.stringify(processedWins)),
         bestInterpreters: JSON.parse(JSON.stringify(interpreterRows)),
         topWinStreaks: JSON.parse(JSON.stringify(topWinStreaks)),
         topUndefeated: JSON.parse(JSON.stringify(topUndefeated)),
@@ -539,6 +572,7 @@ export default function RecordsPage({
     });
   }, [mostDefenses]);
 
+  // Se añade el parámetro opcional isRowExpandable
   const renderTable = (
     title,
     data,
@@ -546,6 +580,8 @@ export default function RecordsPage({
     renderRow,
     expandPrefix = null,
     renderExpanded = null,
+    expandTitle = "Match breakdown:",
+    isRowExpandable = () => true
   ) => (
     <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden h-fit">
       <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800">
@@ -578,18 +614,18 @@ export default function RecordsPage({
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
             {data.map((item, idx) => {
-              const isExpanded = expandPrefix && expandedRow === item.id;
-              const isClickable = !!expandPrefix;
+              const isExpanded = expandPrefix && expandedRow === `${expandPrefix}_${item.id}`;
+              const isExpandable = !!expandPrefix && isRowExpandable(item);
 
               return (
                 <React.Fragment key={item.id}>
                   <tr
-                    className={`hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors ${isClickable ? "cursor-pointer" : ""}`}
-                    onClick={() => isClickable && toggleExpand(item.id)}
-                    title={isClickable ? "Click to view matches" : ""}
+                    className={`hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors ${isExpandable ? "cursor-pointer" : ""}`}
+                    onClick={() => isExpandable && toggleExpand(`${expandPrefix}_${item.id}`)}
+                    title={isExpandable ? "Click to view breakdown" : ""}
                   >
                     <td className="px-4 py-3 text-center font-semibold text-gray-500 dark:text-gray-400">
-                      {isClickable ? (
+                      {isExpandable ? (
                         <span className="flex items-center justify-center gap-1">
                           <span
                             className={`text-[10px] transition-transform ${isExpanded ? "rotate-90 text-blue-500" : ""}`}
@@ -613,7 +649,7 @@ export default function RecordsPage({
                       >
                         <div className="text-sm space-y-2 text-gray-700 dark:text-gray-300">
                           <p className="font-semibold mb-2 text-blue-600 dark:text-sky-400">
-                            Match breakdown:
+                            {expandTitle}
                           </p>
                           <ul className="space-y-1.5">
                             {renderExpanded(item)}
@@ -657,7 +693,8 @@ export default function RecordsPage({
                       {idx > 0 && " & "}
                       <Link
                         href={`/wrestlers/${pt.id}`}
-                        className="text-blue-600 dark:text-sky-400"
+                        className="text-blue-600 dark:text-sky-400 "
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {pt.name}
                       </Link>
@@ -673,7 +710,8 @@ export default function RecordsPage({
                       {idx > 0 && " & "}
                       <Link
                         href={`/wrestlers/${pt.id}`}
-                        className="text-blue-600 dark:text-sky-400"
+                        className="text-blue-600 dark:text-sky-400 "
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {pt.name}
                       </Link>
@@ -691,7 +729,8 @@ export default function RecordsPage({
               {idx > 0 && " & "}
               <Link
                 href={`/wrestlers/${opp.id}`}
-                className="text-blue-600 dark:text-sky-400"
+                className="text-blue-600 dark:text-sky-400 "
+                onClick={(e) => e.stopPropagation()}
               >
                 {opp.name}
               </Link>
@@ -701,7 +740,8 @@ export default function RecordsPage({
             (
             <Link
               href={`/events/${m.event_id}`}
-              className="text-gray-500 dark:text-gray-400"
+              className="text-gray-500 dark:text-gray-400 "
+              onClick={(e) => e.stopPropagation()}
             >
               {m.event_name}
             </Link>
@@ -745,7 +785,8 @@ export default function RecordsPage({
                   <td className="px-4 py-3">
                     <Link
                       href={`/wrestlers/${w.id}`}
-                      className="text-blue-600 dark:text-sky-400 font-semibold flex items-center gap-2"
+                      className="text-blue-600 dark:text-sky-400 font-semibold flex items-center gap-2 "
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <FlagWithName code={w.country} name={w.name} />
                     </Link>
@@ -753,6 +794,35 @@ export default function RecordsPage({
                   <td className="px-4 py-3 text-right font-bold">{w.total}</td>
                 </>
               ),
+              "matches",
+              (w) => (
+                <>
+                  {w.interpreters_breakdown
+                    ?.sort((a, b) => b.count - a.count)
+                    .map((interp, idx) => (
+                      <li key={idx} className="pl-1 flex items-start text-sm">
+                        <span className="mr-2 inline-block min-w-[20px] text-gray-500 dark:text-gray-400 font-mono text-right font-bold">
+                          {interp.count}
+                        </span>
+                        {interp.id ? (
+                          <Link 
+                            href={`/interpreters/${interp.id}`} 
+                            className="text-blue-600 dark:text-sky-400 "
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {interp.name}
+                          </Link>
+                        ) : (
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {interp.name}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                </>
+              ),
+              "Interpreters breakdown:",
+              (w) => w.interpreters_breakdown?.length > 1
             )}
 
             {/* Luchadores con más Victorias */}
@@ -765,7 +835,8 @@ export default function RecordsPage({
                   <td className="px-4 py-3">
                     <Link
                       href={`/wrestlers/${w.id}`}
-                      className="text-blue-600 dark:text-sky-400 font-semibold flex items-center gap-2"
+                      className="text-blue-600 dark:text-sky-400 font-semibold flex items-center gap-2 "
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <FlagWithName code={w.country} name={w.name} />
                     </Link>
@@ -775,6 +846,35 @@ export default function RecordsPage({
                   </td>
                 </>
               ),
+              "wins",
+              (w) => (
+                <>
+                  {w.interpreters_breakdown
+                    ?.sort((a, b) => b.count - a.count)
+                    .map((interp, idx) => (
+                      <li key={idx} className="pl-1 flex items-start text-sm">
+                        <span className="mr-2 inline-block min-w-[20px] text-[#16a34a] dark:text-[#93c47d] font-mono text-right font-bold">
+                          {interp.count}
+                        </span>
+                        {interp.id ? (
+                          <Link 
+                            href={`/interpreters/${interp.id}`} 
+                            className="text-blue-600 dark:text-sky-400 "
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {interp.name}
+                          </Link>
+                        ) : (
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {interp.name}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                </>
+              ),
+              "Interpreters breakdown:",
+              (w) => w.interpreters_breakdown?.length > 1
             )}
 
             {/* Mayores Rachas Invictas */}
@@ -821,7 +921,7 @@ export default function RecordsPage({
                       true,
                     )}
                 </>
-              ),
+              )
             )}
 
             {/* Mayores Rachas de Victorias */}
@@ -852,7 +952,7 @@ export default function RecordsPage({
                       true,
                     )}
                 </>
-              ),
+              )
             )}
 
             {/* Mejores Intérpretes */}
@@ -884,7 +984,7 @@ export default function RecordsPage({
                     <td className="px-4 py-3">
                       <Link
                         href={`/interpreters/${i.id}`}
-                        className="text-blue-600 dark:text-sky-400 font-semibold flex items-center gap-2"
+                        className="text-blue-600 dark:text-sky-400 font-semibold flex items-center gap-2 "
                       >
                         <FlagWithName code={i.country} name={i.name} />
                       </Link>
@@ -921,14 +1021,14 @@ export default function RecordsPage({
                     {r.tag_team_id ? (
                       <Link
                         href={`/stables/${r.tag_team_id}`}
-                        className="text-blue-600 dark:text-sky-400 font-semibold"
+                        className="text-blue-600 dark:text-sky-400 font-semibold  block w-full h-full"
                       >
                         {r.tag_team_name}
                       </Link>
                     ) : (
                       <Link
                         href={`/wrestlers/${r.wrestler_id}`}
-                        className="text-blue-600 dark:text-sky-400 font-semibold"
+                        className="text-blue-600 dark:text-sky-400 font-semibold  block w-full h-full"
                       >
                         <FlagWithName
                           code={r.country}
