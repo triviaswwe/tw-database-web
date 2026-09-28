@@ -78,6 +78,14 @@ export function useChampionshipStats(reignsArr, defenseSummary, defenses, tagInd
       });
     }
 
+    let defeatedOpponents = [];
+    if (current.opponents_raw) {
+      defeatedOpponents = current.opponents_raw.split(",").map((raw) => {
+        const [id, name, country] = raw.split("|");
+        return { id: Number(id), name, country };
+      });
+    }
+
     return {
       reignId:                current.id,
       wrestlerId:             current.wrestler_id,
@@ -90,9 +98,7 @@ export function useChampionshipStats(reignsArr, defenseSummary, defenses, tagInd
       tagTeamId:              current.tag_team_id,
       teamName, teamMembers,
       opponentTeamId, opponentTeamName, opponentTeamMembers,
-      defeatedOpponentId:      current.opponent_id,
-      defeatedOpponent:        current.opponent,
-      defeatedOpponentCountry: current.opponent_country,
+      defeatedOpponents,
     };
   }, [reignsArr, sel]);
 

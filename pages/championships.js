@@ -454,16 +454,22 @@ export default function ChampionshipsPage() {
                           ))}
                           )
                         </>
-                      ) : currentReignText.defeatedOpponentId ? (
-                        <Link
-                          href={`/wrestlers/${currentReignText.defeatedOpponentId}`}
-                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400  font-semibold"
-                        >
-                          <FlagWithName
-                            code={currentReignText.defeatedOpponentCountry}
-                            name={currentReignText.defeatedOpponent}
-                          />
-                        </Link>
+                      ) : currentReignText.defeatedOpponents?.length > 0 ? (
+                        currentReignText.defeatedOpponents.map((opp, idx, arr) => (
+                          <React.Fragment key={opp.id}>
+                            <Link
+                              href={`/wrestlers/${opp.id}`}
+                              className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-semibold"
+                            >
+                              <FlagWithName
+                                code={opp.country}
+                                name={opp.name}
+                              />
+                            </Link>
+                            {idx < arr.length - 2 && ", "}
+                            {idx === arr.length - 2 && " & "}
+                          </React.Fragment>
+                        ))
                       ) : (
                         <strong>—</strong>
                       )}{" "}
@@ -537,17 +543,23 @@ export default function ChampionshipsPage() {
                                 </>
                               );
                             } else {
-                              opponentBlock = (
-                                <Link
-                                  href={`/wrestlers/${d.opponent_id}`}
-                                  className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 "
-                                >
-                                  <FlagWithName
-                                    code={d.opponent_country}
-                                    name={d.opponent}
-                                  />
-                                </Link>
-                              );
+                              const opponents = d.opponents_raw ? d.opponents_raw.split(",").map(raw => {
+                                const [id, name, country] = raw.split("|");
+                                return { id, name, country };
+                              }) : [];
+                              
+                              opponentBlock = opponents.map((opp, idx, arr) => (
+                                <React.Fragment key={opp.id}>
+                                  <Link
+                                    href={`/wrestlers/${opp.id}`}
+                                    className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400"
+                                  >
+                                    <FlagWithName code={opp.country} name={opp.name} />
+                                  </Link>
+                                  {idx < arr.length - 2 && ", "}
+                                  {idx === arr.length - 2 && " & "}
+                                </React.Fragment>
+                              ));
                             }
                             return (
                               <li key={i}>

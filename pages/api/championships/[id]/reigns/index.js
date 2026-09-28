@@ -109,36 +109,19 @@ export default async function handler(req, res) {
           LIMIT 1
         ) AS opponent_team_members_raw,
 
-        /* Subconsulta para Rival Single (Retorna el primero que encuentre) */
+        /* Subconsulta para Rival Single (Todos los oponentes) */
         (
-          SELECT w_opp.id
+          SELECT GROUP_CONCAT(
+            DISTINCT CONCAT(w_opp.id, '|', w_opp.wrestler, '|', w_opp.country)
+            ORDER BY w_opp.wrestler
+            SEPARATOR ','
+          )
           FROM match_participants mp_opp
           JOIN wrestlers w_opp ON w_opp.id = mp_opp.wrestler_id
           WHERE r.tag_team_id IS NULL 
             AND mp_opp.match_id = m.id
             AND mp_opp.wrestler_id <> r.wrestler_id
-          LIMIT 1
-        ) AS opponent_id,
-
-        (
-          SELECT w_opp.wrestler
-          FROM match_participants mp_opp
-          JOIN wrestlers w_opp ON w_opp.id = mp_opp.wrestler_id
-          WHERE r.tag_team_id IS NULL 
-            AND mp_opp.match_id = m.id
-            AND mp_opp.wrestler_id <> r.wrestler_id
-          LIMIT 1
-        ) AS opponent,
-
-        (
-          SELECT w_opp.country
-          FROM match_participants mp_opp
-          JOIN wrestlers w_opp ON w_opp.id = mp_opp.wrestler_id
-          WHERE r.tag_team_id IS NULL 
-            AND mp_opp.match_id = m.id
-            AND mp_opp.wrestler_id <> r.wrestler_id
-          LIMIT 1
-        ) AS opponent_country,
+        ) AS opponents_raw,
 
         /* ---------- ERA ---------- */
         era.name                AS era_name

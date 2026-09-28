@@ -62,42 +62,29 @@ export default async function handler(req, res) {
       `
       SELECT
         cr.id                    AS reign_id,
-        mts_champ.score          AS champion_score,
-        mts_opp.score            AS opponent_score,
+        /* Scores dinámicos de todos los equipos del combate, priorizando al campeón */
+        (
+          SELECT GROUP_CONCAT(mts_all.score ORDER BY (mts_all.team_number = mp_champ.team_number) DESC, mts_all.team_number ASC SEPARATOR '-')
+          FROM match_team_scores mts_all
+          WHERE mts_all.match_id = m.id
+        ) AS match_scores,
         e.event_date,
         e.id                     AS event_id,
         e.name                   AS event_name,
 
         /* Subconsultas para evitar duplicados en los cruces de JOINs */
         (
-          SELECT w_opp.id
+          SELECT GROUP_CONCAT(
+            DISTINCT CONCAT(w_opp.id, '|', w_opp.wrestler, '|', w_opp.country)
+            ORDER BY w_opp.wrestler
+            SEPARATOR ','
+          )
           FROM match_participants mp_opp
           JOIN wrestlers w_opp ON w_opp.id = mp_opp.wrestler_id
           WHERE cr.tag_team_id IS NULL 
             AND mp_opp.match_id = m.id
             AND mp_opp.wrestler_id <> cr.wrestler_id
-          LIMIT 1
-        ) AS opponent_id,
-
-        (
-          SELECT w_opp.wrestler
-          FROM match_participants mp_opp
-          JOIN wrestlers w_opp ON w_opp.id = mp_opp.wrestler_id
-          WHERE cr.tag_team_id IS NULL 
-            AND mp_opp.match_id = m.id
-            AND mp_opp.wrestler_id <> cr.wrestler_id
-          LIMIT 1
-        ) AS opponent,
-
-        (
-          SELECT w_opp.country
-          FROM match_participants mp_opp
-          JOIN wrestlers w_opp ON w_opp.id = mp_opp.wrestler_id
-          WHERE cr.tag_team_id IS NULL 
-            AND mp_opp.match_id = m.id
-            AND mp_opp.wrestler_id <> cr.wrestler_id
-          LIMIT 1
-        ) AS opponent_country,
+        ) AS opponents_raw,
 
         (
           SELECT ot.id
@@ -150,22 +137,6 @@ export default async function handler(req, res) {
               OR (cr.tag_team_id IS NOT NULL AND mp_champ.tag_team_id  = cr.tag_team_id)
                 )
 
-      /* Usamos LIMIT 1 en el JOIN oponente para anclar el team_number de la puntuación rival, 
-         sin multiplicar la fila base */
-      JOIN   match_participants mp_opp
-             ON mp_opp.match_id = m.id
-            AND (
-                 (cr.wrestler_id  IS NOT NULL AND mp_opp.wrestler_id <> cr.wrestler_id)
-              OR (cr.tag_team_id IS NOT NULL AND mp_opp.tag_team_id  <> cr.tag_team_id)
-                )
-
-      LEFT JOIN match_team_scores mts_champ
-             ON mts_champ.match_id   = m.id
-            AND mts_champ.team_number = mp_champ.team_number
-      LEFT JOIN match_team_scores mts_opp
-             ON mts_opp.match_id   = m.id
-            AND mts_opp.team_number = mp_opp.team_number
-
       WHERE  cr.championship_id = ?
       
       /* Agrupación ultra-limpia asegurando unicidad por match */
@@ -173,12 +144,11 @@ export default async function handler(req, res) {
         cr.id, 
         m.id,
         e.id, 
-        mts_champ.score, 
-        mts_opp.score, 
         e.event_date, 
         e.name, 
         cr.tag_team_id,
-        cr.wrestler_id
+        cr.wrestler_id,
+        mp_champ.team_number
       ORDER  BY e.event_date
       `,
       [championshipId]
@@ -195,10 +165,8 @@ export default async function handler(req, res) {
     const details = detailRows.map((r, idx) => ({
       order:                    idx + 1,
       reign_id:                 r.reign_id,
-      score:                    `${r.champion_score || 0}-${r.opponent_score || 0}`,
-      opponent_id:              r.opponent_id,
-      opponent:                 r.opponent,
-      opponent_country:         r.opponent_country,
+      score:                    r.match_scores || '0-0',
+      opponents_raw:            r.opponents_raw,
       opponent_tag_team_id:     r.opponent_tag_team_id,
       opponent_team_name:       r.opponent_team_name,
       opponent_team_members_raw:r.opponent_team_members_raw,

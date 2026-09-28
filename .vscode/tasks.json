@@ -1,0 +1,18 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "pnpm Auto-run",
+            "type": "shell",
+            "command": "pnpm run dev",
+            "runOptions": {
+                "runOn": "folderOpen"
+            },
+            "isBackground": true,
+            "presentation": {
+                "panel": "shared",
+                "showReuseMessage": false
+            }
+        }
+    ]
+}
