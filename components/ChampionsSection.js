@@ -97,7 +97,7 @@ export default function ChampionsSection({ champions }) {
                 )}
 
                 <div className="absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/85 to-transparent p-3">
-                  <p className="text-[11px] uppercase tracking-wider text-white font-semibold">
+                  <p className="text-xs uppercase tracking-wider text-white font-semibold">
                     {label}
                   </p>
 

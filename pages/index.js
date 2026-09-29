@@ -20,7 +20,7 @@ export default function Home({ champions }) {
 
 
   return (
-    <div className="min-h-screen px-4 py-6 max-w-5xl mx-auto bg-white text-black dark:bg-zinc-950 dark:text-white transition-colors duration-300">
+    <div className="py-6 max-w-5xl mx-auto">
       <Head>
         <title>Trivias WWE</title>
         <meta
@@ -95,48 +95,6 @@ export default function Home({ champions }) {
         </div>
       */}
 
-      {/* ── Footer ───────────────────────────────────────────────────────── */}
-      <footer className="border-t pt-6 text-sm text-center border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 space-y-2">
-        <p>
-          Seguinos en{" "}
-          <a
-            href="https://www.instagram.com/triviaswwe"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sky-600 dark:text-sky-300 "
-          >
-            Instagram
-          </a>{" "}
-          |{" "}
-          <a
-            href="https://www.youtube.com/@TriviasWWE"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-red-600 dark:text-red-400 "
-          >
-            YouTube
-          </a>{" "}
-          |{" "}
-          <a
-            href="https://discord.gg/YmBJQPfQ"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-indigo-600 dark:text-indigo-400 "
-          >
-            Discord
-          </a>{" "}
-          |{" "}
-          <a
-            href="https://chat.whatsapp.com/D7vkfUKTujZ8nr6xlQj02C"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-green-600 dark:text-green-400 "
-          >
-            WhatsApp
-          </a>
-        </p>
-        <p>&copy; {new Date().getFullYear()} Trivias WWE. Todos los derechos reservados.</p>
-      </footer>
     </div>
   );
 }
