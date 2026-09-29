@@ -5,12 +5,17 @@
 /* Aseguramos fondo y color de texto global */
 html,
 body {
-  @apply bg-background-light text-black transition-colors duration-300;
+  background-color: var(--color-background-light, #fff);
+  color: #000;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-duration: 300ms;
+  overflow-x: hidden;
 }
 
-.dark html,
-.dark body {
-  @apply bg-zinc-950 text-white;
+html.dark,
+html.dark body {
+  background-color: #09090b;
+  color: #fff;
 }
 
 /* Oculta scrollbar en WebKit */
@@ -21,4 +26,36 @@ body {
 /* Oculta scrollbar en Firefox */
 .hide-scrollbar {
   scrollbar-width: none;
+}
+
+/* ========================================================
+   Sobrescribir colores de Elfsight de forma explícita
+   ======================================================== */
+
+/* MODO OSCURO (Fuerza texto a blanco) */
+html.dark .eapps-instagram-feed-title,
+html.dark .eapps-instagram-feed-header-user-name,
+html.dark .eapps-instagram-feed-header-user-info-item-value,
+html.dark .eapps-instagram-feed-header-user-info-item-label,
+html.dark .eapps-instagram-feed-posts-item-user-name,
+html.dark .eapps-instagram-feed-posts-item-text {
+    color: #ffffff !important;
+}
+
+html.dark .eapps-instagram-feed {
+    background-color: transparent !important;
+}
+
+/* MODO CLARO (Fuerza texto a negro) */
+html:not(.dark) .eapps-instagram-feed-title,
+html:not(.dark) .eapps-instagram-feed-header-user-name,
+html:not(.dark) .eapps-instagram-feed-header-user-info-item-value,
+html:not(.dark) .eapps-instagram-feed-header-user-info-item-label,
+html:not(.dark) .eapps-instagram-feed-posts-item-user-name,
+html:not(.dark) .eapps-instagram-feed-posts-item-text {
+    color: #000000 !important;
+}
+
+html:not(.dark) .eapps-instagram-feed {
+    background-color: transparent !important;
 }

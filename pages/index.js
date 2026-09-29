@@ -1,26 +1,16 @@
 // pages/index.js
 
 import Head from "next/head";
-import { useEffect } from "react";
+import Script from "next/script";
 import ChampionsSection from "../components/ChampionsSection";
 import { getCurrentChampions } from "../lib/champions";
 
 
-export default function Home({ champions }) {
-  useEffect(() => {
-    if (window.instgrm) {
-      window.instgrm.Embeds.process();
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = "//www.instagram.com/embed.js";
-    script.async = true;
-    document.body.appendChild(script);
-  }, []);
-
+export default function Home({ champions, isDark }) {
+  // Ya no necesitamos el useEffect del embed.js porque usaremos iframes directos
 
   return (
-    <div className="py-6 max-w-5xl mx-auto">
+    <div className="py-6 px-4 max-w-5xl mx-auto overflow-hidden">
       <Head>
         <title>Trivias WWE</title>
         <meta
@@ -49,51 +39,29 @@ export default function Home({ champions }) {
       </h2>
 
       {/*
-        OPCIÓN A — Embed del perfil completo (muestra el feed como widget oficial).
-        Reemplazá la URL si cambiás de cuenta.
-        Si preferís embeds de posts individuales, usá la OPCIÓN B más abajo.
+        Solución Definitiva y Profesional:
+        Para tener AUTOMATIZACIÓN (últimos 9 posts) + DARK MODE sin romper la UI, 
+        la industria utiliza widgets especializados, ya que Meta/Instagram bloquea 
+        ambas cosas en su código oficial.
+
+        Instrucciones:
+        1. Crea una cuenta gratuita en https://elfsight.com/es/instagram-feed-instashow/
+        2. Configura tu widget con tu usuario "@triviaswwe"
+        3. Configura el diseño en "Grid" (Cuadrícula) de 3x3 (9 posts).
+        4. Configura el color a Dark Mode.
+        5. Copia el ID del widget que te dan y reemplázalo abajo donde dice "TU_ID_DE_ELFSIGHT".
       */}
-      <div className="flex justify-center mb-10">
-        <blockquote
-          className="instagram-media"
-          data-instgrm-permalink="https://www.instagram.com/triviaswwe/"
-          data-instgrm-version="14"
-          style={{
-            background: "#FFF",
-            border: 0,
-            borderRadius: "3px",
-            boxShadow: "0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15)",
-            margin: "1px",
-            maxWidth: "540px",
-            minWidth: "326px",
-            padding: 0,
-            width: "100%",
-          }}
+      <div className="flex justify-center mb-10 w-full">
+        <Script
+          src="https://static.elfsight.com/platform/platform.js"
+          strategy="lazyOnload"
+        />
+        <div
+          className="elfsight-app-4e326772-6b71-4b56-ba86-7ad04e59735e w-full max-w-4xl"
+          data-elfsight-app-lazy
+          style={{ "--ig-text": isDark ? "#ffffff" : "#000000" }}
         />
       </div>
-
-      {/*
-        OPCIÓN B — Posts individuales (descomentar y pegar shortcodes reales).
-        Cada shortcode es la parte final de la URL de un post:
-        https://www.instagram.com/p/SHORTCODE/
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-10">
-          {[
-            "SHORTCODE_1",
-            "SHORTCODE_2",
-            "SHORTCODE_3",
-          ].map((code) => (
-            <div key={code} className="flex justify-center">
-              <blockquote
-                className="instagram-media"
-                data-instgrm-permalink={`https://www.instagram.com/p/${code}/`}
-                data-instgrm-version="14"
-                style={{ maxWidth: "320px", width: "100%" }}
-              />
-            </div>
-          ))}
-        </div>
-      */}
 
     </div>
   );

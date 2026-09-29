@@ -6,3 +6,7 @@ node_modules/
 .env.local
 .vercel
 .env*
+.vscode
+
+# Skills/Agents
+agents/

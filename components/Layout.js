@@ -1,6 +1,7 @@
 // components/Layout.js
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/router";
 import { Sun, Moon } from "lucide-react";
 
@@ -24,14 +25,17 @@ export default function Layout({ children, isDark, setIsDark }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-background-light text-black dark:bg-zinc-950 dark:text-white transition-colors duration-300">
-      <nav className="bg-gray-900 dark:bg-gray-700 p-4 text-white flex items-center">
+      <nav aria-label="Navegación principal" className="bg-gray-900 dark:bg-gray-700 p-4 text-white flex items-center">
         {/* 1) Logo fijo apuntando a Vercel Blob */}
         <div className="flex-shrink-0 mr-4">
           <Link href="/">
-            <img
+            <Image
               src={`${BLOB_BASE_URL}/logo.png`}
               alt="Logo"
+              width={160}
+              height={40}
               className="h-10 w-auto cursor-pointer"
+              priority
             />
           </Link>
         </div>

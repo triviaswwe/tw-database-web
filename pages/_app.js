@@ -17,7 +17,7 @@ export default function MyApp({ Component, pageProps }) {
 
   return (
     <Layout isDark={isDark} setIsDark={setIsDark}>
-      <Component {...pageProps} />
+      <Component {...pageProps} isDark={isDark} />
     </Layout>
   );
 }
