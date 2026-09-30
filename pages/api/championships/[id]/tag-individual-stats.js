@@ -38,6 +38,7 @@ export default async function handler(req, res) {
         ON mp.match_id    = m.id
        AND mp.wrestler_id = rm.wrestler_id
       WHERE  cr.championship_id = ?
+        AND EXISTS (SELECT 1 FROM match_team_scores mts WHERE mts.match_id = m.id)
       GROUP  BY rm.reign_id, rm.wrestler_id
       `,
       [championshipId, championshipId]

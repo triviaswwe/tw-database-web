@@ -55,6 +55,7 @@ export default async function handler(req, res) {
               OR (cr.tag_team_id IS NOT NULL AND mp.tag_team_id  = cr.tag_team_id)
                 )
       WHERE  cr.championship_id = ?
+        AND EXISTS (SELECT 1 FROM match_team_scores mts WHERE mts.match_id = m.id)
       GROUP  BY cr.id
       `,
       [championshipId]
@@ -143,7 +144,7 @@ export default async function handler(req, res) {
                 )
 
       WHERE  cr.championship_id = ?
-      
+        AND EXISTS (SELECT 1 FROM match_team_scores mts WHERE mts.match_id = m.id)
       /* Agrupación ultra-limpia asegurando unicidad por match */
       GROUP  BY 
         cr.id, 
@@ -187,3 +188,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Database error' });
   }
 }
+
+
