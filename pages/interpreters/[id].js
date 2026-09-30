@@ -108,11 +108,12 @@ export async function getServerSideProps({ params, query, res }) {
           [interpreterId],
         ),
         pool.query(
-          `SELECT COUNT(*) AS total,
+          `SELECT COUNT(NULLIF(mp.result, '')) AS total,
            SUM(CASE WHEN mp.result='WIN'  THEN 1 ELSE 0 END) AS wins,
            SUM(CASE WHEN mp.result='DRAW' THEN 1 ELSE 0 END) AS draws,
            SUM(CASE WHEN mp.result='LOSS' THEN 1 ELSE 0 END) AS losses,
-           MIN(e.event_date) AS firstMatch, MAX(e.event_date) AS lastMatch
+           MIN(CASE WHEN NULLIF(mp.result, '') IS NOT NULL THEN e.event_date END) AS firstMatch, 
+           MAX(CASE WHEN NULLIF(mp.result, '') IS NOT NULL THEN e.event_date END) AS lastMatch
          FROM match_participants mp
          JOIN matches m ON mp.match_id = m.id
          JOIN events  e ON m.event_id  = e.id

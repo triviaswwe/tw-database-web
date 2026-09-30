@@ -29,11 +29,11 @@ export async function getServerSideProps(context) {
 
     if (isWrestler) {
       [matchesRows] = await pool.query(`
-        SELECT w.id, w.wrestler AS name, w.country, COUNT(mp.match_id) AS total,
+        SELECT w.id, w.wrestler AS name, w.country, COUNT(NULLIF(mp.result, '')) AS total,
           (
             SELECT JSON_ARRAYAGG(JSON_OBJECT('id', i.id, 'name', IFNULL(i.interpreter, 'Unknown'), 'count', sub.cnt))
             FROM (
-              SELECT interpreter_id, COUNT(match_id) as cnt
+              SELECT interpreter_id, COUNT(NULLIF(result, '')) as cnt
               FROM match_participants
               WHERE wrestler_id = w.id AND interpreter_id IS NOT NULL
               GROUP BY interpreter_id
@@ -70,9 +70,9 @@ export async function getServerSideProps(context) {
       [topStatsRows] = await pool.query(`
         SELECT 
           w.id, w.wrestler AS name, w.country,
-          COUNT(mp.match_id) AS total_matches,
+          COUNT(NULLIF(mp.result, '')) AS total_matches,
           SUM(CASE WHEN mp.result = 'WIN' THEN 1 ELSE 0 END) AS wins,
-          ROUND((SUM(CASE WHEN mp.result = 'WIN' THEN 1 ELSE 0 END) * 100.0) / COUNT(mp.match_id), 2) AS win_percentage
+          ROUND((SUM(CASE WHEN mp.result = 'WIN' THEN 1 ELSE 0 END) * 100.0) / COUNT(NULLIF(mp.result, '')), 2) AS win_percentage
         FROM match_participants mp
         JOIN wrestlers w ON mp.wrestler_id = w.id
         GROUP BY w.id, w.wrestler, w.country
@@ -103,11 +103,11 @@ export async function getServerSideProps(context) {
       `);
     } else {
       [matchesRows] = await pool.query(`
-        SELECT i.id, i.interpreter AS name, i.nationality AS country, COUNT(mp.match_id) AS total,
+        SELECT i.id, i.interpreter AS name, i.nationality AS country, COUNT(NULLIF(mp.result, '')) AS total,
           (
             SELECT JSON_ARRAYAGG(JSON_OBJECT('id', w.id, 'name', IFNULL(w.wrestler, 'Unknown'), 'count', sub.cnt))
             FROM (
-              SELECT wrestler_id, COUNT(match_id) as cnt
+              SELECT wrestler_id, COUNT(NULLIF(result, '')) as cnt
               FROM match_participants
               WHERE interpreter_id = i.id
               GROUP BY wrestler_id
@@ -144,9 +144,9 @@ export async function getServerSideProps(context) {
       [topStatsRows] = await pool.query(`
         SELECT 
           i.id, i.interpreter AS name, i.nationality AS country,
-          COUNT(mp.match_id) AS total_matches,
+          COUNT(NULLIF(mp.result, '')) AS total_matches,
           SUM(CASE WHEN mp.result = 'WIN' THEN 1 ELSE 0 END) AS wins,
-          ROUND((SUM(CASE WHEN mp.result = 'WIN' THEN 1 ELSE 0 END) * 100.0) / COUNT(mp.match_id), 2) AS win_percentage
+          ROUND((SUM(CASE WHEN mp.result = 'WIN' THEN 1 ELSE 0 END) * 100.0) / COUNT(NULLIF(mp.result, '')), 2) AS win_percentage
         FROM match_participants mp
         JOIN interpreters i ON mp.interpreter_id = i.id
         GROUP BY i.id, i.interpreter, i.nationality
