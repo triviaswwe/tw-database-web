@@ -9,6 +9,7 @@
   "dependencies": {
     "@headlessui/react": "^2.2.4",
     "@shadcn/ui": "latest",
+    "@vercel/analytics": "^2.0.1",
     "@vercel/blob": "^2.8.0",
     "autoprefixer": "^10.0.0",
     "axios": "^1.11.0",

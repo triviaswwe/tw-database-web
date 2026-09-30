@@ -10,3 +10,7 @@ node_modules/
 
 # Skills/Agents
 agents/
+
+# Packages
+package.json
+pnpm-lock.yaml
