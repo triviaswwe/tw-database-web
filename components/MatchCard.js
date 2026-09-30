@@ -94,10 +94,15 @@ export default function MatchCard({ match, currentId, idType = "wrestler", numbe
                   </>
                 );
               })()
-            ) : (
+            ) : match.result === "WIN" || match.result === "DRAW" ? (
               <>
                 {getPhrase(match.result)}{" "}
                 {rivalTeams.map((tn) => renderTeam(teamsMap[tn])).reduce((prev, curr) => [prev, ", ", curr])}
+              </>
+            ) : (
+              <>
+                {getPhrase(match.result)}{" "}
+                {rivalTeams.map((tn) => renderTeam(teamsMap[tn])).reduce((prev, curr) => [prev, " vs ", curr])}
               </>
             )}
           </>
@@ -117,22 +122,35 @@ export default function MatchCard({ match, currentId, idType = "wrestler", numbe
           </>
         ) : (
           <span>
-            {[
-              <span key="main">{scoreMap[mainTeamNumber] ?? 0}</span>,
-              ...rivalTeams.map((teamNumber) => (
-                <span key={teamNumber}>
-                  {renderTeam(teamsMap[teamNumber])} {scoreMap[teamNumber] ?? 0}
-                </span>
-              )),
-            ].reduce((prev, curr) => [prev, " - ", curr])}
+            {hasScore ? (
+              [
+                <span key="main">{scoreMap[mainTeamNumber] ?? 0}</span>,
+                ...rivalTeams.map((teamNumber) => (
+                  <span key={teamNumber}>
+                    {renderTeam(teamsMap[teamNumber])} {scoreMap[teamNumber] ?? 0}
+                  </span>
+                )),
+              ].reduce((prev, curr) => [prev, " - ", curr])
+            ) : (
+              <>
+                {getPhrase(match.result)}{" "}
+                {rivalTeams.map((teamNumber) => (
+                  <span key={teamNumber}>
+                    {renderTeam(teamsMap[teamNumber])}
+                  </span>
+                )).reduce((prev, curr) => [prev, match.result ? ", " : " vs ", curr])}
+              </>
+            )}
           </span>
         )}
       </p>
 
       {/* Resultado */}
-      <p className="mt-2 font-semibold text-gray-700 dark:text-white">
-        Result: <strong>{match.result}</strong>
-      </p>
+      {match.result && (
+        <p className="mt-2 font-semibold text-gray-700 dark:text-white">
+          Result: <strong>{match.result}</strong>
+        </p>
+      )}
     </li>
   );
 }

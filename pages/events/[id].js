@@ -408,12 +408,15 @@ export default function EventDetail({ error, event, matches, nav }) {
                           const winningTeamNumbers = allTeamNumbers.filter((tn) =>
                             teamsMap[tn].some((p) => p.result === "WIN")
                           );
+                          if (winningTeamNumbers.length === 0) {
+                            return <>{allTeamNumbers.map((tn) => renderTeam(teamsMap[tn])).reduce((prev, curr) => [prev, " vs ", curr])}</>;
+                          }
                           const winnersParticipants = winningTeamNumbers.flatMap((tn) => teamsMap[tn]);
                           const losingTeamNumbers = allTeamNumbers.filter((tn) => !winningTeamNumbers.includes(tn));
                           const losersRender = losingTeamNumbers
                             .map((tn) => renderTeam(teamsMap[tn]))
                             .reduce((acc, curr, i) => i === 0 ? [curr] : [...acc, ", ", curr], []);
-                          return <>{renderTeam(winnersParticipants)} defeats {losersRender}</>;
+                          return <>{renderTeam(winnersParticipants)} {getPhrase("WIN")} {losersRender}</>;
                         })()
                       ) : (
                         <>
@@ -434,12 +437,21 @@ export default function EventDetail({ error, event, matches, nav }) {
                             </>
                           ) : (
                             <span>
-                              {[
-                                <span key="main-score">{scoreMap[mainTeamNumber] ?? 0}</span>,
-                                ...rivalTeamNumbers.map((tn) => (
-                                  <span key={`team-${tn}`}>{renderTeam(teamsMap[tn])} {scoreMap[tn] ?? 0}</span>
-                                )),
-                              ].reduce((prev, curr) => [prev, " - ", curr])}
+                              {hasScore ? (
+                                [
+                                  <span key="main-score">{scoreMap[mainTeamNumber] ?? 0}</span>,
+                                  ...rivalTeamNumbers.map((tn) => (
+                                    <span key={`team-${tn}`}>{renderTeam(teamsMap[tn])} {scoreMap[tn] ?? 0}</span>
+                                  )),
+                                ].reduce((prev, curr) => [prev, " - ", curr])
+                              ) : (
+                                <>
+                                  {getPhrase(mainTeam[0]?.result)}{" "}
+                                  {rivalTeamNumbers.map((tn) => (
+                                    <span key={`team-${tn}`}>{renderTeam(teamsMap[tn])}</span>
+                                  )).reduce((prev, curr) => [prev, mainTeam[0]?.result ? ", " : " vs ", curr])}
+                                </>
+                              )}
                             </span>
                           )}
                         </>
