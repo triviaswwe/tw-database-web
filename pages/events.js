@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Head from "next/head";
+import Image from "next/image";
 import Spinner from "../components/Spinner";
 
 const EVENTS_PER_PAGE = 33;
@@ -203,32 +204,24 @@ export default function EventsPage() {
                 >
                   {/* 0) Logo propio del evento si existe */}
                   {ev.image_url ? (
-                    <img
-                      src={ev.image_url}
-                      alt="Event logo"
-                      className="w-16 h-16 object-contain mr-4"
-                    />
+                    <div className="relative w-16 h-16 flex-shrink-0 mr-4">
+                      <Image src={ev.image_url} alt="Event logo" fill sizes="64px" className="object-contain" />
+                    </div>
                   ) : /* 1) Logo de PLE si existe ple_image_url */
                   ev.ple_image_url ? (
-                    <img
-                      src={ev.ple_image_url}
-                      alt="PLE logo"
-                      className="w-16 h-16 object-contain mr-4"
-                    />
+                    <div className="relative w-16 h-16 flex-shrink-0 mr-4">
+                      <Image src={ev.ple_image_url} alt="PLE logo" fill sizes="64px" className="object-contain" />
+                    </div>
                   ) : /* 2) Si no hay ple_image_url pero ple_id tiene mapping en pleImageMap */
                   ev.ple_id && pleImageMap[ev.ple_id] ? (
-                    <img
-                      src={pleImageMap[ev.ple_id]}
-                      alt="PLE logo"
-                      className="w-16 h-16 object-contain mr-4"
-                    />
+                    <div className="relative w-16 h-16 flex-shrink-0 mr-4">
+                      <Image src={pleImageMap[ev.ple_id]} alt="PLE logo" fill sizes="64px" className="object-contain" />
+                    </div>
                   ) : /* 3) Finalmente, logo de show si existe */
                   ev.show_id && showImageMap[ev.show_id] ? (
-                    <img
-                      src={showImageMap[ev.show_id]}
-                      alt="Show logo"
-                      className="w-16 h-16 object-contain mr-4"
-                    />
+                    <div className="relative w-16 h-16 flex-shrink-0 mr-4">
+                      <Image src={showImageMap[ev.show_id]} alt="Show logo" fill sizes="64px" className="object-contain" />
+                    </div>
                   ) : null}
 
                   <div>

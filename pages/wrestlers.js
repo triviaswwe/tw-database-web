@@ -3,6 +3,7 @@
 import Head from "next/head";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import Spinner from "../components/Spinner";
 import FlagWithName from "../components/FlagWithName";
 
@@ -183,10 +184,12 @@ export default function WrestlersPage() {
                     <div className="relative overflow-hidden flex items-center p-4 min-h-[6rem] border rounded shadow hover:shadow-lg transform transition-transform duration-200 ease-in-out hover:scale-105 cursor-pointer">
                       {/* Fondo de brand */}
                       {brandBg && (
-                        <img
+                        <Image
                           src={brandBg}
                           alt=""
-                          className="absolute inset-0 w-full h-full object-cover"
+                          fill
+                          sizes="(max-width: 768px) 100vw, 33vw"
+                          className="object-cover"
                         />
                       )}
 
@@ -196,9 +199,11 @@ export default function WrestlersPage() {
                       {/* Contenedor de la imagen */}
                       {w.image_url && (
                         <div className="absolute bottom-0 left-4 w-16 md:w-[80px]">
-                          <img
+                          <Image
                             src={w.image_url}
                             alt={w.wrestler}
+                            width={100}
+                            height={100}
                             className="w-full h-auto object-bottom"
                           />
                         </div>

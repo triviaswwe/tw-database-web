@@ -1,6 +1,7 @@
 // pages/events/[id].js
 
 import Head from "next/head";
+import Image from "next/image";
 import Link from "next/link";
 import pool from "../../lib/db";
 import { getPhrase, buildTopLine } from "../../lib/matchUtils";
@@ -36,7 +37,13 @@ const pleImageMap = {
   18: `${BLOB_BASE_URL}/takeover.png`,
 };
 
-export async function getServerSideProps({ params }) {
+export async function getServerSideProps({ params, res }) {
+  if (res) {
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=60, stale-while-revalidate=300"
+    );
+  }
   try {
     const eventId = parseInt(params.id, 10);
     if (isNaN(eventId)) return { notFound: true };
@@ -249,7 +256,13 @@ export default function EventDetail({ error, event, matches, nav }) {
   const EventLogo = ({ ev, className }) => {
     const src = getEventLogo(ev);
     if (!src) return <div className={className} />;
-    return <img src={src} alt={ev.name} className={className} />;
+    const cleanClass = className.replace("object-contain", "").replace("drop-shadow-md", "").replace("opacity-50", "").trim();
+    const imageClass = `object-contain ${className.includes("drop-shadow-md") ? "drop-shadow-md" : ""} ${className.includes("opacity-50") ? "opacity-50" : ""}`.trim();
+    return (
+      <div className={`relative ${cleanClass}`}>
+        <Image src={src} alt={ev.name || ""} fill sizes="100px" className={imageClass} />
+      </div>
+    );
   };
 
   const renderNavRow = (prev, current, next, label) => {
@@ -312,9 +325,11 @@ export default function EventDetail({ error, event, matches, nav }) {
           <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6 md:gap-4">
             {logoSrc && (
               <div className="w-48 sm:w-52 md:w-72 flex-shrink-0">
-                <img
+                <Image
                   src={logoSrc}
                   alt={`${event.name} logo`}
+                  width={600}
+                  height={600}
                   className="w-full h-auto object-contain"
                 />
               </div>

@@ -1,6 +1,7 @@
 // pages/stables/[id].js
 
 import Head from "next/head";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import pool from "../../lib/db";
@@ -13,7 +14,13 @@ import {
   usePagination,
 } from "../../hooks/useQueryFilter";
 
-export async function getServerSideProps({ params, query }) {
+export async function getServerSideProps({ params, query, res }) {
+  if (res) {
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=60, stale-while-revalidate=300"
+    );
+  }
   try {
     const stableId = parseInt(params.id, 10);
     if (isNaN(stableId)) return { notFound: true };
@@ -317,13 +324,14 @@ export default function StableDetail({
 
           {stable.image_url && (
             <div className="md:w-1/2 md:flex-shrink-0 md:self-stretch">
-              <div className="relative w-full h-full">
-                <img
+              <div className="relative w-full h-full min-h-[300px]">
+                <Image
                   src={stable.image_url}
                   alt={stable.name}
-                  className="w-full h-full object-cover rounded"
+                  fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="object-contain rounded"
                 />
-                <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-white to-transparent dark:from-zinc-950 rounded-b" />
               </div>
             </div>
           )}

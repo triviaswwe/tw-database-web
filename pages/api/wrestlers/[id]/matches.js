@@ -4,6 +4,11 @@
 import pool from '../../../../lib/db';
 
 export default async function handler(req, res) {
+  res.setHeader(
+    'Cache-Control',
+    'public, s-maxage=60, stale-while-revalidate=300'
+  );
+
   const { id, page: pageParam, limit: limitParam } = req.query;
   const wrestlerId = parseInt(id, 10);
 

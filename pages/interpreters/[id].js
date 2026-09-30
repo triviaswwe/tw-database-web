@@ -13,7 +13,13 @@ import {
   usePagination,
 } from "../../hooks/useQueryFilter";
 
-export async function getServerSideProps({ params, query }) {
+export async function getServerSideProps({ params, query, res }) {
+  if (res) {
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=60, stale-while-revalidate=300"
+    );
+  }
   try {
     const interpreterId = parseInt(params.id, 10);
     if (isNaN(interpreterId)) return { notFound: true };

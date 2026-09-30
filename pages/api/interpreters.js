@@ -3,6 +3,11 @@
 import pool from '../../lib/db';
 
 export default async function handler(req, res) {
+  res.setHeader(
+    'Cache-Control',
+    'public, s-maxage=60, stale-while-revalidate=300'
+  );
+
   try {
     const page       = Math.max(1, parseInt(req.query.page)  || 1);
     const limit      = Math.min(33, parseInt(req.query.limit)|| 33);

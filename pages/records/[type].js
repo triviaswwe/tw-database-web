@@ -9,6 +9,13 @@ import FlagWithName from "../../components/FlagWithName";
 import Spinner from "../../components/Spinner"; // Asumiendo que tienes este componente
 
 export async function getServerSideProps(context) {
+  const { res } = context;
+  if (res) {
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=60, stale-while-revalidate=300"
+    );
+  }
   const { type } = context.params;
   
   if (type !== "wrestler" && type !== "interpreter") {

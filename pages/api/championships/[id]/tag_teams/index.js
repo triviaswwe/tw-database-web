@@ -3,6 +3,11 @@
 import { query } from '../../../../../lib/db';
 
 export default async function handler(req, res) {
+  res.setHeader(
+    'Cache-Control',
+    'public, s-maxage=60, stale-while-revalidate=300'
+  );
+
   if (req.method !== 'GET') return res.status(405).end();
   const { id } = req.query;
   const rows = await query(

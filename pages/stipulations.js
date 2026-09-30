@@ -3,15 +3,15 @@
 import Head from "next/head";
 import pool from "../lib/db";
 
-export async function getServerSideProps() {
+export async function getStaticProps() {
   try {
     const [rows] = await pool.query(
       `SELECT name FROM match_types ORDER BY order_in_page`,
     );
-    return { props: { stipulations: rows } };
+    return { props: { stipulations: rows }, revalidate: 60 };
   } catch (err) {
-    console.error("Error in stipulations getServerSideProps:", err);
-    return { props: { stipulations: [], error: true } };
+    console.error("Error in stipulations getStaticProps:", err);
+    return { props: { stipulations: [], error: true }, revalidate: 60 };
   }
 }
 

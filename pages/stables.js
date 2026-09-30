@@ -3,6 +3,7 @@
 import Head from "next/head";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import Spinner from "../components/Spinner";
 import { useDebounce } from "../hooks/useDebounce";
 
@@ -113,17 +114,18 @@ export default function StablesPage() {
               stables.map((s) => (
                 <Link key={s.id} href={`/stables/${s.id}`}>
                   <div className="flex items-center p-4 dark:bg-zinc-950 border rounded shadow hover:shadow-lg transform transition-transform duration-200 ease-in-out hover:scale-105 cursor-pointer">
-                    {s.image_url && (
-                      <div className="w-16 h-16 overflow-hidden relative flex-shrink-0">
-                        <img
-                          src={s.image_url}
-                          alt={s.name}
-                          className="w-full h-full object-cover"
-                          style={{ objectPosition: "top" }}
-                        />
-                        <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-white to-transparent dark:from-zinc-950" />
-                      </div>
-                    )}
+                      {s.image_url && (
+                        <div className="w-16 h-16 overflow-hidden relative flex-shrink-0">
+                          <Image
+                            src={s.image_url}
+                            alt={s.name}
+                            fill
+                            sizes="64px"
+                            className="object-contain"
+                            style={{ objectPosition: "center" }}
+                          />
+                        </div>
+                      )}
                     <div className="ml-4 flex-1">
                       <h2 className="text-xl font-bold">{s.name}</h2>
                       <p className="text-sm text-gray-600 dark:text-white">
