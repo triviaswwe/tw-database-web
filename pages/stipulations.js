@@ -122,7 +122,7 @@ Si ganas un punto: decidís si sumarte una vida o restarle a un rival.
 Al ser un combate largo, el árbitro debe empezar a contar "Nula en..." a partir de 5 (en lugar de 10 como en el resto de estipulaciones).
 Cuando ingresa el #30, se deshabilita la opción de sumarse vidas.
 Gana el único que quede con vida dentro del ring y se gana la posibilidad de retar a un campeón mundial en WrestleMania.`,
-    "Steel Cage": `Lucha a 10 puntos, pero si uno contesta 3 seguidas ganará la lucha por salir del ring. En esa pregunta clave, el rival deberá evitar eso contestando correctamente y cortando la racha.`,
+    "Steel Cage": `Lucha a 7 puntos (10 si es titular), pero si uno contesta 3 seguidas ganará la lucha por salir del ring. En esa pregunta clave, el rival deberá evitar eso contestando correctamente y cortando la racha.`,
     "Street Fight": `Lucha a 7 preguntas, (10 si es titular).
 Abreviaciones no permitidas en 2 letras; a partir de 3 válido.`,
     Tables: `Lucha a 7 preguntas, (10 si es titular).

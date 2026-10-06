@@ -22,7 +22,7 @@ export default async function handler(req, res) {
         r.reign_number,
         r.won_date,
         r.lost_date,
-        r.days_held,
+        DATEDIFF(IFNULL(r.lost_date, CURRENT_DATE()), r.won_date) AS days_held,
 
         /* ---------- datos singles ---------- */
         r.wrestler_id,
@@ -165,7 +165,6 @@ export default async function handler(req, res) {
         r.reign_number, 
         r.won_date, 
         r.lost_date, 
-        r.days_held, 
         r.wrestler_id, 
         w.wrestler, 
         w.country, 
