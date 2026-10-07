@@ -6,6 +6,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'ljejfdquofuxccca.public.blob.vercel-storage.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'flagcdn.com',
+      }
     ],
   },
 };

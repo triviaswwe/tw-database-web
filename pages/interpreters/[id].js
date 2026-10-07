@@ -2,6 +2,7 @@
 
 import Head from "next/head";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/router";
 import pool from "../../lib/db";
 import FlagWithName from "../../components/FlagWithName";
@@ -707,7 +708,7 @@ export default function InterpreterDetail({
                           <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
                             <div className="flex items-center gap-3">
                               {r.title_image && (
-                                <img src={r.title_image} alt={r.title_name} className="w-12 h-12 object-contain shrink-0" />
+                                <Image src={r.title_image} alt={r.title_name} width={48} height={48} className="w-12 h-12 object-contain shrink-0" />
                               )}
                               <div>
                                 {r.title_name}{r.times > 1 && <>&nbsp;<span className="text-xs text-gray-500 font-normal whitespace-nowrap">({r.times}x)</span></>}

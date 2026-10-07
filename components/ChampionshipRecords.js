@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
@@ -44,9 +45,11 @@ function RecordCard({ record, type, isPotential }) {
         
         {/* Bloque del Luchador (Izquierda) */}
         <div className="flex items-center gap-4 w-full sm:w-auto">
-          <img 
+          <Image 
             src={record.wrestlerImage || '/placeholder.png'} 
             alt={record.wrestlerName} 
+            width={64}
+            height={64}
             className="w-16 h-16 object-cover rounded-full bg-gray-100 dark:bg-gray-700 shrink-0"
           />
           <div className="flex flex-col flex-1">
@@ -86,27 +89,31 @@ function RecordCard({ record, type, isPotential }) {
                   );
                 } else if (options.length === 1) {
                   return (
-                    <img 
+                    <Image 
                       key={`missing-${idx}`} 
-                      src={options[0].title_image} 
+                      src={options[0].title_image || '/belt-placeholder.png'} 
                       alt={options[0].title_name} 
                       title={titleText}
+                      width={48}
+                      height={48}
                       className="w-10 h-10 sm:w-12 sm:h-12 object-contain opacity-20"
                     />
                   );
                 } else {
                   return (
                     <div key={`missing-${idx}`} title={titleText} className="relative w-10 h-10 sm:w-12 sm:h-12 opacity-20">
-                      <img 
-                        src={options[0].title_image} 
+                      <Image 
+                        src={options[0].title_image || '/belt-placeholder.png'} 
                         alt={options[0].title_name} 
-                        className="absolute inset-0 w-full h-full object-contain"
+                        fill
+                        className="object-contain"
                         style={{ clipPath: 'polygon(0 0, 50% 0, 50% 100%, 0 100%)' }}
                       />
-                      <img 
-                        src={options[1].title_image} 
+                      <Image 
+                        src={options[1].title_image || '/belt-placeholder.png'} 
                         alt={options[1].title_name} 
-                        className="absolute inset-0 w-full h-full object-contain"
+                        fill
+                        className="object-contain"
                         style={{ clipPath: 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)' }}
                       />
                     </div>
@@ -114,11 +121,13 @@ function RecordCard({ record, type, isPotential }) {
                 }
               }
               return (
-                <img 
+                <Image 
                   key={t.championship_id} 
                   src={t.title_image || '/belt-placeholder.png'} 
                   alt={t.title_name} 
                   title={t.title_name}
+                  width={48}
+                  height={48}
                   className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
                 />
               );

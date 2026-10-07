@@ -1,4 +1,5 @@
 // components/FlagWithName.js
+import Image from 'next/image';
 
 export default function FlagWithName({ code, name }) {
   if (!code) {
@@ -11,9 +12,11 @@ export default function FlagWithName({ code, name }) {
 
   return (
     <span className="inline-flex items-center gap-1">
-      <img
+      <Image
         src={`https://flagcdn.com/w20/${code.toLowerCase()}.png`}
         alt={`${code} flag`}
+        width={20}
+        height={12}
         className="w-5 h-3 rounded-sm shadow"
         onError={(e) => {
           // Si flagcdn.com falla o el código no existe,

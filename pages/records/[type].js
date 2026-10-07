@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/router";
 import pool from "../../lib/db";
 import FlagWithName from "../../components/FlagWithName";
@@ -823,7 +824,7 @@ export default function RecordsDynamicPage({ error, type, data }) {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
                         <div className="flex items-center gap-2" title={r.title_name}>
-                          {r.image_url && <img src={r.image_url} alt={r.title_name} width={32} height={32} className="object-contain w-8 h-8" />}
+                          {r.image_url && <Image src={r.image_url} alt={r.title_name} width={32} height={32} className="object-contain w-8 h-8" />}
                           <span className="hidden sm:inline">{(r.title_name || "").replace(" Championship", "")}</span>
                         </div>
                       </td>
@@ -850,7 +851,7 @@ export default function RecordsDynamicPage({ error, type, data }) {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
                         <div className="flex items-center gap-2" title={r.title_name}>
-                          {r.image_url && <img src={r.image_url} alt={r.title_name} width={32} height={32} className="object-contain w-8 h-8" />}
+                          {r.image_url && <Image src={r.image_url} alt={r.title_name} width={32} height={32} className="object-contain w-8 h-8" />}
                           <span className="hidden sm:inline">{(r.title_name || "").replace(" Championship", "")}</span>
                         </div>
                       </td>
