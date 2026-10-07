@@ -7,7 +7,7 @@ import { getCurrentChampions } from "../lib/champions";
 
 
 export default function Home({ champions, isDark }) {
-  // Ya no necesitamos el useEffect del embed.js porque usaremos iframes directos
+  // We no longer need the embed.js useEffect because we use direct iframes.
 
   return (
     <div className="py-6 px-4 max-w-5xl mx-auto overflow-hidden">
@@ -15,41 +15,41 @@ export default function Home({ champions, isDark }) {
         <title>Trivias WWE</title>
         <meta
           name="description"
-          content="Participá del Campeonato de Trivias de WWE y demostrale al mundo cuánto sabés de lucha libre"
+          content="Join the Trivias WWE Championship and show the world how much you know about wrestling."
         />
       </Head>
 
       <h1 className="text-4xl font-bold mb-6 text-center">
-        Bienvenido a Trivias WWE
+        Welcome to Trivias WWE
       </h1>
 
       <p className="text-lg mb-10 max-w-3xl mx-auto text-center">
-        Esta es la página oficial del <strong>Campeonato de Trivias de WWE</strong>,
-        un torneo competitivo donde fanáticos de la lucha libre responden
-        preguntas sobre luchadores, eventos históricos, títulos, movimientos y
-        mucho más. Representá a tu luchador favorito en RAW, SmackDown o NXT y
-        acumulá victorias para llegar a lo más alto del ranking.
+        This is the official page of the <strong>Trivias WWE Championship</strong>,
+        a competitive tournament where wrestling fans answer questions about
+        wrestlers, historic events, championships, moves, and much more. Represent
+        your favorite wrestler on RAW, SmackDown, or NXT and rack up wins to reach
+        the top of the rankings.
       </p>
 
       <ChampionsSection champions={champions} />
 
-      {/* ── Sección Instagram ─────────────────────────────────────────────── */}
+      {/* ── Instagram section ─────────────────────────────────────────────── */}
       <h2 className="text-2xl font-semibold mb-6 text-center">
-        Últimas publicaciones en Instagram
+        LATEST INSTAGRAM POSTS
       </h2>
 
       {/*
-        Solución Definitiva y Profesional:
-        Para tener AUTOMATIZACIÓN (últimos 9 posts) + DARK MODE sin romper la UI, 
-        la industria utiliza widgets especializados, ya que Meta/Instagram bloquea 
-        ambas cosas en su código oficial.
+        Definitive, professional solution:
+        To get AUTOMATION (the latest 9 posts) + DARK MODE without breaking the UI,
+        the industry uses specialized widgets, since Meta/Instagram blocks both
+        features in its official code.
 
-        Instrucciones:
-        1. Crea una cuenta gratuita en https://elfsight.com/es/instagram-feed-instashow/
-        2. Configura tu widget con tu usuario "@triviaswwe"
-        3. Configura el diseño en "Grid" (Cuadrícula) de 3x3 (9 posts).
-        4. Configura el color a Dark Mode.
-        5. Copia el ID del widget que te dan y reemplázalo abajo donde dice "TU_ID_DE_ELFSIGHT".
+        Instructions:
+        1. Create a free account at https://elfsight.com/es/instagram-feed-instashow/
+        2. Set up your widget with your "@triviaswwe" username.
+        3. Set the layout to a 3x3 "Grid" (9 posts).
+        4. Set the color scheme to Dark Mode.
+        5. Copy the widget ID they provide and replace "YOUR_ELFSIGHT_ID" below.
       */}
       <div className="flex justify-center mb-10 w-full">
         <Script

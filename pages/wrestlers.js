@@ -198,7 +198,7 @@ export default function WrestlersPage() {
 
                       {/* Contenedor de la imagen */}
                       {w.image_url && (
-                        <div className="absolute bottom-0 left-4 w-16 md:w-[80px]">
+                        <div className="absolute bottom-0 left-4 w-[80px]">
                           <Image
                             src={w.image_url}
                             alt={w.wrestler}
@@ -211,7 +211,7 @@ export default function WrestlersPage() {
 
                       {/* Margen izquierdo del texto */}
                       <div
-                        className={`relative flex-1 ${w.image_url ? "ml-20 md:ml-24" : ""}`}
+                        className={`relative flex-1 ${w.image_url ? "ml-24" : ""}`}
                       >
                         <div className="flex items-center">
                           <FlagWithName code={w.country} />

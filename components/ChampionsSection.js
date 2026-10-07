@@ -16,7 +16,7 @@ export default function ChampionsSection({ champions }) {
   return (
     <section className="mb-14">
       <h2 className="text-2xl font-bold mb-8 text-center tracking-wide uppercase">
-        Campeones Actuales
+        Current Champions
       </h2>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
