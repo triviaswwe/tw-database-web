@@ -82,22 +82,30 @@ export async function getServerSideProps(context) {
 
       [longestReignsRows] = await pool.query(`
         SELECT cr.id AS reign_id, cr.won_date, cr.lost_date, DATEDIFF(IFNULL(cr.lost_date, UTC_DATE()), cr.won_date) AS days_held,
-            cr.wrestler_id, w.wrestler AS entity_name, w.country, cr.tag_team_id, tt.name AS tag_team_name, c.title_name,
+            cr.wrestler_id, w.wrestler AS entity_name, w.country, cr.tag_team_id, tt.name AS tag_team_name, c.title_name, ct.image_url,
             (SELECT COUNT(DISTINCT m.id) FROM matches m JOIN events e ON e.id = m.event_id AND e.event_date >= cr.won_date AND (cr.lost_date IS NULL OR e.event_date < cr.lost_date)
              JOIN match_participants mp ON mp.match_id = m.id AND ((cr.wrestler_id IS NOT NULL AND mp.wrestler_id = cr.wrestler_id) OR (cr.tag_team_id IS NOT NULL AND mp.tag_team_id = cr.tag_team_id))
              WHERE m.championship_id = cr.championship_id AND m.title_match = 1 AND m.title_changed = 0 AND m.event_id IS NOT NULL) AS defenses_count
-        FROM championship_reigns cr LEFT JOIN wrestlers w ON cr.wrestler_id = w.id LEFT JOIN tag_teams tt ON cr.tag_team_id = tt.id JOIN championships c ON cr.championship_id = c.id
+        FROM championship_reigns cr 
+        LEFT JOIN wrestlers w ON cr.wrestler_id = w.id 
+        LEFT JOIN tag_teams tt ON cr.tag_team_id = tt.id 
+        JOIN championships c ON cr.championship_id = c.id
+        LEFT JOIN championship_titles ct ON c.id = ct.championship_id AND cr.won_date >= ct.start_date AND (cr.won_date <= ct.end_date OR ct.end_date IS NULL)
         WHERE cr.wrestler_id IS NOT NULL OR cr.tag_team_id IS NOT NULL
         ORDER BY days_held DESC LIMIT 10
       `);
 
       [mostDefensesRows] = await pool.query(`
         SELECT cr.id AS reign_id, cr.won_date, cr.lost_date, DATEDIFF(IFNULL(cr.lost_date, UTC_DATE()), cr.won_date) AS days_held,
-            cr.wrestler_id, w.wrestler AS entity_name, w.country, cr.tag_team_id, tt.name AS tag_team_name, c.title_name,
+            cr.wrestler_id, w.wrestler AS entity_name, w.country, cr.tag_team_id, tt.name AS tag_team_name, c.title_name, ct.image_url,
             (SELECT COUNT(DISTINCT m.id) FROM matches m JOIN events e ON e.id = m.event_id AND e.event_date >= cr.won_date AND (cr.lost_date IS NULL OR e.event_date < cr.lost_date)
              JOIN match_participants mp ON mp.match_id = m.id AND ((cr.wrestler_id IS NOT NULL AND mp.wrestler_id = cr.wrestler_id) OR (cr.tag_team_id IS NOT NULL AND mp.tag_team_id = cr.tag_team_id))
              WHERE m.championship_id = cr.championship_id AND m.title_match = 1 AND m.title_changed = 0 AND m.event_id IS NOT NULL) AS defenses_count
-        FROM championship_reigns cr LEFT JOIN wrestlers w ON cr.wrestler_id = w.id LEFT JOIN tag_teams tt ON cr.tag_team_id = tt.id JOIN championships c ON cr.championship_id = c.id
+        FROM championship_reigns cr 
+        LEFT JOIN wrestlers w ON cr.wrestler_id = w.id 
+        LEFT JOIN tag_teams tt ON cr.tag_team_id = tt.id 
+        JOIN championships c ON cr.championship_id = c.id
+        LEFT JOIN championship_titles ct ON c.id = ct.championship_id AND cr.won_date >= ct.start_date AND (cr.won_date <= ct.end_date OR ct.end_date IS NULL)
         WHERE cr.wrestler_id IS NOT NULL OR cr.tag_team_id IS NOT NULL
         ORDER BY defenses_count DESC, days_held DESC LIMIT 10
       `);
@@ -157,7 +165,7 @@ export async function getServerSideProps(context) {
       [longestReignsRows] = await pool.query(`
         SELECT 
             base.reign_id, base.won_date, base.lost_date, MAX(base.days_held) AS days_held,
-            base.interpreter_id, base.entity_name, base.country, base.title_name,
+            base.interpreter_id, base.entity_name, base.country, base.title_name, base.image_url,
             (
                 SELECT COUNT(DISTINCT m.id)
                 FROM matches m
@@ -167,28 +175,30 @@ export async function getServerSideProps(context) {
             ) AS defenses_count
         FROM (
             SELECT cr.id AS reign_id, cr.won_date, cr.lost_date, DATEDIFF(IFNULL(cr.lost_date, UTC_DATE()), cr.won_date) AS days_held,
-                cr.interpreter_id, i.interpreter AS entity_name, i.nationality AS country, c.title_name, cr.championship_id
+                cr.interpreter_id, i.interpreter AS entity_name, i.nationality AS country, c.title_name, ct.image_url, cr.championship_id
             FROM championship_reigns cr
             JOIN interpreters i ON i.id = cr.interpreter_id
             JOIN championships c ON cr.championship_id = c.id
+            LEFT JOIN championship_titles ct ON c.id = ct.championship_id AND cr.won_date >= ct.start_date AND (cr.won_date <= ct.end_date OR ct.end_date IS NULL)
             WHERE cr.interpreter_id IS NOT NULL
             UNION
             SELECT cr.id AS reign_id, rm.start_date AS won_date, rm.end_date AS lost_date, DATEDIFF(IFNULL(rm.end_date, UTC_DATE()), rm.start_date) AS days_held,
-                rm.interpreter_id, i.interpreter AS entity_name, i.nationality AS country, c.title_name, cr.championship_id
+                rm.interpreter_id, i.interpreter AS entity_name, i.nationality AS country, c.title_name, ct.image_url, cr.championship_id
             FROM reign_members rm
             JOIN championship_reigns cr ON cr.id = rm.reign_id
             JOIN interpreters i ON i.id = rm.interpreter_id
             JOIN championships c ON cr.championship_id = c.id
+            LEFT JOIN championship_titles ct ON c.id = ct.championship_id AND rm.start_date >= ct.start_date AND (rm.start_date <= ct.end_date OR ct.end_date IS NULL)
             WHERE rm.interpreter_id IS NOT NULL
         ) AS base
-        GROUP BY base.reign_id, base.interpreter_id, base.won_date, base.lost_date, base.entity_name, base.country, base.title_name, base.championship_id
+        GROUP BY base.reign_id, base.interpreter_id, base.won_date, base.lost_date, base.entity_name, base.country, base.title_name, base.image_url, base.championship_id
         ORDER BY days_held DESC LIMIT 10
       `);
 
       [mostDefensesRows] = await pool.query(`
         SELECT 
             base.reign_id, base.won_date, base.lost_date, MAX(base.days_held) AS days_held,
-            base.interpreter_id, base.entity_name, base.country, base.title_name,
+            base.interpreter_id, base.entity_name, base.country, base.title_name, base.image_url,
             (
                 SELECT COUNT(DISTINCT m.id)
                 FROM matches m
@@ -198,21 +208,23 @@ export async function getServerSideProps(context) {
             ) AS defenses_count
         FROM (
             SELECT cr.id AS reign_id, cr.won_date, cr.lost_date, DATEDIFF(IFNULL(cr.lost_date, UTC_DATE()), cr.won_date) AS days_held,
-                cr.interpreter_id, i.interpreter AS entity_name, i.nationality AS country, c.title_name, cr.championship_id
+                cr.interpreter_id, i.interpreter AS entity_name, i.nationality AS country, c.title_name, ct.image_url, cr.championship_id
             FROM championship_reigns cr
             JOIN interpreters i ON i.id = cr.interpreter_id
             JOIN championships c ON cr.championship_id = c.id
+            LEFT JOIN championship_titles ct ON c.id = ct.championship_id AND cr.won_date >= ct.start_date AND (cr.won_date <= ct.end_date OR ct.end_date IS NULL)
             WHERE cr.interpreter_id IS NOT NULL
             UNION
             SELECT cr.id AS reign_id, rm.start_date AS won_date, rm.end_date AS lost_date, DATEDIFF(IFNULL(rm.end_date, UTC_DATE()), rm.start_date) AS days_held,
-                rm.interpreter_id, i.interpreter AS entity_name, i.nationality AS country, c.title_name, cr.championship_id
+                rm.interpreter_id, i.interpreter AS entity_name, i.nationality AS country, c.title_name, ct.image_url, cr.championship_id
             FROM reign_members rm
             JOIN championship_reigns cr ON cr.id = rm.reign_id
             JOIN interpreters i ON i.id = rm.interpreter_id
             JOIN championships c ON cr.championship_id = c.id
+            LEFT JOIN championship_titles ct ON c.id = ct.championship_id AND rm.start_date >= ct.start_date AND (rm.start_date <= ct.end_date OR ct.end_date IS NULL)
             WHERE rm.interpreter_id IS NOT NULL
         ) AS base
-        GROUP BY base.reign_id, base.interpreter_id, base.won_date, base.lost_date, base.entity_name, base.country, base.title_name, base.championship_id
+        GROUP BY base.reign_id, base.interpreter_id, base.won_date, base.lost_date, base.entity_name, base.country, base.title_name, base.image_url, base.championship_id
         ORDER BY defenses_count DESC, days_held DESC LIMIT 10
       `);
     }
@@ -735,30 +747,27 @@ export default function RecordsDynamicPage({ error, type, data }) {
                   (item) => item.breakdown?.length > 1
                 )}
 
-                {renderTable(
-                  "Most Wins", data.wins,
-                  [{ label: entityTitle }, { label: "Wins", align: "right" }],
-                  (item) => (
-                    <>
-                      <td className="px-4 py-3"><Link href={`${entityUrl}/${item.id}`} className="text-blue-600 dark:text-sky-400 font-semibold flex items-center gap-2" onClick={(e) => e.stopPropagation()}><FlagWithName code={item.country} name={item.name} /></Link></td>
-                      <td className="px-4 py-3 text-right font-bold text-[#16a34a] dark:text-[#93c47d]">{item.total}</td>
-                    </>
-                  ),
-                  "wins",
-                  (item) => (
-                    <>
-                      {item.breakdown?.sort((a, b) => b.count - a.count).map((bd, idx) => (
-                        <li key={idx} className="pl-1 flex items-start text-sm">
-                          <span className="mr-2 inline-block min-w-[20px] text-[#16a34a] dark:text-[#93c47d] font-mono text-right font-bold">{bd.count}</span>
-                          {bd.id ? <Link href={`${breakdownUrl}/${bd.id}`} className="text-blue-600 dark:text-sky-400" onClick={(e) => e.stopPropagation()}>{bd.name}</Link> : <span className="text-gray-700 dark:text-gray-300">{bd.name}</span>}
-                        </li>
-                      ))}
-                    </>
-                  ),
-                  breakdownTitle,
-                  (item) => item.breakdown?.length > 1
-                )}
+                <div className="md:col-span-2 lg:col-span-2">
+                  {renderTable(
+                    `Top ${isWrestler ? "Wrestlers" : "Interpreters"} (Most Wins & Winrate)`, sortedTopStats,
+                    [
+                      { label: entityTitle }, { label: "Matches", align: "right" },
+                      { label: "Wins", align: "right", onSort: () => setTopSort({ key: "wins", dir: "desc" }), sortDir: topSort.key === "wins" ? "desc" : null },
+                      { label: "Win %", align: "right", onSort: () => setTopSort({ key: "win_percentage", dir: "desc" }), sortDir: topSort.key === "win_percentage" ? "desc" : null },
+                    ],
+                    (i) => (
+                      <>
+                        <td className="px-4 py-3"><Link href={`${entityUrl}/${i.id}`} className="text-blue-600 dark:text-sky-400 font-semibold flex items-center gap-2"><FlagWithName code={i.country} name={i.name} /></Link></td>
+                        <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-300">{i.total_matches}</td>
+                        <td className="px-4 py-3 text-right font-bold text-[#16a34a] dark:text-[#93c47d]">{i.wins}</td>
+                        <td className="px-4 py-3 text-right font-mono text-sm">{i.win_percentage}%</td>
+                      </>
+                    )
+                  )}
+                </div>
+              </div>
 
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start mt-8">
                 {renderTable(
                   "Longest Undefeated Streak", sortedUndefeated,
                   [
@@ -799,25 +808,6 @@ export default function RecordsDynamicPage({ error, type, data }) {
                     </>
                   )
                 )}
-
-                <div className="md:col-span-2 lg:col-span-2">
-                  {renderTable(
-                    `Top ${isWrestler ? "Wrestlers" : "Interpreters"} (Most Wins & Winrate)`, sortedTopStats,
-                    [
-                      { label: entityTitle }, { label: "Matches", align: "right" },
-                      { label: "Wins", align: "right", onSort: () => setTopSort({ key: "wins", dir: "desc" }), sortDir: topSort.key === "wins" ? "desc" : null },
-                      { label: "Win %", align: "right", onSort: () => setTopSort({ key: "win_percentage", dir: "desc" }), sortDir: topSort.key === "win_percentage" ? "desc" : null },
-                    ],
-                    (i) => (
-                      <>
-                        <td className="px-4 py-3"><Link href={`${entityUrl}/${i.id}`} className="text-blue-600 dark:text-sky-400 font-semibold flex items-center gap-2"><FlagWithName code={i.country} name={i.name} /></Link></td>
-                        <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-300">{i.total_matches}</td>
-                        <td className="px-4 py-3 text-right font-bold text-[#16a34a] dark:text-[#93c47d]">{i.wins}</td>
-                        <td className="px-4 py-3 text-right font-mono text-sm">{i.win_percentage}%</td>
-                      </>
-                    )
-                  )}
-                </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start mt-8">
@@ -831,7 +821,12 @@ export default function RecordsDynamicPage({ error, type, data }) {
                           <div className="flex items-center gap-2"><FlagWithName code={r.country} name={r.entity_name || "Unknown"} /></div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300" title={r.title_name}>{(r.title_name || "").replace(" Championship", "")}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                        <div className="flex items-center gap-2" title={r.title_name}>
+                          {r.image_url && <img src={r.image_url} alt={r.title_name} width={32} height={32} className="object-contain w-8 h-8" />}
+                          <span className="hidden sm:inline">{(r.title_name || "").replace(" Championship", "")}</span>
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-right font-bold text-gray-800 dark:text-gray-200 font-mono text-base">{r.days_held_label}</td>
                     </>
                   ),
@@ -853,7 +848,12 @@ export default function RecordsDynamicPage({ error, type, data }) {
                           <span className="font-semibold flex items-center gap-2 text-gray-800 dark:text-white"><FlagWithName code={r.country} name={r.entity_name || "Unknown"} /></span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300" title={r.title_name}>{(r.title_name || "").replace(" Championship", "")}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                        <div className="flex items-center gap-2" title={r.title_name}>
+                          {r.image_url && <img src={r.image_url} alt={r.title_name} width={32} height={32} className="object-contain w-8 h-8" />}
+                          <span className="hidden sm:inline">{(r.title_name || "").replace(" Championship", "")}</span>
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-right font-bold text-gray-800 dark:text-white">{r.defenses_count}</td>
                     </>
                   ),
