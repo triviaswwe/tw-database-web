@@ -99,7 +99,7 @@ Cuando un luchador gana un punto, puede elegir si sumarse o restar al rival.`,
     "Ladder Tag Team": `Se lleva a cabo bajo las reglas Tornado (todos pueden responder).
 Gana el equipo que llega a 7 respuestas correctas.
 Cuando un equipo gana un punto, puede elegir si sumarse o restar al equipo rival.`,
-    "Money in the Bank": `Preguntas con temática Money in the Bank (PPV o estipulación).
+    "Money in the Bank": `Preguntas con temática Money in the Bank (PLE o estipulación).
 Cuando se gana un punto se puede elegir si sumarse un punto o restarle un punto a alguno de sus rivales.
 No se puede restar puntos a un luchador que está en 0.
 El ganador será el luchador que llegue a 6 puntos.
