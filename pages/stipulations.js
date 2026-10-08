@@ -2,6 +2,8 @@
 
 import Head from "next/head";
 import pool from "../lib/db";
+import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
+import { ChevronDown, Swords, ScrollText, AlertTriangle } from "lucide-react";
 
 export async function getStaticProps() {
   try {
@@ -149,12 +151,14 @@ Gana el equipo que deje al otro con 0 puntos.`,
 
   if (error) {
     return (
-      <div className="p-8 text-center">
-        <h1 className="text-2xl font-bold mb-2">Error al cargar</h1>
-        <p className="text-gray-500">
-          No se pudo conectar a la base de datos. Intentá de nuevo en unos
-          segundos.
-        </p>
+      <div className="min-h-screen flex items-center justify-center p-8 bg-gray-50 dark:bg-zinc-950">
+        <div className="bg-white dark:bg-zinc-900 p-8 rounded-2xl shadow-lg border border-red-100 dark:border-red-900/30 text-center max-w-md">
+          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Error al cargar</h1>
+          <p className="text-gray-500 dark:text-gray-400">
+            No se pudo conectar a la base de datos. Intentá de nuevo en unos segundos.
+          </p>
+        </div>
       </div>
     );
   }
@@ -169,19 +173,60 @@ Gana el equipo que deje al otro con 0 puntos.`,
         />
       </Head>
 
-      <div className="p-4 max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold mb-4">Stipulations</h1>
-        <ul className="space-y-6">
-          {stipulations.map(({ name }) => (
-            <li key={name}>
-              <h2 className="text-2xl font-semibold mb-1">{name}</h2>
-              <p className="text-base whitespace-pre-line">
-                {descriptions[name] ||
-                  "No hay reglas especiales para esta estipulación."}
-              </p>
-            </li>
-          ))}
-        </ul>
+      <div className="min-h-screen bg-gray-50/50 dark:bg-zinc-950 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200 font-sans">
+        <div className="max-w-4xl mx-auto">
+          
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center justify-center p-4 bg-indigo-100 dark:bg-indigo-900/30 rounded-2xl mb-6 shadow-sm transform -rotate-3 hover:rotate-0 transition-transform">
+              <Swords className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-4">
+              Stipulations
+            </h1>
+            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Reglas y condiciones especiales de todas las estipulaciones y tipos de combates del Campeonato de Trivias WWE.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {stipulations.map(({ name }) => (
+              <Disclosure as="div" key={name} className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-200/60 dark:border-zinc-800 overflow-hidden transition-all hover:shadow-md hover:border-indigo-100 dark:hover:border-indigo-900/30">
+                {({ open }) => (
+                  <>
+                    <DisclosureButton className="w-full px-6 py-5 flex items-center justify-between text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-opacity-75 transition-colors hover:bg-gray-50 dark:hover:bg-zinc-800/50">
+                      <div className="flex items-center gap-4">
+                        <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-900/30 shadow-sm">
+                          <ScrollText className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        <span className="text-xl font-bold text-gray-900 dark:text-white">
+                          {name}
+                        </span>
+                      </div>
+                      <div className={`p-2 rounded-full transition-colors ${open ? 'bg-indigo-50 dark:bg-indigo-900/20' : 'bg-gray-50 dark:bg-zinc-800'}`}>
+                        <ChevronDown
+                          className={`${
+                            open ? 'transform rotate-180 text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500'
+                          } w-5 h-5 transition-transform duration-300`}
+                        />
+                      </div>
+                    </DisclosureButton>
+                    <DisclosurePanel 
+                      transition 
+                      className="px-6 pb-8 pt-2 origin-top transition duration-200 ease-out data-[closed]:-translate-y-4 data-[closed]:opacity-0"
+                    >
+                      <div className="border-t border-gray-100 dark:border-zinc-800 pt-6">
+                        <p className="text-base text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">
+                          {descriptions[name] || "No hay reglas especiales para esta estipulación."}
+                        </p>
+                      </div>
+                    </DisclosurePanel>
+                  </>
+                )}
+              </Disclosure>
+            ))}
+          </div>
+
+        </div>
       </div>
     </>
   );
