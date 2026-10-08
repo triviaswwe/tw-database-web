@@ -73,7 +73,7 @@ export default function Rules() {
             objetivo de desarrollar sus rivalidades; y otro llamado "WWE
             Backstage", donde todos los participantes pueden reunirse para
             discutir el torneo, lucha libre y otros temas relacionados. Por lo
-            tanto, los grupos para shows como RAW, SmackDown, Speed y PLE son
+            tanto, los grupos para shows como RAW, SmackDown, NXT y PLE son
             solamente utilizados para las luchas y está prohibido hablar por ese
             medio. Todos los grupos están conectados por la Comunidad de Trivias
             de WWE.
