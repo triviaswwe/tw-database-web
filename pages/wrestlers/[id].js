@@ -234,16 +234,22 @@ export async function getServerSideProps({ params, query, res }) {
           COALESCE(rm.end_date, cr.lost_date) AS lost_date, 
           DATEDIFF(IFNULL(COALESCE(rm.end_date, cr.lost_date), UTC_DATE()), COALESCE(rm.start_date, cr.won_date)) AS days_held,
           c.title_name, c.id AS championship_id,
-          (SELECT e.name 
-           FROM events e 
-           JOIN matches m ON m.event_id = e.id 
-           WHERE m.championship_id = c.id AND m.title_match = 1 AND m.title_changed = 1 AND e.event_date = COALESCE(rm.start_date, cr.won_date) 
-           LIMIT 1) AS won_event_name,
-          (SELECT e.id 
-           FROM events e 
-           JOIN matches m ON m.event_id = e.id 
-           WHERE m.championship_id = c.id AND m.title_match = 1 AND m.title_changed = 1 AND e.event_date = COALESCE(rm.start_date, cr.won_date) 
-           LIMIT 1) AS won_event_id,
+          COALESCE(
+            (SELECT e.name 
+             FROM events e 
+             JOIN matches m ON m.event_id = e.id 
+             WHERE m.championship_id = c.id AND m.title_match = 1 AND m.title_changed = 1 AND e.event_date = COALESCE(rm.start_date, cr.won_date) 
+             LIMIT 1),
+            (SELECT e.name FROM events e WHERE e.id = cr.event_id)
+          ) AS won_event_name,
+          COALESCE(
+            (SELECT e.id 
+             FROM events e 
+             JOIN matches m ON m.event_id = e.id 
+             WHERE m.championship_id = c.id AND m.title_match = 1 AND m.title_changed = 1 AND e.event_date = COALESCE(rm.start_date, cr.won_date) 
+             LIMIT 1),
+            cr.event_id
+          ) AS won_event_id,
           (
             SELECT COUNT(DISTINCT m.id)
             FROM matches m
@@ -334,13 +340,17 @@ export async function getServerSideProps({ params, query, res }) {
     const processedReigns = reignsRows.map((r, index) => {
       if (!timesMap[r.championship_id]) timesMap[r.championship_id] = 0;
       timesMap[r.championship_id]++;
+      const isCrownJewel = r.championship_id === 8 || (r.title_name && r.title_name.toLowerCase().includes("crown jewel"));
       return {
         ...r,
+        isCrownJewel,
         times: timesMap[r.championship_id],
         chronologicalIndex: index + 1,
-        days_held_label: r.lost_date === null ? `${r.days_held}+` : r.days_held,
-        defenses: defensesByReign[r.reign_id] || [],
-        streakBreaker: breakerByReign[r.reign_id] || null,
+        days_held: isCrownJewel ? null : r.days_held,
+        days_held_label: isCrownJewel ? "—" : (r.lost_date === null ? `${r.days_held}+` : r.days_held),
+        defenses_count: isCrownJewel ? "—" : r.defenses_count,
+        defenses: isCrownJewel ? [] : (defensesByReign[r.reign_id] || []),
+        streakBreaker: isCrownJewel ? null : (breakerByReign[r.reign_id] || null),
         won_date: r.won_date ? r.won_date.toISOString().split('T')[0] : null,
         lost_date: r.lost_date ? r.lost_date.toISOString().split('T')[0] : null,
       };
@@ -442,8 +452,11 @@ export default function WrestlerDetail({
       let valB = b[champSort.key];
 
       if (champSort.key === 'days_held_label') {
-        valA = a.days_held;
-        valB = b.days_held;
+        valA = a.isCrownJewel ? -1 : (a.days_held ?? -1);
+        valB = b.isCrownJewel ? -1 : (b.days_held ?? -1);
+      } else if (champSort.key === 'defenses_count') {
+        valA = a.isCrownJewel ? -1 : (a.defenses_count === '—' ? -1 : a.defenses_count);
+        valB = b.isCrownJewel ? -1 : (b.defenses_count === '—' ? -1 : b.defenses_count);
       } else if (champSort.key === 'won_date') {
         valA = new Date(a.won_date).getTime();
         valB = new Date(b.won_date).getTime();
@@ -761,9 +774,18 @@ export default function WrestlerDetail({
                           <tr className="bg-gray-50/50 dark:bg-gray-900/50">
                             <td colSpan={5} className="px-4 py-3 border-l-4 border-blue-500 dark:border-sky-500">
                               <ul className="space-y-2 py-1 max-w-full overflow-hidden whitespace-normal">
-                                {r.defenses.length > 0 ? r.defenses.map((m, i) => renderMatchDetail(m, i + 1, false)) : <li className="text-gray-500 dark:text-gray-400 text-sm italic pl-1">No successful defenses.</li>}
-                                {r.streakBreaker && renderMatchDetail(r.streakBreaker, r.defenses.length + 1, true)}
-                                {!r.streakBreaker && r.lost_date === null && <li className="text-blue-600 dark:text-sky-400 text-sm italic pl-1 mt-2 font-medium">Current Champion</li>}
+                                {r.isCrownJewel ? (
+                                  <>
+                                    <li className="text-gray-500 dark:text-gray-400 text-sm italic pl-1">Not defended championship.</li>
+                                    {!r.streakBreaker && r.lost_date === null && <li className="text-blue-600 dark:text-sky-400 text-sm italic pl-1 mt-2 font-medium">Current Champion</li>}
+                                  </>
+                                ) : (
+                                  <>
+                                    {r.defenses.length > 0 ? r.defenses.map((m, i) => renderMatchDetail(m, i + 1, false)) : <li className="text-gray-500 dark:text-gray-400 text-sm italic pl-1">No successful defenses.</li>}
+                                    {r.streakBreaker && renderMatchDetail(r.streakBreaker, r.defenses.length + 1, true)}
+                                    {!r.streakBreaker && r.lost_date === null && <li className="text-blue-600 dark:text-sky-400 text-sm italic pl-1 mt-2 font-medium">Current Champion</li>}
+                                  </>
+                                )}
                               </ul>
                             </td>
                           </tr>

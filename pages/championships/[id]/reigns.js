@@ -25,7 +25,9 @@ export default function ChampionshipReigns() {
               href={`/championships/${query.id}/reigns/${r.id}`}
               className="text-blue-600 dark:text-blue-400 "
             >
-              Reign #{r.reign_number} — {r.days_held} days
+              {Number(query.id) === 8
+                ? `Reign #${r.reign_number}`
+                : `Reign #${r.reign_number} — ${r.days_held} days`}
             </Link>
           </li>
         ))}

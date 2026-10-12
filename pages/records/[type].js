@@ -92,7 +92,8 @@ export async function getServerSideProps(context) {
         LEFT JOIN tag_teams tt ON cr.tag_team_id = tt.id 
         JOIN championships c ON cr.championship_id = c.id
         LEFT JOIN championship_titles ct ON c.id = ct.championship_id AND cr.won_date >= ct.start_date AND (cr.won_date <= ct.end_date OR ct.end_date IS NULL)
-        WHERE cr.wrestler_id IS NOT NULL OR cr.tag_team_id IS NOT NULL
+        WHERE (cr.wrestler_id IS NOT NULL OR cr.tag_team_id IS NOT NULL)
+          AND c.id != 8
         ORDER BY days_held DESC LIMIT 10
       `);
 
@@ -107,7 +108,8 @@ export async function getServerSideProps(context) {
         LEFT JOIN tag_teams tt ON cr.tag_team_id = tt.id 
         JOIN championships c ON cr.championship_id = c.id
         LEFT JOIN championship_titles ct ON c.id = ct.championship_id AND cr.won_date >= ct.start_date AND (cr.won_date <= ct.end_date OR ct.end_date IS NULL)
-        WHERE cr.wrestler_id IS NOT NULL OR cr.tag_team_id IS NOT NULL
+        WHERE (cr.wrestler_id IS NOT NULL OR cr.tag_team_id IS NOT NULL)
+          AND c.id != 8
         ORDER BY defenses_count DESC, days_held DESC LIMIT 10
       `);
     } else {
@@ -181,7 +183,7 @@ export async function getServerSideProps(context) {
             JOIN interpreters i ON i.id = cr.interpreter_id
             JOIN championships c ON cr.championship_id = c.id
             LEFT JOIN championship_titles ct ON c.id = ct.championship_id AND cr.won_date >= ct.start_date AND (cr.won_date <= ct.end_date OR ct.end_date IS NULL)
-            WHERE cr.interpreter_id IS NOT NULL
+            WHERE cr.interpreter_id IS NOT NULL AND c.id != 8
             UNION
             SELECT cr.id AS reign_id, rm.start_date AS won_date, rm.end_date AS lost_date, DATEDIFF(IFNULL(rm.end_date, UTC_DATE()), rm.start_date) AS days_held,
                 rm.interpreter_id, i.interpreter AS entity_name, i.nationality AS country, c.title_name, ct.image_url, cr.championship_id
@@ -190,7 +192,7 @@ export async function getServerSideProps(context) {
             JOIN interpreters i ON i.id = rm.interpreter_id
             JOIN championships c ON cr.championship_id = c.id
             LEFT JOIN championship_titles ct ON c.id = ct.championship_id AND rm.start_date >= ct.start_date AND (rm.start_date <= ct.end_date OR ct.end_date IS NULL)
-            WHERE rm.interpreter_id IS NOT NULL
+            WHERE rm.interpreter_id IS NOT NULL AND c.id != 8
         ) AS base
         GROUP BY base.reign_id, base.interpreter_id, base.won_date, base.lost_date, base.entity_name, base.country, base.title_name, base.image_url, base.championship_id
         ORDER BY days_held DESC LIMIT 10
@@ -214,7 +216,7 @@ export async function getServerSideProps(context) {
             JOIN interpreters i ON i.id = cr.interpreter_id
             JOIN championships c ON cr.championship_id = c.id
             LEFT JOIN championship_titles ct ON c.id = ct.championship_id AND cr.won_date >= ct.start_date AND (cr.won_date <= ct.end_date OR ct.end_date IS NULL)
-            WHERE cr.interpreter_id IS NOT NULL
+            WHERE cr.interpreter_id IS NOT NULL AND c.id != 8
             UNION
             SELECT cr.id AS reign_id, rm.start_date AS won_date, rm.end_date AS lost_date, DATEDIFF(IFNULL(rm.end_date, UTC_DATE()), rm.start_date) AS days_held,
                 rm.interpreter_id, i.interpreter AS entity_name, i.nationality AS country, c.title_name, ct.image_url, cr.championship_id
@@ -223,7 +225,7 @@ export async function getServerSideProps(context) {
             JOIN interpreters i ON i.id = rm.interpreter_id
             JOIN championships c ON cr.championship_id = c.id
             LEFT JOIN championship_titles ct ON c.id = ct.championship_id AND rm.start_date >= ct.start_date AND (rm.start_date <= ct.end_date OR ct.end_date IS NULL)
-            WHERE rm.interpreter_id IS NOT NULL
+            WHERE rm.interpreter_id IS NOT NULL AND c.id != 8
         ) AS base
         GROUP BY base.reign_id, base.interpreter_id, base.won_date, base.lost_date, base.entity_name, base.country, base.title_name, base.image_url, base.championship_id
         ORDER BY defenses_count DESC, days_held DESC LIMIT 10

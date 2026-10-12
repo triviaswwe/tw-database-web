@@ -16,7 +16,7 @@ const fetcher = (url) => fetch(url).then((r) => r.json());
 
 const aggColumns = [
   { label: "#" },
-  { label: "Champion" },
+  { label: "Champion", widthClass: "whitespace-nowrap" },
   { label: "Interpreter" },
   { label: "Reigns" },
   { label: "Successful defenses" },
@@ -25,13 +25,13 @@ const aggColumns = [
 
 const tableColumns = [
   { label: "#", key: "index" },
-  { label: "Champion", key: "champion" },
+  { label: "Champion", key: "champion", widthClass: "whitespace-nowrap" },
   { label: "Interpreter", key: "interpreter" },
   { label: "Won Date", key: "won_date" },
   { label: "Event", key: "event" },
   { label: "Reign #", key: "reign_number" },
   { label: "Days Held", key: "days_held" },
-  { label: "Notes", key: "notes", widthClass: "w-[25%]" },
+  { label: "Notes", key: "notes", widthClass: "md:w-[25%]" },
 ];
 
 export default function ChampionshipsPage() {
@@ -102,7 +102,7 @@ export default function ChampionshipsPage() {
   );
 
   const visibleColumnsCount = tableColumns.filter(
-    (c) => !(c.key === "interpreter" && sel === 5),
+    (c) => !(c.key === "interpreter" && sel === 5) && !(c.key === "days_held" && sel === 8),
   ).length;
 
   const todayString = useMemo(
@@ -150,11 +150,11 @@ export default function ChampionshipsPage() {
       }
 
       stats.reigns += fighter.reignCount;
-      stats.defenses += fighter.defenses;
+      stats.defenses += sel === 8 ? 0 : (Number(fighter.defenses) || 0);
 
       const daysLabel = fighter.totalDaysLabel ? fighter.totalDaysLabel.toString() : "0";
       const isPlus = daysLabel.includes("+");
-      const daysNum = parseInt(daysLabel.replace("+", ""), 10) || 0;
+      const daysNum = sel === 8 ? 0 : (parseInt(daysLabel.replace("+", ""), 10) || 0);
 
       stats.totalDaysNumber += daysNum;
       if (isPlus || fighter.isCurrent) {
@@ -164,7 +164,8 @@ export default function ChampionshipsPage() {
 
     let arr = Array.from(map.values()).map((stat) => ({
       ...stat,
-      totalDaysLabel: stat.isCurrent ? `${stat.totalDaysNumber}+` : stat.totalDaysNumber.toString(),
+      defenses: sel === 8 ? "—" : stat.defenses,
+      totalDaysLabel: sel === 8 ? "—" : (stat.isCurrent ? `${stat.totalDaysNumber}+` : stat.totalDaysNumber.toString()),
     }));
 
     // Ordenamiento local para la tabla de intérpretes
@@ -180,8 +181,8 @@ export default function ChampionshipsPage() {
         valA = a.defenses;
         valB = b.defenses;
       } else {
-        valA = a.totalDaysNumber;
-        valB = b.totalDaysNumber;
+        valA = sel === 8 ? a.reigns : a.totalDaysNumber;
+        valB = sel === 8 ? b.reigns : b.totalDaysNumber;
       }
 
       if (valA < valB) return interpreterSort.dir === "asc" ? -1 : 1;
@@ -190,7 +191,7 @@ export default function ChampionshipsPage() {
     });
 
     return arr;
-  }, [fighterStats, interpreterSort]);
+  }, [fighterStats, interpreterSort, sel]);
 
   // Booleano dinámico: revisa si AL MENOS UN intérprete usó más de un luchador distinto
   const hasMultipleWrestlersPerInterpreter = useMemo(() => {
@@ -220,12 +221,12 @@ export default function ChampionshipsPage() {
           <td className="border px-2 py-1 text-center">{displayIndex}</td>
           <td className="border px-2 py-1 font-semibold">Vacant</td>
           {sel !== 5 && <td className="border px-2 py-1 text-center">—</td>}
-          <td className="border px-2 py-1 text-center">
+          <td className="border px-2 py-1 text-center whitespace-nowrap">
             {formatEnglishDate(r.won_date)}
           </td>
           <td className="border px-2 py-1 text-center">—</td>
           <td className="border px-2 py-1 text-center">—</td>
-          <td className="border px-2 py-1 text-center">—</td>
+          {sel !== 8 && <td className="border px-2 py-1 text-center">—</td>}
           <td className="border px-2 py-1 text-[12px] break-words">—</td>
         </tr>
       );
@@ -235,42 +236,51 @@ export default function ChampionshipsPage() {
     return (
       <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
         <td className="border px-2 py-1 text-center">{displayIndex}</td>
-        <td className="border px-1 py-1 font-semibold">
+        <td
+          className={`border px-2 py-1 font-semibold ${
+            sel === 5 ? "md:w-[20%]" : "whitespace-nowrap"
+          }`}
+        >
           {r.tag_team_id ? (
             <>
               <Link
                 href={`/stables/${r.tag_team_id}`}
-                className="font-semibold text-blue-600 dark:text-blue-400 "
+                className="font-semibold text-blue-600 dark:text-blue-400"
               >
                 {r.team_name}
               </Link>
               <br />
-              <span className="text-xs">
-                (
+              <div className="text-xs flex flex-col gap-0.5 md:inline md:gap-0">
+                <span className="hidden md:inline">(</span>
                 {(r.team_members_raw ? r.team_members_raw.split(",") : []).map(
                   (item, i, arr) => {
                     const [id, name, country, indivReign] = item.split("|");
                     return (
-                      <span key={id} className="items-center">
+                      <span
+                        key={id}
+                        className="inline-flex items-center gap-1 md:inline whitespace-nowrap"
+                      >
                         <Link
                           href={`/wrestlers/${id}`}
-                          className="items-center gap-1 text-blue-600 dark:text-blue-400 "
+                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400"
                         >
                           <FlagWithName code={country} name={name} />
                         </Link>
-                        &nbsp;({indivReign})
-                        {i < arr.length - 1 ? ", " : ""}
+                        <span className="whitespace-nowrap md:ml-1">({indivReign})</span>
+                        {i < arr.length - 1 && (
+                          <span className="hidden md:inline">, </span>
+                        )}
                       </span>
                     );
                   },
                 )}
-                )
-              </span>
+                <span className="hidden md:inline">)</span>
+              </div>
             </>
           ) : r.wrestler_id ? (
             <Link
               href={`/wrestlers/${r.wrestler_id}`}
-              className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 "
+              className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400"
             >
               <FlagWithName code={r.country} name={r.wrestler} />
             </Link>
@@ -283,7 +293,7 @@ export default function ChampionshipsPage() {
             {r.interpreter_id ? (
               <Link
                 href={`/interpreters/${r.interpreter_id}`}
-                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 "
+                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400"
               >
                 <FlagWithName code={r.nationality} name={r.interpreter} />
               </Link>
@@ -292,14 +302,14 @@ export default function ChampionshipsPage() {
             )}
           </td>
         )}
-        <td className="border px-2 py-1 text-center">
+        <td className="border px-2 py-1 text-center whitespace-nowrap">
           {formatEnglishDate(r.won_date)}
         </td>
         <td className="border px-2 py-1 text-center">
           {r.event_id ? (
             <Link
               href={`/events/${r.event_id}`}
-              className="text-blue-600 dark:text-blue-400 "
+              className="text-blue-600 dark:text-blue-400"
             >
               {r.event_name}
             </Link>
@@ -308,12 +318,14 @@ export default function ChampionshipsPage() {
           )}
         </td>
         <td className="border px-2 py-1 text-center">{r.reign_number}</td>
-        <td className="border px-2 py-1 text-center">
-          {r.lost_date === null ? daysHeldRaw : daysHeldRaw.replace("+", "")}
-        </td>
+        {sel !== 8 && (
+          <td className="border px-2 py-1 text-center">
+            {r.lost_date === null ? daysHeldRaw : daysHeldRaw.replace("+", "")}
+          </td>
+        )}
         <td className="border px-2 py-1 text-[12px] break-words">
           {r.notes || "—"}
-          {sel !== 2 && r.id === longestReignId && (
+          {sel !== 2 && sel !== 8 && r.id === longestReignId && (
             <span className="ml-1">
               This is the longest reign in the history of the championship.
             </span>
@@ -360,7 +372,7 @@ export default function ChampionshipsPage() {
         />
       </Head>
 
-      <div className="p-6 max-w-5xl mx-auto">
+      <div className="px-3 py-6 md:p-6 max-w-5xl mx-auto">
         <style jsx global>{`
           .no-scrollbar {
             -ms-overflow-style: none;
@@ -615,21 +627,31 @@ export default function ChampionshipsPage() {
                       <h2 className="text-2xl font-semibold">{champ?.title_name}</h2>
 
                       <div className="overflow-x-auto no-scrollbar">
-                        <table className="table-auto w-full border-collapse text-sm min-w-[800px]">
+                        <table className="table-auto w-full border-collapse text-xs md:text-sm md:min-w-[800px]">
                           <thead>
                             <tr className="bg-gray-100 dark:bg-gray-700">
-                              {tableColumns.map(({ label, key, widthClass }) => (
-                                <th
-                                  key={key}
-                                  onClick={() => handleSort(label)}
-                                  className={`cursor-pointer border px-2 py-1 text-center ${widthClass || ""} ${
-                                    key === "interpreter" && sel === 5 ? "hidden" : ""
-                                  }`}
-                                >
-                                  {label}
-                                  {renderSortIcon(label)}
-                                </th>
-                              ))}
+                              {tableColumns
+                                .filter(
+                                  (c) =>
+                                    !(c.key === "interpreter" && sel === 5) &&
+                                    !(c.key === "days_held" && sel === 8),
+                                )
+                                .map(({ label, key, widthClass }) => {
+                                  const colClass =
+                                    key === "champion" && sel === 5
+                                      ? "md:w-[20%]"
+                                      : (widthClass || "");
+                                  return (
+                                    <th
+                                      key={key}
+                                      onClick={() => handleSort(label)}
+                                      className={`cursor-pointer border px-2 py-1 text-center ${colClass}`}
+                                    >
+                                      {label}
+                                      {renderSortIcon(label)}
+                                    </th>
+                                  );
+                                })}
                             </tr>
                           </thead>
                           <tbody className="divide-y">
@@ -681,16 +703,20 @@ export default function ChampionshipsPage() {
                           <div className="mb-8">
                             <h4 className="text-lg font-semibold mb-2">By Tag Team</h4>
                             <div className="overflow-x-auto no-scrollbar">
-                              <table className="table-auto w-full border-collapse text-sm min-w-[600px]">
+                              <table className="table-auto w-full border-collapse text-xs md:text-sm md:min-w-[600px]">
                                 <thead>
                                   <tr className="bg-gray-100 dark:bg-gray-700">
                                     {aggColumns
                                       .filter((c) => c.label !== "Interpreter")
-                                      .map(({ label }) => (
+                                      .map(({ label, widthClass }) => (
                                         <th
                                           key={label}
                                           onClick={() => handleTeamSort(label)}
-                                          className="border px-2 py-1 text-center cursor-pointer select-none"
+                                          className={`border px-2 py-1 text-center cursor-pointer select-none ${
+                                            label === "Champion"
+                                              ? "min-w-[190px] md:min-w-0"
+                                              : (widthClass || "")
+                                          }`}
                                         >
                                           {label}
                                           {renderTeamSortIcon(label)}
@@ -709,7 +735,7 @@ export default function ChampionshipsPage() {
                                       }
                                     >
                                       <td className="border px-2 py-1 text-center">{idx + 1}</td>
-                                      <td className="border px-2 py-1">
+                                      <td className="border px-2 py-1 min-w-[190px] md:min-w-0">
                                         <Link
                                           href={`/stables/${row.tagTeamId}`}
                                           className="font-bold text-blue-600 dark:text-blue-400"
@@ -717,21 +743,26 @@ export default function ChampionshipsPage() {
                                           {row.teamName}
                                         </Link>
                                         <br />
-                                        <span className="text-xs">
-                                          (
+                                        <div className="text-xs flex flex-col gap-0.5 md:inline md:gap-0">
+                                          <span className="hidden md:inline">(</span>
                                           {Array.from(row.members.values()).map((m, i, arr) => (
-                                            <span key={m.id}>
+                                            <span
+                                              key={m.id}
+                                              className="inline-flex items-center gap-1 md:inline whitespace-nowrap"
+                                            >
                                               <Link
                                                 href={`/wrestlers/${m.id}`}
                                                 className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400"
                                               >
                                                 <FlagWithName code={m.country} name={m.name} />
                                               </Link>
-                                              {i < arr.length - 1 && ", "}
+                                              {i < arr.length - 1 && (
+                                                <span className="hidden md:inline">, </span>
+                                              )}
                                             </span>
                                           ))}
-                                          )
-                                        </span>
+                                          <span className="hidden md:inline">)</span>
+                                        </div>
                                       </td>
                                       <td className="border px-2 py-1 text-center">{row.reignCount}</td>
                                       <td className="border px-2 py-1 text-center">{row.defenses}</td>
@@ -748,7 +779,7 @@ export default function ChampionshipsPage() {
                           <div className="mb-8">
                             <h4 className="text-lg font-semibold mb-2">By Individual Wrestler</h4>
                             <div className="overflow-x-auto no-scrollbar">
-                              <table className="table-auto w-full border-collapse text-sm min-w-[600px]">
+                              <table className="table-auto w-full border-collapse text-xs md:text-sm md:min-w-[600px]">
                                 <thead>
                                   <tr className="bg-gray-100 dark:bg-gray-700">
                                     {["#", "Champion", "Interpreter", "Reigns", "Successful defenses", "Total days"].map(
@@ -756,7 +787,7 @@ export default function ChampionshipsPage() {
                                         <th
                                           key={label}
                                           onClick={() => handleIndSort(label)}
-                                          className="border px-2 py-1 text-center cursor-pointer select-none"
+                                          className={`border px-2 py-1 text-center cursor-pointer select-none ${label === "Champion" ? "whitespace-nowrap" : ""}`}
                                         >
                                           {label}
                                           {renderIndSortIcon(label)}
@@ -776,10 +807,10 @@ export default function ChampionshipsPage() {
                                       }
                                     >
                                       <td className="border px-2 py-1 text-center">{idx + 1}</td>
-                                      <td className="border px-2 py-1 text-left font-semibold">
+                                      <td className="border px-2 py-1 text-left font-semibold whitespace-nowrap">
                                         <Link
                                           href={`/wrestlers/${row.wrestlerId}`}
-                                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400"
+                                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-semibold"
                                         >
                                           <FlagWithName code={row.country} name={row.wrestlerName} />
                                         </Link>
@@ -817,19 +848,28 @@ export default function ChampionshipsPage() {
                                 <div className="mb-8">
                                   <h4 className="text-lg font-semibold mb-2">Per wrestler</h4>
                                   <div className="overflow-x-auto no-scrollbar">
-                                    <table className="table-auto w-full border-collapse text-sm min-w-[600px]">
+                                    <table className="table-auto w-full border-collapse text-xs md:text-sm md:min-w-[600px]">
                                       <thead>
                                         <tr className="bg-gray-100 dark:bg-gray-700">
-                                          {aggColumns.map(({ label }) => (
-                                            <th
-                                              key={label}
-                                              onClick={() => handleAggSort(label)}
-                                              className="border px-2 py-1 text-center cursor-pointer select-none"
-                                            >
-                                              {label}
-                                              {renderAggSortIcon(label)}
-                                            </th>
-                                          ))}
+                                          {aggColumns
+                                            .filter(
+                                              (c) =>
+                                                !(
+                                                  sel === 8 &&
+                                                  (c.label === "Successful defenses" ||
+                                                    c.label === "Total days")
+                                                ),
+                                            )
+                                            .map(({ label, widthClass }) => (
+                                              <th
+                                                key={label}
+                                                onClick={() => handleAggSort(label)}
+                                                className={`border px-2 py-1 text-center cursor-pointer select-none ${widthClass || ""}`}
+                                              >
+                                                {label}
+                                                {renderAggSortIcon(label)}
+                                              </th>
+                                            ))}
                                         </tr>
                                       </thead>
                                       <tbody className="divide-y">
@@ -843,7 +883,7 @@ export default function ChampionshipsPage() {
                                             }
                                           >
                                             <td className="border px-2 py-1 text-center">{idx + 1}</td>
-                                            <td className="border px-2 py-1">
+                                            <td className="border px-2 py-1 font-semibold whitespace-nowrap">
                                               <Link
                                                 href={`/wrestlers/${row.wrestlerId}`}
                                                 className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-semibold"
@@ -852,19 +892,27 @@ export default function ChampionshipsPage() {
                                               </Link>
                                             </td>
                                             <td className="border px-2 py-1">
-                                              <Link
-                                                href={`/interpreters/${row.interpreterId}`}
-                                                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400"
-                                              >
-                                                <FlagWithName
-                                                  code={row.interpreterCountry}
-                                                  name={row.interpreterName}
-                                                />
-                                              </Link>
+                                              {row.interpreterId ? (
+                                                <Link
+                                                  href={`/interpreters/${row.interpreterId}`}
+                                                  className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400"
+                                                >
+                                                  <FlagWithName
+                                                    code={row.interpreterCountry}
+                                                    name={row.interpreterName}
+                                                  />
+                                                </Link>
+                                              ) : (
+                                                "—"
+                                              )}
                                             </td>
                                             <td className="border px-2 py-1 text-center">{row.reignCount}</td>
-                                            <td className="border px-2 py-1 text-center">{row.defenses}</td>
-                                            <td className="border px-2 py-1 text-center">{row.totalDaysLabel}</td>
+                                            {sel !== 8 && (
+                                              <>
+                                                <td className="border px-2 py-1 text-center">{row.defenses}</td>
+                                                <td className="border px-2 py-1 text-center">{row.totalDaysLabel}</td>
+                                              </>
+                                            )}
                                           </tr>
                                         ))}
                                       </tbody>
@@ -875,7 +923,7 @@ export default function ChampionshipsPage() {
                                 <div className="mb-8">
                                   <h4 className="text-lg font-semibold mb-2">Per interpreter</h4>
                                   <div className="overflow-x-auto no-scrollbar">
-                                    <table className="table-auto w-full border-collapse text-sm min-w-[600px]">
+                                    <table className="table-auto w-full border-collapse text-xs md:text-sm md:min-w-[600px]">
                                       <thead>
                                         <tr className="bg-gray-100 dark:bg-gray-700">
                                           {[
@@ -885,23 +933,36 @@ export default function ChampionshipsPage() {
                                             "Reigns,Reigns",
                                             "Successful defenses,Successful defenses",
                                             "Total days,Total days",
-                                          ].map((headerInfo) => {
-                                            const [label, sortKey] = headerInfo.split(",");
-                                            return (
-                                              <th
-                                                key={label}
-                                                onClick={() =>
-                                                  sortKey !== "none" && handleInterpreterSort(sortKey)
+                                          ]
+                                            .filter((headerInfo) => {
+                                              if (sel === 8) {
+                                                const label = headerInfo.split(",")[0];
+                                                if (
+                                                  label === "Successful defenses" ||
+                                                  label === "Total days"
+                                                ) {
+                                                  return false;
                                                 }
-                                                className={`border px-2 py-1 text-center select-none ${
-                                                  sortKey !== "none" ? "cursor-pointer" : ""
-                                                }`}
-                                              >
-                                                {label}
-                                                {sortKey !== "none" && renderInterpreterSortIcon(sortKey)}
-                                              </th>
-                                            );
-                                          })}
+                                              }
+                                              return true;
+                                            })
+                                            .map((headerInfo) => {
+                                              const [label, sortKey] = headerInfo.split(",");
+                                              return (
+                                                <th
+                                                  key={label}
+                                                  onClick={() =>
+                                                    sortKey !== "none" && handleInterpreterSort(sortKey)
+                                                  }
+                                                  className={`border px-2 py-1 text-center select-none ${
+                                                    sortKey !== "none" ? "cursor-pointer" : ""
+                                                  } ${label.startsWith("Champion") ? "whitespace-nowrap" : ""}`}
+                                                >
+                                                  {label}
+                                                  {sortKey !== "none" && renderInterpreterSortIcon(sortKey)}
+                                                </th>
+                                              );
+                                            })}
                                         </tr>
                                       </thead>
                                       <tbody className="divide-y">
@@ -926,7 +987,7 @@ export default function ChampionshipsPage() {
                                                 />
                                               </Link>
                                             </td>
-                                            <td className="border px-2 py-1">
+                                            <td className="border px-2 py-1 whitespace-nowrap">
                                               {row.champions.map((champ, cIdx) => (
                                                 <React.Fragment key={champ.id}>
                                                   <Link
@@ -940,8 +1001,12 @@ export default function ChampionshipsPage() {
                                               ))}
                                             </td>
                                             <td className="border px-2 py-1 text-center">{row.reigns}</td>
-                                            <td className="border px-2 py-1 text-center">{row.defenses}</td>
-                                            <td className="border px-2 py-1 text-center">{row.totalDaysLabel}</td>
+                                            {sel !== 8 && (
+                                              <>
+                                                <td className="border px-2 py-1 text-center">{row.defenses}</td>
+                                                <td className="border px-2 py-1 text-center">{row.totalDaysLabel}</td>
+                                              </>
+                                            )}
                                           </tr>
                                         ))}
                                       </tbody>
@@ -951,19 +1016,28 @@ export default function ChampionshipsPage() {
                               </>
                             ) : (
                               <div className="mb-8 overflow-x-auto no-scrollbar">
-                                <table className="table-auto w-full border-collapse text-sm min-w-[600px]">
+                                <table className="table-auto w-full border-collapse text-xs md:text-sm md:min-w-[600px]">
                                   <thead>
                                     <tr className="bg-gray-100 dark:bg-gray-700">
-                                      {aggColumns.map(({ label }) => (
-                                        <th
-                                          key={label}
-                                          onClick={() => handleAggSort(label)}
-                                          className="border px-2 py-1 text-center cursor-pointer select-none"
-                                        >
-                                          {label}
-                                          {renderAggSortIcon(label)}
-                                        </th>
-                                      ))}
+                                      {aggColumns
+                                        .filter(
+                                          (c) =>
+                                            !(
+                                              sel === 8 &&
+                                              (c.label === "Successful defenses" ||
+                                                c.label === "Total days")
+                                            ),
+                                        )
+                                        .map(({ label, widthClass }) => (
+                                          <th
+                                            key={label}
+                                            onClick={() => handleAggSort(label)}
+                                            className={`border px-2 py-1 text-center cursor-pointer select-none ${widthClass || ""}`}
+                                          >
+                                            {label}
+                                            {renderAggSortIcon(label)}
+                                          </th>
+                                        ))}
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y">
@@ -977,7 +1051,7 @@ export default function ChampionshipsPage() {
                                         }
                                       >
                                         <td className="border px-2 py-1 text-center">{idx + 1}</td>
-                                        <td className="border px-2 py-1">
+                                        <td className="border px-2 py-1 font-semibold whitespace-nowrap">
                                           <Link
                                             href={`/wrestlers/${row.wrestlerId}`}
                                             className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-semibold"
@@ -986,19 +1060,27 @@ export default function ChampionshipsPage() {
                                           </Link>
                                         </td>
                                         <td className="border px-2 py-1">
-                                          <Link
-                                            href={`/interpreters/${row.interpreterId}`}
-                                            className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400"
-                                          >
-                                            <FlagWithName
-                                              code={row.interpreterCountry}
-                                              name={row.interpreterName}
-                                            />
-                                          </Link>
+                                          {row.interpreterId ? (
+                                            <Link
+                                              href={`/interpreters/${row.interpreterId}`}
+                                              className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400"
+                                            >
+                                              <FlagWithName
+                                                code={row.interpreterCountry}
+                                                name={row.interpreterName}
+                                              />
+                                            </Link>
+                                          ) : (
+                                            "—"
+                                          )}
                                         </td>
                                         <td className="border px-2 py-1 text-center">{row.reignCount}</td>
-                                        <td className="border px-2 py-1 text-center">{row.defenses}</td>
-                                        <td className="border px-2 py-1 text-center">{row.totalDaysLabel}</td>
+                                        {sel !== 8 && (
+                                          <>
+                                            <td className="border px-2 py-1 text-center">{row.defenses}</td>
+                                            <td className="border px-2 py-1 text-center">{row.totalDaysLabel}</td>
+                                          </>
+                                        )}
                                       </tr>
                                     ))}
                                   </tbody>
@@ -1012,8 +1094,8 @@ export default function ChampionshipsPage() {
                   )}
                 </div>
               )}
-            </div>
-          )}
+          </div>
+        )}
       </div>
     </>
   );

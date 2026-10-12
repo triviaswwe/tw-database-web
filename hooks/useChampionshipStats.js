@@ -116,8 +116,8 @@ export function useChampionshipStats(reignsArr, defenseSummary, defenses, tagInd
 
     reignsArr.forEach((r) => {
       if (!r.wrestler_id) return;
-      const daysNum = parseInt(calculateDaysHeld(r.won_date, r.lost_date).replace("+",""), 10) || 0;
-      const defs    = defMap.get(r.id) || 0;
+      const daysNum = sel === 8 ? 0 : (parseInt(calculateDaysHeld(r.won_date, r.lost_date).replace("+",""), 10) || 0);
+      const defs    = sel === 8 ? 0 : (defMap.get(r.id) || 0);
       if (!map.has(r.wrestler_id)) {
         map.set(r.wrestler_id, {
           wrestlerId: r.wrestler_id, wrestlerName: r.wrestler, country: r.country,
@@ -131,7 +131,11 @@ export function useChampionshipStats(reignsArr, defenseSummary, defenses, tagInd
     });
 
     return Array.from(map.values())
-      .map((o) => ({ ...o, totalDaysLabel: o.isCurrent ? `${o.totalDays}+` : `${o.totalDays}` }))
+      .map((o) => ({
+        ...o,
+        defenses: sel === 8 ? "—" : o.defenses,
+        totalDaysLabel: sel === 8 ? "—" : (o.isCurrent ? `${o.totalDays}+` : `${o.totalDays}`),
+      }))
       .sort((a, b) => {
         let va, vb;
         switch (aggSortKey) {
@@ -196,8 +200,8 @@ export function useChampionshipStats(reignsArr, defenseSummary, defenses, tagInd
 
     reignsArr.forEach((r) => {
       const rawDays = calculateDaysHeld(r.won_date, r.lost_date).replace("+","");
-      const daysNum = Number.isFinite(Number(rawDays)) ? parseInt(rawDays, 10) : 0;
-      const defs    = defMap.get(r.id) || 0;
+      const daysNum = sel === 8 ? 0 : (Number.isFinite(Number(rawDays)) ? parseInt(rawDays, 10) : 0);
+      const defs    = sel === 8 ? 0 : (defMap.get(r.id) || 0);
 
       if (isTag && r.tag_team_id) {
         const key     = r.tag_team_id;
@@ -223,7 +227,11 @@ export function useChampionshipStats(reignsArr, defenseSummary, defenses, tagInd
     });
 
     return Array.from(map.values())
-      .map((o) => ({ ...o, totalDaysLabel: o.isCurrent ? `${o.totalDays}+` : `${o.totalDays}` }))
+      .map((o) => ({
+        ...o,
+        defenses: sel === 8 ? "—" : o.defenses,
+        totalDaysLabel: sel === 8 ? "—" : (o.isCurrent ? `${o.totalDays}+` : `${o.totalDays}`),
+      }))
       .sort((a, b) => {
         let va, vb;
         switch (aggSortKey) {
@@ -231,7 +239,6 @@ export function useChampionshipStats(reignsArr, defenseSummary, defenses, tagInd
           case "Champion":            va = isTag ? a.teamName.toLowerCase() : a.wrestlerName.toLowerCase(); vb = isTag ? b.teamName.toLowerCase() : b.wrestlerName.toLowerCase(); break;
           case "Reigns":              va = a.reignCount; vb = b.reignCount; break;
           case "Successful defenses": va = a.defenses;   vb = b.defenses;   break;
-          case "Total days":          va = a.totalDays;  vb = b.totalDays;  break;
           default: return 0;
         }
         return aggSortOrder === "asc"

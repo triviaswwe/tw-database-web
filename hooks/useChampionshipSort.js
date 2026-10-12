@@ -34,7 +34,7 @@ export function useChampionshipSort(reignsArr, sel) {
     let arr = reignsArr.map((r, idx) => ({
       ...r,
       __index:           idx,
-      __daysHeld:        calculateDaysHeld(r.won_date, r.lost_date),
+      __daysHeld:        sel === 8 ? "—" : calculateDaysHeld(r.won_date, r.lost_date),
       __wonDateObj:      r.won_date ? new Date(r.won_date) : new Date(0),
       __eventName:       r.event_name    || "",
       __wrestlerName:    r.wrestler      || "",
@@ -91,7 +91,7 @@ export function useChampionshipSort(reignsArr, sel) {
 
   // ID del reinado más largo (para mostrar nota en la tabla)
   const longestReignId = useMemo(() => {
-    if (!Array.isArray(sortedReigns) || sortedReigns.length === 0) return null;
+    if (sel === 8 || !Array.isArray(sortedReigns) || sortedReigns.length === 0) return null;
     let maxDays = -Infinity, winner = null;
     sortedReigns.forEach((r) => {
       if (r.isVacant) return;
