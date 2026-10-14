@@ -23,11 +23,11 @@ export default function Rules() {
       icon: <UserPlus className="w-5 h-5 text-blue-500" />,
       content: (
         <p className="text-base text-gray-700 dark:text-gray-300">
-          Para unirte al Campeonato de Trivias de WWE, comunícate con{" "}
-          <a href="https://www.instagram.com/triviaswwe" target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-600 dark:text-sky-400 hover:underline">
-            @triviaswwe
+          Para unirte al Campeonato de Trivias de WWE, únete al grupo de{" "}
+          <a href="https://chat.whatsapp.com/D7vkfUKTujZ8nr6xlQj02C" target="_blank" rel="noopener noreferrer" className="font-semibold text-green-600 dark:text-green-400 hover:underline">
+            Backstage en WhatsApp
           </a>{" "}
-          a través de Instagram para recibir la invitación a los grupos de WhatsApp correspondientes a cada marca.
+          para recibir la invitación a los grupos correspondientes a cada marca.
         </p>
       )
     },
@@ -168,7 +168,7 @@ export default function Rules() {
           </li>
           <li className="flex items-start gap-4 bg-red-50 dark:bg-red-900/10 p-4 rounded-xl border border-red-100 dark:border-red-900/30">
             <div className="min-w-6 mt-0.5 text-red-500"><AlertOctagon className="w-5 h-5" /></div>
-            <div><strong className="text-red-700 dark:text-red-400">Prohibido hacer trampa:</strong> No se puede salir del chat para usar buscadores ni compartir respuestas.</div>
+            <div><strong className="text-red-700 dark:text-red-400">Prohibido hacer trampa:</strong> No se puede salir del chat para usar buscadores ni compartir respuestas. Del mismo modo herramientas como el teclado predictivo de WhatsApp o aplicaciones similares también están completamente prohibidas.</div>
           </li>
           <li className="flex items-start gap-4 bg-gray-50 dark:bg-zinc-800/50 p-4 rounded-xl">
             <div className="min-w-6 mt-0.5 text-yellow-500"><ShieldAlert className="w-5 h-5" /></div>
@@ -176,7 +176,7 @@ export default function Rules() {
           </li>
           <li className="flex items-start gap-4 bg-gray-50 dark:bg-zinc-800/50 p-4 rounded-xl">
             <div className="min-w-6 mt-0.5 text-indigo-500"><FileText className="w-5 h-5" /></div>
-            <div>Es obligatorio usar "The" en nombres de una sola palabra (ej: The Miz). Es opcional en nombres de más de una palabra (ej: Big Show).</div>
+            <div>Es obligatorio usar "The" en nombres de luchadores, tag teams o stables de una sola palabra (ej: The Miz). Es opcional en nombres de más de una palabra (ej: Big Show).</div>
           </li>
           <li className="flex items-start gap-4 bg-gray-50 dark:bg-zinc-800/50 p-4 rounded-xl">
             <div className="min-w-6 mt-0.5 text-indigo-500"><FileText className="w-5 h-5" /></div>
@@ -185,6 +185,14 @@ export default function Rules() {
           <li className="flex items-start gap-4 bg-gray-50 dark:bg-zinc-800/50 p-4 rounded-xl">
             <div className="min-w-6 mt-0.5 text-indigo-500"><FileText className="w-5 h-5" /></div>
             <div>Para "Finisher" o "Theme Song", cualquier canción o finisher de toda su carrera es válido, salvo que el árbitro indique lo contrario.</div>
+          </li>
+          <li className="flex items-start gap-4 bg-gray-50 dark:bg-zinc-800/50 p-4 rounded-xl">
+            <div className="min-w-6 mt-0.5 text-indigo-500"><FileText className="w-5 h-5" /></div>
+            <div>Cuando se pide nombrar una lucha, se debe agregar <strong className="text-gray-900 dark:text-white">SIN EXCEPCIÓN</strong> el "vs" entre participantes, pero cuando se pide nombrar participantes, <strong className="text-gray-900 dark:text-white">NO</strong> se tomará por válido si escriben "vs" entre los mismos.</div>
+          </li>
+          <li className="flex items-start gap-4 bg-gray-50 dark:bg-zinc-800/50 p-4 rounded-xl">
+            <div className="min-w-6 mt-0.5 text-indigo-500"><FileText className="w-5 h-5" /></div>
+            <div>Cuando se pide la estipulación de un combate, es obligatorio agregar "match" al final de la estipulación (ej: Steel Cage match).</div>
           </li>
         </ul>
       )
@@ -380,12 +388,12 @@ export default function Rules() {
                 ¡Disfruta del Campeonato de Trivias de WWE y demuestra tus conocimientos sobre la lucha libre!
               </p>
               <a 
-                href="https://www.instagram.com/triviaswwe" 
+                href="https://chat.whatsapp.com/D7vkfUKTujZ8nr6xlQj02C" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-white text-indigo-600 px-8 py-4 rounded-full font-bold hover:bg-indigo-50 hover:scale-105 transition-all shadow-lg hover:shadow-xl"
               >
-                Unirse al Torneo en Instagram <UserPlus className="w-5 h-5" />
+                Unirse al Torneo en WhatsApp <UserPlus className="w-5 h-5" />
               </a>
             </div>
           </div>
