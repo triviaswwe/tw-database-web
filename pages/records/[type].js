@@ -7,7 +7,28 @@ import Image from "next/image";
 import { useRouter } from "next/router";
 import pool from "../../lib/db";
 import FlagWithName from "../../components/FlagWithName";
-import Spinner from "../../components/Spinner"; // Asumiendo que tienes este componente
+import Spinner from "../../components/Spinner";
+
+const BLOB_BASE_URL = "https://ljejfdquofuxccca.public.blob.vercel-storage.com";
+
+const TITLE_PLATES = {
+  "Undisputed WWE Championship": `${BLOB_BASE_URL}/champions/uwctitle.png`,
+  "World Heavyweight Championship": `${BLOB_BASE_URL}/champions/whctitle.png`,
+  "Intercontinental Championship": `${BLOB_BASE_URL}/champions/ictitle.png`,
+  "United States Championship": `${BLOB_BASE_URL}/champions/ustitle.png`,
+  "World Tag Team Championship": `${BLOB_BASE_URL}/champions/wtttitle.png`,
+  "NXT Championship": `${BLOB_BASE_URL}/champions/nxttitle.png`,
+  "Speed Championship": `${BLOB_BASE_URL}/speed.png`,
+  "Crown Jewel Championship": `${BLOB_BASE_URL}/champions/cjtitle.png`,
+};
+
+const CATEGORIES = [
+  { type: "main", label: "Campeonatos mundiales" },
+  { type: "mid", label: "Campeonatos midcard" },
+  { type: "tag", label: "Campeonatos en pareja" },
+  { type: "low", label: "Campeonatos terciarios" },
+  { type: "special", label: "Campeonatos especiales" },
+];
 
 export async function getServerSideProps(context) {
   const { res } = context;
@@ -26,7 +47,30 @@ export async function getServerSideProps(context) {
   const isWrestler = type === "wrestler";
 
   try {
-    let matchesRows, winsRows, topStatsRows, longestReignsRows, mostDefensesRows;
+    let matchesRows, winsRows, topStatsRows, longestReignsRows, mostDefensesRows, championshipsRows, totalChampionshipsRows;
+
+    [championshipsRows] = await pool.query(`
+      SELECT 
+        c.id, 
+        c.title_name, 
+        c.type,
+        COALESCE(
+          (SELECT ct.image_url FROM championship_titles ct WHERE ct.championship_id = c.id AND ct.end_date IS NULL ORDER BY ct.start_date DESC LIMIT 1),
+          (SELECT ct.image_url FROM championship_titles ct WHERE ct.championship_id = c.id ORDER BY ct.start_date DESC LIMIT 1)
+        ) AS image_url
+      FROM championships c
+      WHERE c.show_in_ui = 1 AND c.type IS NOT NULL
+      ORDER BY 
+        CASE c.type
+          WHEN 'main' THEN 1
+          WHEN 'mid' THEN 2
+          WHEN 'tag' THEN 3
+          WHEN 'low' THEN 4
+          WHEN 'special' THEN 5
+          ELSE 6
+        END ASC, 
+        c.id ASC
+    `);
 
     if (isWrestler) {
       [matchesRows] = await pool.query(`
@@ -111,6 +155,29 @@ export async function getServerSideProps(context) {
         WHERE (cr.wrestler_id IS NOT NULL OR cr.tag_team_id IS NOT NULL)
           AND c.id != 8
         ORDER BY defenses_count DESC, days_held DESC LIMIT 10
+      `);
+
+      [totalChampionshipsRows] = await pool.query(`
+        SELECT 
+          w.id,
+          w.wrestler AS name,
+          w.country,
+          c.id AS championship_id,
+          COUNT(DISTINCT r_data.reign_id) AS count
+        FROM (
+          SELECT cr.id AS reign_id, cr.wrestler_id, cr.championship_id
+          FROM championship_reigns cr
+          WHERE cr.wrestler_id IS NOT NULL
+          UNION
+          SELECT rm.reign_id, rm.wrestler_id, cr.championship_id
+          FROM reign_members rm
+          JOIN championship_reigns cr ON cr.id = rm.reign_id
+          WHERE rm.wrestler_id IS NOT NULL
+        ) AS r_data
+        JOIN wrestlers w ON w.id = r_data.wrestler_id
+        JOIN championships c ON c.id = r_data.championship_id
+        WHERE c.show_in_ui = 1 AND c.type IS NOT NULL
+        GROUP BY w.id, w.wrestler, w.country, c.id
       `);
     } else {
       [matchesRows] = await pool.query(`
@@ -229,6 +296,29 @@ export async function getServerSideProps(context) {
         ) AS base
         GROUP BY base.reign_id, base.interpreter_id, base.won_date, base.lost_date, base.entity_name, base.country, base.title_name, base.image_url, base.championship_id
         ORDER BY defenses_count DESC, days_held DESC LIMIT 10
+      `);
+
+      [totalChampionshipsRows] = await pool.query(`
+        SELECT 
+          i.id,
+          i.interpreter AS name,
+          i.nationality AS country,
+          c.id AS championship_id,
+          COUNT(DISTINCT r_data.reign_id) AS count
+        FROM (
+          SELECT cr.id AS reign_id, cr.interpreter_id, cr.championship_id
+          FROM championship_reigns cr
+          WHERE cr.interpreter_id IS NOT NULL
+          UNION
+          SELECT rm.reign_id, rm.interpreter_id, cr.championship_id
+          FROM reign_members rm
+          JOIN championship_reigns cr ON cr.id = rm.reign_id
+          WHERE rm.interpreter_id IS NOT NULL
+        ) AS r_data
+        JOIN interpreters i ON i.id = r_data.interpreter_id
+        JOIN championships c ON c.id = r_data.championship_id
+        WHERE c.show_in_ui = 1 AND c.type IS NOT NULL
+        GROUP BY i.id, i.interpreter, i.nationality, c.id
       `);
     }
 
@@ -514,6 +604,65 @@ export async function getServerSideProps(context) {
       };
     });
 
+    const formatImageUrl = (url, titleName) => {
+      const chosen = url || TITLE_PLATES[titleName] || null;
+      if (!chosen) return null;
+      if (chosen.startsWith("http://") || chosen.startsWith("https://")) return chosen;
+      return `${BLOB_BASE_URL}/${chosen.replace(/^\/+/, "")}`;
+    };
+
+    const championshipsList = championshipsRows.map((c) => ({
+      id: c.id,
+      title_name: c.title_name,
+      type: c.type,
+      image_url: formatImageUrl(c.image_url, c.title_name),
+    }));
+
+    const entityChampsMap = new Map();
+
+    for (const row of totalChampionshipsRows) {
+      if (!entityChampsMap.has(row.id)) {
+        entityChampsMap.set(row.id, {
+          id: row.id,
+          name: row.name,
+          country: row.country,
+          counts: {},
+          total: 0,
+          mainTotal: 0,
+          midTotal: 0,
+          tagTotal: 0,
+          lowTotal: 0,
+          specialTotal: 0,
+        });
+      }
+      const item = entityChampsMap.get(row.id);
+      const cnt = Number(row.count) || 0;
+      item.counts[row.championship_id] = cnt;
+      item.total += cnt;
+
+      const champ = championshipsList.find((c) => c.id === row.championship_id);
+      if (champ) {
+        if (champ.type === "main") item.mainTotal += cnt;
+        else if (champ.type === "mid") item.midTotal += cnt;
+        else if (champ.type === "tag") item.tagTotal += cnt;
+        else if (champ.type === "low") item.lowTotal += cnt;
+        else if (champ.type === "special") item.specialTotal += cnt;
+      }
+    }
+
+    const totalChampionshipsList = Array.from(entityChampsMap.values())
+      .sort((a, b) => {
+        if (b.total !== a.total) return b.total - a.total;
+        if (b.mainTotal !== a.mainTotal) return b.mainTotal - a.mainTotal;
+        if (b.midTotal !== a.midTotal) return b.midTotal - a.midTotal;
+        if (b.tagTotal !== a.tagTotal) return b.tagTotal - a.tagTotal;
+        if (b.lowTotal !== a.lowTotal) return b.lowTotal - a.lowTotal;
+        if (b.specialTotal !== a.specialTotal) return b.specialTotal - a.specialTotal;
+        return a.name.localeCompare(b.name);
+      })
+      .slice(0, 10)
+      .map((item, idx) => ({ ...item, rank: idx + 1 }));
+
     return {
       props: {
         type,
@@ -524,7 +673,9 @@ export async function getServerSideProps(context) {
           winStreaks: JSON.parse(JSON.stringify(streaks.wins)),
           undefStreaks: JSON.parse(JSON.stringify(streaks.undefs)),
           longestReigns: JSON.parse(JSON.stringify(processReigns(longestReignsRows, isWrestler ? 'wlr' : 'ilr'))),
-          mostDefenses: JSON.parse(JSON.stringify(processReigns(mostDefensesRows, isWrestler ? 'wmd' : 'imd')))
+          mostDefenses: JSON.parse(JSON.stringify(processReigns(mostDefensesRows, isWrestler ? 'wmd' : 'imd'))),
+          championships: JSON.parse(JSON.stringify(championshipsList)),
+          totalChampionships: JSON.parse(JSON.stringify(totalChampionshipsList)),
         }
       },
     };
@@ -543,6 +694,7 @@ export default function RecordsDynamicPage({ error, type, data }) {
   const [topSort, setTopSort] = useState({ key: "wins", dir: "desc" });
   const [lrSort, setLrSort] = useState({ key: "days_held", dir: "desc" });
   const [mdSort, setMdSort] = useState({ key: "defenses_count", dir: "desc" });
+  const [tcSort, setTcSort] = useState({ key: "rank", dir: "asc" });
 
   useEffect(() => {
     const handleStart = (url) => { if (url !== router.asPath) setLoading(true); };
@@ -559,8 +711,11 @@ export default function RecordsDynamicPage({ error, type, data }) {
     };
   }, [router]);
 
-  // Resetea el expandedRow cuando cambias de Tab
-  useEffect(() => { setExpandedRow(null); }, [type]);
+  // Resetea el expandedRow y tcSort cuando cambias de Tab
+  useEffect(() => {
+    setExpandedRow(null);
+    setTcSort({ key: "rank", dir: "asc" });
+  }, [type]);
 
   if (error) {
     return (
@@ -600,6 +755,75 @@ export default function RecordsDynamicPage({ error, type, data }) {
   const sortedMostDefenses = useMemo(() => {
     return [...data.mostDefenses].sort((a, b) => b.defenses_count - a.defenses_count);
   }, [data.mostDefenses]);
+
+  const sortedTotalChampionships = useMemo(() => {
+    if (!data?.totalChampionships) return [];
+    const list = [...data.totalChampionships];
+
+    list.sort((a, b) => {
+      let comparison = 0;
+      if (tcSort.key === "rank") {
+        comparison = a.rank - b.rank;
+        return tcSort.dir === "asc" ? comparison : -comparison;
+      }
+
+      if (tcSort.key === "name") {
+        comparison = a.name.localeCompare(b.name);
+        return tcSort.dir === "asc" ? comparison : -comparison;
+      }
+
+      if (tcSort.key === "total") {
+        comparison = b.total - a.total;
+        if (comparison === 0) comparison = a.rank - b.rank;
+        return tcSort.dir === "asc" ? -comparison : comparison;
+      }
+
+      if (tcSort.key.startsWith("champ_")) {
+        const champId = parseInt(tcSort.key.replace("champ_", ""), 10);
+        const countA = a.counts[champId] || 0;
+        const countB = b.counts[champId] || 0;
+        comparison = countB - countA;
+        if (comparison === 0) {
+          comparison = a.rank - b.rank;
+        }
+        return tcSort.dir === "asc" ? -comparison : comparison;
+      }
+
+      return 0;
+    });
+
+    return list;
+  }, [data?.totalChampionships, tcSort]);
+
+  const handleTcSort = (key) => {
+    setTcSort((prev) => {
+      if (prev.key === key) {
+        return { key, dir: prev.dir === "desc" ? "asc" : "desc" };
+      }
+      return { key, dir: key === "name" || key === "rank" ? "asc" : "desc" };
+    });
+  };
+
+  const championships = data?.championships || [];
+
+  const presentCategories = useMemo(() => {
+    const knownTypes = new Set(CATEGORIES.map((c) => c.type));
+    const grouped = CATEGORIES.map((cat) => ({
+      ...cat,
+      championships: championships.filter((c) => c.type === cat.type),
+    })).filter((cat) => cat.championships.length > 0);
+
+    const otherChamps = championships.filter((c) => !knownTypes.has(c.type));
+    if (otherChamps.length > 0) {
+      grouped.push({
+        type: "other",
+        label: "Otros campeonatos",
+        championships: otherChamps,
+      });
+    }
+
+    return grouped;
+  }, [championships]);
 
   const toggleExpand = (key) => setExpandedRow((prev) => (prev === key ? null : key));
 
@@ -868,6 +1092,169 @@ export default function RecordsDynamicPage({ error, type, data }) {
                     </>
                   )
                 )}
+              </div>
+
+              {/* Total Championships Table (Full Width) */}
+              <div className="mt-8 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
+                <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">
+                    Total Championships
+                  </h2>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-gray-100 dark:bg-zinc-950 text-gray-700 dark:text-gray-300 text-xs uppercase tracking-wider font-bold">
+                        <th
+                          rowSpan={2}
+                          className="px-3 py-2.5 text-center border border-gray-200 dark:border-gray-800 w-12 cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors select-none"
+                          onClick={() => handleTcSort("rank")}
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            <span>N.°</span>
+                            <span className="text-[10px] text-blue-500">
+                              {tcSort.key === "rank" ? (tcSort.dir === "asc" ? "▲" : "▼") : <span className="opacity-40 text-gray-400">⬍</span>}
+                            </span>
+                          </div>
+                        </th>
+
+                        <th
+                          rowSpan={2}
+                          className="px-4 py-2.5 text-left border border-gray-200 dark:border-gray-800 min-w-[180px] cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors select-none"
+                          onClick={() => handleTcSort("name")}
+                        >
+                          <div className="flex items-center gap-1">
+                            <span>{isWrestler ? "Luchador" : "Intérprete"}</span>
+                            <span className="text-[10px] text-blue-500">
+                              {tcSort.key === "name" ? (tcSort.dir === "asc" ? "▲" : "▼") : <span className="opacity-40 text-gray-400">⬍</span>}
+                            </span>
+                          </div>
+                        </th>
+
+                        {presentCategories.map((cat) => (
+                          <th
+                            key={cat.type}
+                            colSpan={cat.championships.length}
+                            className="px-3 py-2 text-center border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-zinc-900/80 font-bold"
+                          >
+                            {cat.label}
+                          </th>
+                        ))}
+
+                        <th
+                          rowSpan={2}
+                          className="px-3 py-2.5 text-center border border-gray-200 dark:border-gray-800 w-16 cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors select-none"
+                          onClick={() => handleTcSort("total")}
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            <span>Total</span>
+                            <span className="text-[10px] text-blue-500">
+                              {tcSort.key === "total" ? (tcSort.dir === "desc" ? "▼" : "▲") : <span className="opacity-40 text-gray-400">⬍</span>}
+                            </span>
+                          </div>
+                        </th>
+                      </tr>
+
+                      <tr className="bg-gray-50 dark:bg-zinc-900 text-gray-600 dark:text-gray-400 text-xs">
+                        {presentCategories.flatMap((cat) =>
+                          cat.championships.map((champ) => {
+                            const isSorted = tcSort.key === `champ_${champ.id}`;
+                            return (
+                              <th
+                                key={champ.id}
+                                className="px-2 py-2 text-center border border-gray-200 dark:border-gray-800 cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors select-none min-w-[58px]"
+                                onClick={() => handleTcSort(`champ_${champ.id}`)}
+                                title={champ.title_name}
+                              >
+                                <div className="flex flex-col items-center justify-center gap-1">
+                                  {champ.image_url ? (
+                                    <div className="relative w-10 h-7 flex items-center justify-center">
+                                      <Image
+                                        src={champ.image_url}
+                                        alt={champ.title_name}
+                                        title={champ.title_name}
+                                        width={40}
+                                        height={28}
+                                        className="object-contain max-h-7 w-auto hover:scale-110 transition-transform drop-shadow-sm"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <span className="text-[11px] font-semibold truncate max-w-[50px]">
+                                      {champ.title_name.replace(" Championship", "")}
+                                    </span>
+                                  )}
+                                  <span className="text-[10px] text-blue-500 leading-none">
+                                    {isSorted ? (tcSort.dir === "desc" ? "▼" : "▲") : <span className="opacity-30 text-gray-400">⬍</span>}
+                                  </span>
+                                </div>
+                              </th>
+                            );
+                          })
+                        )}
+                      </tr>
+                    </thead>
+
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                      {sortedTotalChampionships.map((item) => (
+                        <tr
+                          key={item.id}
+                          className="hover:bg-gray-50 dark:hover:bg-zinc-800/60 transition-colors"
+                        >
+                          <td className="px-3 py-2.5 text-center font-medium text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-800 text-sm">
+                            {item.rank}
+                          </td>
+
+                          <td className="px-4 py-2.5 font-semibold text-blue-600 dark:text-sky-400 border border-gray-200 dark:border-gray-800 text-sm">
+                            <Link
+                              href={`${entityUrl}/${item.id}`}
+                              className="flex items-center gap-2 hover:underline"
+                            >
+                              <FlagWithName code={item.country} name={item.name} />
+                            </Link>
+                          </td>
+
+                          {presentCategories.flatMap((cat) =>
+                            cat.championships.map((champ) => {
+                              const count = item.counts[champ.id] || 0;
+                              return (
+                                <td
+                                  key={champ.id}
+                                  className="px-2 py-2.5 text-center font-mono text-sm border border-gray-200 dark:border-gray-800"
+                                >
+                                  {count > 0 ? (
+                                    <span className="font-semibold text-gray-800 dark:text-gray-100">
+                                      {count}
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-400 dark:text-gray-600 select-none">
+                                      —
+                                    </span>
+                                  )}
+                                </td>
+                              );
+                            })
+                          )}
+
+                          <td className="px-3 py-2.5 text-center font-bold font-mono text-sm border border-gray-200 dark:border-gray-800 bg-gray-50/70 dark:bg-zinc-900/70 text-gray-900 dark:text-white">
+                            {item.total}
+                          </td>
+                        </tr>
+                      ))}
+
+                      {sortedTotalChampionships.length === 0 && (
+                        <tr>
+                          <td
+                            colSpan={championships.length + 3}
+                            className="px-4 py-8 text-center text-gray-500 dark:text-gray-400"
+                          >
+                            No hay campeonatos registrados.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </>
           )}
