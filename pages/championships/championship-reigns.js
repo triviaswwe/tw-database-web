@@ -368,7 +368,7 @@ export default function ChampionshipsPage() {
         <title>Championship Reigns — Trivias WWE</title>
         <meta
           name="description"
-          content="Historial de campeonatos, reinados y estadísticas del Campeonato de Trivias WWE."
+          content="History of championships, reigns, and statistics for the Trivias WWE Championship."
         />
       </Head>
 

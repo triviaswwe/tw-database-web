@@ -22,8 +22,27 @@ const TITLE_PLATES = {
   "Crown Jewel Championship": `${BLOB_BASE_URL}/champions/cjtitle.png`,
 };
 
+const PLE_IMAGE_MAP = {
+  4: `${BLOB_BASE_URL}/tlc.png`,
+  6: `${BLOB_BASE_URL}/noc.png`,
+  7: `${BLOB_BASE_URL}/mitb.png`,
+  11: `${BLOB_BASE_URL}/bb.png`,
+  12: `${BLOB_BASE_URL}/snme.png`,
+  13: `${BLOB_BASE_URL}/payback.png`,
+  14: `${BLOB_BASE_URL}/fastlane.png`,
+  17: `${BLOB_BASE_URL}/bib.png`,
+  18: `${BLOB_BASE_URL}/takeover.png`,
+};
+
+const formatEventLogo = (imageUrl, pleImageUrl, pleId) => {
+  const chosen = imageUrl || pleImageUrl || (pleId && PLE_IMAGE_MAP[pleId] ? PLE_IMAGE_MAP[pleId] : null) || null;
+  if (!chosen) return null;
+  if (chosen.startsWith("http://") || chosen.startsWith("https://")) return chosen;
+  return `${BLOB_BASE_URL}/${chosen.replace(/^\/+/, "")}`;
+};
+
 const CATEGORIES = [
-  { type: "main", label: "Main championships" },
+  { type: "main", label: "Maincard championships" },
   { type: "mid", label: "Midcard championships" },
   { type: "tag", label: "Tag team championships" },
   { type: "low", label: "Lowcard championships" },
@@ -47,7 +66,7 @@ export async function getServerSideProps(context) {
   const isWrestler = type === "wrestler";
 
   try {
-    let matchesRows, winsRows, topStatsRows, longestReignsRows, mostDefensesRows, championshipsRows, totalChampionshipsRows;
+    let matchesRows, winsRows, topStatsRows, longestReignsRows, mostDefensesRows, championshipsRows, totalChampionshipsRows, pleAppearancesRows;
 
     [championshipsRows] = await pool.query(`
       SELECT 
@@ -138,7 +157,7 @@ export async function getServerSideProps(context) {
         LEFT JOIN championship_titles ct ON c.id = ct.championship_id AND cr.won_date >= ct.start_date AND (cr.won_date <= ct.end_date OR ct.end_date IS NULL)
         WHERE (cr.wrestler_id IS NOT NULL OR cr.tag_team_id IS NOT NULL)
           AND c.id != 8
-        ORDER BY days_held DESC LIMIT 10
+        ORDER BY defenses_count DESC, days_held DESC LIMIT 10
       `);
 
       [mostDefensesRows] = await pool.query(`
@@ -178,6 +197,34 @@ export async function getServerSideProps(context) {
         JOIN championships c ON c.id = r_data.championship_id
         WHERE c.show_in_ui = 1 AND c.type IS NOT NULL
         GROUP BY w.id, w.wrestler, w.country, c.id
+      `);
+
+      [pleAppearancesRows] = await pool.query(`
+        SELECT 
+          w.id,
+          w.wrestler AS name,
+          w.country,
+          e.id AS event_id,
+          e.name AS event_name,
+          e.event_date,
+          e.image_url AS event_image_url,
+          e.ple_id,
+          p.image_url AS ple_image_url,
+          mp.interpreter_id AS other_id,
+          i.interpreter AS other_name
+        FROM match_participants mp
+        JOIN matches m ON mp.match_id = m.id
+        JOIN events e ON m.event_id = e.id
+        JOIN wrestlers w ON mp.wrestler_id = w.id
+        LEFT JOIN ples p ON e.ple_id = p.id
+        LEFT JOIN interpreters i ON mp.interpreter_id = i.id
+        WHERE e.ple_id IS NOT NULL 
+          AND e.ple_id != 0 
+          AND e.ple_id != 18
+          AND mp.result IS NOT NULL 
+          AND mp.result != ''
+        GROUP BY w.id, w.wrestler, w.country, e.id, e.name, e.event_date, e.image_url, e.ple_id, p.image_url, mp.interpreter_id, i.interpreter
+        ORDER BY e.event_date ASC, e.id ASC
       `);
     } else {
       [matchesRows] = await pool.query(`
@@ -262,7 +309,7 @@ export async function getServerSideProps(context) {
             WHERE rm.interpreter_id IS NOT NULL AND c.id != 8
         ) AS base
         GROUP BY base.reign_id, base.interpreter_id, base.won_date, base.lost_date, base.entity_name, base.country, base.title_name, base.image_url, base.championship_id
-        ORDER BY days_held DESC LIMIT 10
+        ORDER BY defenses_count DESC, days_held DESC LIMIT 10
       `);
 
       [mostDefensesRows] = await pool.query(`
@@ -319,6 +366,34 @@ export async function getServerSideProps(context) {
         JOIN championships c ON c.id = r_data.championship_id
         WHERE c.show_in_ui = 1 AND c.type IS NOT NULL
         GROUP BY i.id, i.interpreter, i.nationality, c.id
+      `);
+
+      [pleAppearancesRows] = await pool.query(`
+        SELECT 
+          i.id,
+          i.interpreter AS name,
+          i.nationality AS country,
+          e.id AS event_id,
+          e.name AS event_name,
+          e.event_date,
+          e.image_url AS event_image_url,
+          e.ple_id,
+          p.image_url AS ple_image_url,
+          mp.wrestler_id AS other_id,
+          w.wrestler AS other_name
+        FROM match_participants mp
+        JOIN matches m ON mp.match_id = m.id
+        JOIN events e ON m.event_id = e.id
+        JOIN interpreters i ON mp.interpreter_id = i.id
+        LEFT JOIN ples p ON e.ple_id = p.id
+        LEFT JOIN wrestlers w ON mp.wrestler_id = w.id
+        WHERE e.ple_id IS NOT NULL 
+          AND e.ple_id != 0 
+          AND e.ple_id != 18
+          AND mp.result IS NOT NULL 
+          AND mp.result != ''
+        GROUP BY i.id, i.interpreter, i.nationality, e.id, e.name, e.event_date, e.image_url, e.ple_id, p.image_url, mp.wrestler_id, w.wrestler
+        ORDER BY e.event_date ASC, e.id ASC
       `);
     }
 
@@ -663,6 +738,84 @@ export async function getServerSideProps(context) {
       .slice(0, 10)
       .map((item, idx) => ({ ...item, rank: idx + 1 }));
 
+    const pleAppearancesMap = new Map();
+
+    for (const row of pleAppearancesRows) {
+      if (!pleAppearancesMap.has(row.id)) {
+        pleAppearancesMap.set(row.id, {
+          id: row.id,
+          name: row.name,
+          country: row.country,
+          seenEvents: new Set(),
+          firstEvent: null,
+          lastEvent: null,
+          otherEventsMap: new Map(),
+        });
+      }
+      const item = pleAppearancesMap.get(row.id);
+
+      const eventDateVal = row.event_date ? new Date(row.event_date) : null;
+      const eventYear = eventDateVal && !isNaN(eventDateVal.getTime())
+        ? eventDateVal.getUTCFullYear()
+        : (typeof row.event_date === "string" ? row.event_date.slice(0, 4) : "—");
+
+      const eventLogo = formatEventLogo(row.event_image_url, row.ple_image_url, row.ple_id);
+
+      const eventObj = {
+        id: row.event_id,
+        name: row.event_name,
+        year: eventYear,
+        date: row.event_date ? (row.event_date instanceof Date ? row.event_date.toISOString() : String(row.event_date)) : null,
+        image_url: eventLogo,
+      };
+
+      if (!item.seenEvents.has(row.event_id)) {
+        item.seenEvents.add(row.event_id);
+        if (!item.firstEvent) {
+          item.firstEvent = eventObj;
+        }
+        item.lastEvent = eventObj;
+      }
+
+      if (row.other_id) {
+        if (!item.otherEventsMap.has(row.other_id)) {
+          item.otherEventsMap.set(row.other_id, {
+            id: row.other_id,
+            name: row.other_name || "Unknown",
+            events: new Set(),
+          });
+        }
+        item.otherEventsMap.get(row.other_id).events.add(row.event_id);
+      }
+    }
+
+    const pleAppearancesList = Array.from(pleAppearancesMap.values())
+      .map((item) => {
+        const breakdown = Array.from(item.otherEventsMap.values())
+          .map((bd) => ({
+            id: bd.id,
+            name: bd.name,
+            count: bd.events.size,
+          }))
+          .sort((a, b) => b.count - a.count);
+
+        return {
+          id: item.id,
+          name: item.name,
+          country: item.country,
+          count: item.seenEvents.size,
+          firstEvent: item.firstEvent,
+          lastEvent: item.lastEvent,
+          breakdown,
+        };
+      })
+      .sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return (a.name || "").localeCompare(b.name || "");
+      })
+      .slice(0, 10)
+      .map((item, idx) => ({ ...item, rank: idx + 1 }));
+
     return {
       props: {
         type,
@@ -676,6 +829,7 @@ export async function getServerSideProps(context) {
           mostDefenses: JSON.parse(JSON.stringify(processReigns(mostDefensesRows, isWrestler ? 'wmd' : 'imd'))),
           championships: JSON.parse(JSON.stringify(championshipsList)),
           totalChampionships: JSON.parse(JSON.stringify(totalChampionshipsList)),
+          pleAppearances: JSON.parse(JSON.stringify(pleAppearancesList)),
         }
       },
     };
@@ -695,6 +849,7 @@ export default function RecordsDynamicPage({ error, type, data }) {
   const [lrSort, setLrSort] = useState({ key: "days_held", dir: "desc" });
   const [mdSort, setMdSort] = useState({ key: "defenses_count", dir: "desc" });
   const [tcSort, setTcSort] = useState({ key: "rank", dir: "asc" });
+  const [pleSort, setPleSort] = useState({ key: "rank", dir: "asc" });
 
   useEffect(() => {
     const handleStart = (url) => { if (url !== router.asPath) setLoading(true); };
@@ -711,10 +866,11 @@ export default function RecordsDynamicPage({ error, type, data }) {
     };
   }, [router]);
 
-  // Resetea el expandedRow y tcSort cuando cambias de Tab
+  // Resetea el expandedRow, tcSort y pleSort cuando cambias de Tab
   useEffect(() => {
     setExpandedRow(null);
     setTcSort({ key: "rank", dir: "asc" });
+    setPleSort({ key: "rank", dir: "asc" });
   }, [type]);
 
   if (error) {
@@ -804,6 +960,75 @@ export default function RecordsDynamicPage({ error, type, data }) {
     });
   };
 
+  const sortedPleAppearances = useMemo(() => {
+    if (!data?.pleAppearances) return [];
+    const list = [...data.pleAppearances];
+
+    list.sort((a, b) => {
+      let comparison = 0;
+      if (pleSort.key === "rank") {
+        comparison = a.rank - b.rank;
+        return pleSort.dir === "asc" ? comparison : -comparison;
+      }
+
+      if (pleSort.key === "name") {
+        comparison = a.name.localeCompare(b.name);
+        return pleSort.dir === "asc" ? comparison : -comparison;
+      }
+
+      if (pleSort.key === "count") {
+        comparison = b.count - a.count;
+        if (comparison === 0) comparison = a.rank - b.rank;
+        return pleSort.dir === "asc" ? -comparison : comparison;
+      }
+
+      if (pleSort.key === "firstYear") {
+        const dateA = new Date(a.firstEvent?.date || 0).getTime();
+        const dateB = new Date(b.firstEvent?.date || 0).getTime();
+        comparison = dateA - dateB;
+        if (comparison === 0) comparison = a.rank - b.rank;
+        return pleSort.dir === "asc" ? comparison : -comparison;
+      }
+
+      if (pleSort.key === "firstEvent") {
+        const nameA = a.firstEvent?.name || "";
+        const nameB = b.firstEvent?.name || "";
+        comparison = nameA.localeCompare(nameB);
+        if (comparison === 0) comparison = a.rank - b.rank;
+        return pleSort.dir === "asc" ? comparison : -comparison;
+      }
+
+      if (pleSort.key === "lastYear") {
+        const dateA = new Date(a.lastEvent?.date || 0).getTime();
+        const dateB = new Date(b.lastEvent?.date || 0).getTime();
+        comparison = dateB - dateA;
+        if (comparison === 0) comparison = a.rank - b.rank;
+        return pleSort.dir === "asc" ? -comparison : comparison;
+      }
+
+      if (pleSort.key === "lastEvent") {
+        const nameA = a.lastEvent?.name || "";
+        const nameB = b.lastEvent?.name || "";
+        comparison = nameA.localeCompare(nameB);
+        if (comparison === 0) comparison = a.rank - b.rank;
+        return pleSort.dir === "asc" ? comparison : -comparison;
+      }
+
+      return 0;
+    });
+
+    return list;
+  }, [data?.pleAppearances, pleSort]);
+
+  const handlePleSort = (key) => {
+    setPleSort((prev) => {
+      if (prev.key === key) {
+        return { key, dir: prev.dir === "desc" ? "asc" : "desc" };
+      }
+      return { key, dir: key === "name" || key === "rank" || key === "firstYear" || key === "firstEvent" || key === "lastEvent" ? "asc" : "desc" };
+    });
+  };
+
   const championships = data?.championships || [];
 
   const presentCategories = useMemo(() => {
@@ -817,7 +1042,7 @@ export default function RecordsDynamicPage({ error, type, data }) {
     if (otherChamps.length > 0) {
       grouped.push({
         type: "other",
-        label: "Otros campeonatos",
+        label: "Other championships",
         championships: otherChamps,
       });
     }
@@ -1248,7 +1473,273 @@ export default function RecordsDynamicPage({ error, type, data }) {
                             colSpan={championships.length + 3}
                             className="px-4 py-8 text-center text-gray-500 dark:text-gray-400"
                           >
-                            No hay campeonatos registrados.
+                            No championships recorded.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Most Appearances at PLEs Table (Full Width) */}
+              <div className="mt-8 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
+                <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">
+                    Most Appearances at PLEs
+                  </h2>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-gray-100 dark:bg-zinc-950 text-gray-700 dark:text-gray-300 text-xs uppercase tracking-wider font-bold">
+                        <th
+                          className="px-4 py-2.5 text-center border border-gray-200 dark:border-gray-800 w-12 cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors select-none"
+                          onClick={() => handlePleSort("rank")}
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            <span>#</span>
+                            <span className="text-[10px] text-blue-500">
+                              {pleSort.key === "rank" ? (pleSort.dir === "asc" ? "▲" : "▼") : <span className="opacity-40 text-gray-400">⬍</span>}
+                            </span>
+                          </div>
+                        </th>
+
+                        <th
+                          className="px-4 py-2.5 text-left border border-gray-200 dark:border-gray-800 min-w-[180px] cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors select-none"
+                          onClick={() => handlePleSort("name")}
+                        >
+                          <div className="flex items-center gap-1">
+                            <span>{isWrestler ? "Wrestler" : "Interpreter"}</span>
+                            <span className="text-[10px] text-blue-500">
+                              {pleSort.key === "name" ? (pleSort.dir === "asc" ? "▲" : "▼") : <span className="opacity-40 text-gray-400">⬍</span>}
+                            </span>
+                          </div>
+                        </th>
+
+                        <th
+                          className="px-4 py-2.5 text-center border border-gray-200 dark:border-gray-800 w-20 cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors select-none"
+                          onClick={() => handlePleSort("count")}
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            <span>N°</span>
+                            <span className="text-[10px] text-blue-500">
+                              {pleSort.key === "count" ? (pleSort.dir === "desc" ? "▼" : "▲") : <span className="opacity-40 text-gray-400">⬍</span>}
+                            </span>
+                          </div>
+                        </th>
+
+                        <th
+                          className="px-4 py-2.5 text-center border border-gray-200 dark:border-gray-800 w-24 cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors select-none"
+                          onClick={() => handlePleSort("firstYear")}
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            <span>First</span>
+                            <span className="text-[10px] text-blue-500">
+                              {pleSort.key === "firstYear" ? (pleSort.dir === "asc" ? "▲" : "▼") : <span className="opacity-40 text-gray-400">⬍</span>}
+                            </span>
+                          </div>
+                        </th>
+
+                        <th
+                          className="px-4 py-2.5 text-left border border-gray-200 dark:border-gray-800 cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors select-none"
+                          onClick={() => handlePleSort("firstEvent")}
+                        >
+                          <div className="flex items-center gap-1">
+                            <span>First Event</span>
+                            <span className="text-[10px] text-blue-500">
+                              {pleSort.key === "firstEvent" ? (pleSort.dir === "asc" ? "▲" : "▼") : <span className="opacity-40 text-gray-400">⬍</span>}
+                            </span>
+                          </div>
+                        </th>
+
+                        <th
+                          className="px-4 py-2.5 text-center border border-gray-200 dark:border-gray-800 w-24 cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors select-none"
+                          onClick={() => handlePleSort("lastYear")}
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            <span>Last</span>
+                            <span className="text-[10px] text-blue-500">
+                              {pleSort.key === "lastYear" ? (pleSort.dir === "desc" ? "▼" : "▲") : <span className="opacity-40 text-gray-400">⬍</span>}
+                            </span>
+                          </div>
+                        </th>
+
+                        <th
+                          className="px-4 py-2.5 text-left border border-gray-200 dark:border-gray-800 cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors select-none"
+                          onClick={() => handlePleSort("lastEvent")}
+                        >
+                          <div className="flex items-center gap-1">
+                            <span>Last Event</span>
+                            <span className="text-[10px] text-blue-500">
+                              {pleSort.key === "lastEvent" ? (pleSort.dir === "asc" ? "▲" : "▼") : <span className="opacity-40 text-gray-400">⬍</span>}
+                            </span>
+                          </div>
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                      {sortedPleAppearances.map((item) => {
+                        const uniqueId = `ple_${item.id}`;
+                        const isExpanded = expandedRow === uniqueId;
+                        const isExpandable = item.breakdown && item.breakdown.length > 1;
+
+                        const handleRowClick = () => {
+                          if (isExpandable) toggleExpand(uniqueId);
+                        };
+
+                        return (
+                          <React.Fragment key={item.id}>
+                            <tr
+                              className={`hover:bg-gray-50 dark:hover:bg-zinc-800/60 transition-colors ${
+                                isExpandable ? "cursor-pointer" : ""
+                              }`}
+                              onClick={handleRowClick}
+                              title={isExpandable ? "Click to view breakdown" : ""}
+                            >
+                              <td className="px-4 py-2.5 text-center font-medium text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-800 text-sm">
+                                {isExpandable ? (
+                                  <span className="flex items-center justify-center gap-1">
+                                    <span
+                                      className={`text-[10px] transition-transform ${
+                                        isExpanded ? "rotate-90 text-blue-500" : ""
+                                      }`}
+                                    >
+                                      ▶
+                                    </span>
+                                    {item.rank}
+                                  </span>
+                                ) : (
+                                  item.rank
+                                )}
+                              </td>
+
+                              <td className="px-4 py-2.5 font-semibold text-blue-600 dark:text-sky-400 border border-gray-200 dark:border-gray-800 text-sm">
+                                <Link
+                                  href={`${entityUrl}/${item.id}`}
+                                  className="flex items-center gap-2 hover:underline"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <FlagWithName code={item.country} name={item.name} />
+                                </Link>
+                              </td>
+
+                              <td className="px-4 py-2.5 text-center font-bold font-mono text-sm border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white">
+                                {item.count}
+                              </td>
+
+                              <td className="px-4 py-2.5 text-center font-mono text-sm border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300">
+                                {item.firstEvent?.year || "—"}
+                              </td>
+
+                              <td className="px-4 py-2.5 text-sm border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-200">
+                                {item.firstEvent ? (
+                                  <div className="flex items-center gap-2">
+                                    {item.firstEvent.image_url && (
+                                      <div className="relative w-6 h-5 flex-shrink-0 flex items-center justify-center">
+                                        <Image
+                                          src={item.firstEvent.image_url}
+                                          alt={item.firstEvent.name}
+                                          width={24}
+                                          height={20}
+                                          className="object-contain max-h-5 max-w-6 w-auto h-auto drop-shadow-sm"
+                                        />
+                                      </div>
+                                    )}
+                                    <Link
+                                      href={`/events/${item.firstEvent.id}`}
+                                      className="text-blue-600 dark:text-sky-400 hover:underline"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {item.firstEvent.name}
+                                    </Link>
+                                  </div>
+                                ) : (
+                                  "—"
+                                )}
+                              </td>
+
+                              <td className="px-4 py-2.5 text-center font-mono text-sm border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300">
+                                {item.lastEvent?.year || "—"}
+                              </td>
+
+                              <td className="px-4 py-2.5 text-sm border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-200">
+                                {item.lastEvent ? (
+                                  <div className="flex items-center gap-2">
+                                    {item.lastEvent.image_url && (
+                                      <div className="relative w-6 h-5 flex-shrink-0 flex items-center justify-center">
+                                        <Image
+                                          src={item.lastEvent.image_url}
+                                          alt={item.lastEvent.name}
+                                          width={24}
+                                          height={20}
+                                          className="object-contain max-h-5 max-w-6 w-auto h-auto drop-shadow-sm"
+                                        />
+                                      </div>
+                                    )}
+                                    <Link
+                                      href={`/events/${item.lastEvent.id}`}
+                                      className="text-blue-600 dark:text-sky-400 hover:underline"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {item.lastEvent.name}
+                                    </Link>
+                                  </div>
+                                ) : (
+                                  "—"
+                                )}
+                              </td>
+                            </tr>
+
+                            {isExpanded && (
+                              <tr className="bg-gray-50 dark:bg-zinc-950/50">
+                                <td
+                                  colSpan={7}
+                                  className="px-4 py-4 border-b border-gray-200 dark:border-gray-800"
+                                >
+                                  <div className="text-sm space-y-2 text-gray-700 dark:text-gray-300">
+                                    <p className="font-semibold mb-2 text-blue-600 dark:text-sky-400">
+                                      {breakdownTitle}
+                                    </p>
+                                    <ul className="space-y-1.5">
+                                      {item.breakdown?.map((bd, idx) => (
+                                        <li key={idx} className="pl-1 flex items-start text-sm">
+                                          <span className="mr-2 inline-block min-w-[20px] text-gray-500 dark:text-gray-400 font-mono text-right font-bold">
+                                            {bd.count}
+                                          </span>
+                                          {bd.id ? (
+                                            <Link
+                                              href={`${breakdownUrl}/${bd.id}`}
+                                              className="text-blue-600 dark:text-sky-400 hover:underline"
+                                              onClick={(e) => e.stopPropagation()}
+                                            >
+                                              {bd.name}
+                                            </Link>
+                                          ) : (
+                                            <span className="text-gray-700 dark:text-gray-300">
+                                              {bd.name}
+                                            </span>
+                                          )}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+
+                      {sortedPleAppearances.length === 0 && (
+                        <tr>
+                          <td
+                            colSpan={7}
+                            className="px-4 py-8 text-center text-gray-500 dark:text-gray-400"
+                          >
+                            No hay presencias en PLE registradas.
                           </td>
                         </tr>
                       )}
