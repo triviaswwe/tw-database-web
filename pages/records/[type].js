@@ -23,11 +23,11 @@ const TITLE_PLATES = {
 };
 
 const CATEGORIES = [
-  { type: "main", label: "Campeonatos mundiales" },
-  { type: "mid", label: "Campeonatos midcard" },
-  { type: "tag", label: "Campeonatos en pareja" },
-  { type: "low", label: "Campeonatos terciarios" },
-  { type: "special", label: "Campeonatos especiales" },
+  { type: "main", label: "Main championships" },
+  { type: "mid", label: "Midcard championships" },
+  { type: "tag", label: "Tag team championships" },
+  { type: "low", label: "Lowcard championships" },
+  { type: "special", label: "Special championships" },
 ];
 
 export async function getServerSideProps(context) {
@@ -1125,7 +1125,7 @@ export default function RecordsDynamicPage({ error, type, data }) {
                           onClick={() => handleTcSort("name")}
                         >
                           <div className="flex items-center gap-1">
-                            <span>{isWrestler ? "Luchador" : "Intérprete"}</span>
+                            <span>{isWrestler ? "Wrestler" : "Interpreter"}</span>
                             <span className="text-[10px] text-blue-500">
                               {tcSort.key === "name" ? (tcSort.dir === "asc" ? "▲" : "▼") : <span className="opacity-40 text-gray-400">⬍</span>}
                             </span>
