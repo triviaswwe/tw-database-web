@@ -77,7 +77,7 @@ export default function Layout({ children, isDark, setIsDark }) {
             >
               Stipulations
             </Link>
-            <Link href="/records" className={navLinkClass("/records")}>
+            <Link href="/records/general/wrestler" className={navLinkClass("/records")}>
               Records
             </Link>
             {/* Añade más links aquí si los necesitas */}
@@ -147,7 +147,7 @@ export default function Layout({ children, isDark, setIsDark }) {
                 </li>
                 <li>
                   <Link
-                    href="/records"
+                    href="/records/general/wrestler"
                     className="text-sm text-gray-600 dark:text-gray-400 hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
                   >
                     Records
