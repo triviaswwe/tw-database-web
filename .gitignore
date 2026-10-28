@@ -10,6 +10,7 @@ node_modules/
 
 # Skills/Agents
 agents/
+AGENTS.md
 
 # Packages
 package.json
@@ -17,3 +18,6 @@ pnpm-lock.yaml
 
 # Docs
 docs/
+
+# Scripts
+start_proxy.ps1

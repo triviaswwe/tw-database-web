@@ -5,6 +5,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import Head from "next/head";
 import useSWR from "swr";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/router";
 import Spinner from "../../components/Spinner";
 import FlagWithName from "../../components/FlagWithName";
@@ -356,7 +357,7 @@ export default function ChampionshipsPage() {
   }, [router]);
 
   const tabClasses = (isActive) =>
-    `pb-2 px-1 border-b-2 font-medium text-lg transition-colors cursor-pointer ${
+    `pb-2 px-1 border-b-2 font-medium text-base md:text-lg transition-colors cursor-pointer ${
       isActive
         ? "border-blue-500 text-blue-600 dark:text-sky-400"
         : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
@@ -383,48 +384,67 @@ export default function ChampionshipsPage() {
           }
         `}</style>
 
-        <div>
-          <h1 className="text-3xl font-bold mb-6">
-            Championships
-          </h1>
-        </div>
-
-        <div className="flex gap-6 border-b border-gray-200 dark:border-gray-800 mb-6">
-          <Link href="/championships/championship-reigns" className={tabClasses(true)}>
-            Championship Reigns
-          </Link>
-          <Link href="/championships/championship-records" className={tabClasses(false)}>
-            Championship Records
-          </Link>
-        </div>
-
-        {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <Spinner />
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <p className="mb-4 text-lg font-medium">
+          <div className="mb-8">
+            <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight mb-2">
+              Championships
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
               Select a championship to view its stats:
             </p>
+          </div>
 
-              <div className="flex flex-wrap gap-3 mb-6">
-                {!championsList ? (
+          <div className="flex gap-6 border-b border-gray-200 dark:border-gray-800 mb-6">
+            <Link href="/championships/championship-reigns" className={tabClasses(true)}>
+              Championship Reigns
+            </Link>
+            <Link href="/championships/championship-records" className={tabClasses(false)}>
+              Championship Records
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center items-center py-20">
+              <Spinner />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3 md:gap-4 mt-4 mb-6">
+                {!Array.isArray(championsList) ? (
                   <p className="text-sm text-gray-400">Loading...</p>
                 ) : (
-                  championsList.map((c) => (
-                    <button
-                      key={c.id}
-                      onClick={() => setSel(c.id)}
-                      className={`px-4 py-2 rounded shadow ${
-                        sel === c.id
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"
-                      }`}
-                    >
-                      {c.title_name}
-                    </button>
-                  ))
+                  championsList.map((c) => {
+                    const isSelected = sel === c.id;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setSel(c.id)}
+                        title={c.title_name}
+                        aria-label={c.title_name}
+                        className={`group relative p-2.5 rounded-xl transition-all duration-200 flex items-center justify-center cursor-pointer ${
+                          isSelected
+                            ? "bg-blue-50 dark:bg-blue-950/40 ring-2 ring-blue-500 shadow-md scale-105"
+                            : "bg-gray-100/80 dark:bg-zinc-900/80 hover:bg-gray-200/80 dark:hover:bg-zinc-800/80 opacity-75 hover:opacity-100 hover:scale-105"
+                        }`}
+                      >
+                        {c.image_url ? (
+                          <div className="relative w-16 h-11 md:w-20 md:h-13 flex items-center justify-center">
+                            <Image
+                              src={c.image_url}
+                              alt={c.title_name}
+                              width={80}
+                              height={52}
+                              className="object-contain max-h-11 md:max-h-13 w-auto drop-shadow transition-transform duration-200 group-hover:scale-105"
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-xs font-semibold px-2 py-1">
+                            {c.title_name}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })
                 )}
               </div>
 

@@ -27,7 +27,7 @@ export default function ChampionshipRecordsPage() {
   }, [router]);
 
   const tabClasses = (isActive) =>
-    `pb-2 px-1 border-b-2 font-medium text-lg transition-colors cursor-pointer ${
+    `pb-2 px-1 border-b-2 font-medium text-base md:text-lg transition-colors cursor-pointer ${
       isActive
         ? "border-blue-500 text-blue-600 dark:text-sky-400"
         : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
@@ -40,30 +40,35 @@ export default function ChampionshipRecordsPage() {
         <meta name="description" content="Championship records, Grand Slam, and Triple Crown." />
       </Head>
 
-      <div className="p-6 max-w-5xl mx-auto">
-        <div>
-          <h1 className="text-3xl font-bold mb-6">Championships</h1>
+      <div className="px-3 py-6 md:p-6 max-w-5xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight mb-2">
+            Championships
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Select a championship to view its stats:
+          </p>
         </div>
 
-          {/* Tab navigation */}
-          <div className="flex gap-6 border-b border-gray-200 dark:border-gray-800 mb-6">
-            <Link href="/championships/championship-reigns" className={tabClasses(false)}>
-              Championship Reigns
-            </Link>
-            <Link href="/championships/championship-records" className={tabClasses(true)}>
-              Championship Records
-            </Link>
-          </div>
+        {/* Tab navigation */}
+        <div className="flex gap-6 border-b border-gray-200 dark:border-gray-800 mb-6">
+          <Link href="/championships/championship-reigns" className={tabClasses(false)}>
+            Championship Reigns
+          </Link>
+          <Link href="/championships/championship-records" className={tabClasses(true)}>
+            Championship Records
+          </Link>
+        </div>
 
-          {loading ? (
-            <div className="flex justify-center items-center py-20">
-              <Spinner />
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <ChampionshipRecords />
-            </div>
-          )}
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <Spinner />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <ChampionshipRecords />
+          </div>
+        )}
       </div>
     </>
   );
