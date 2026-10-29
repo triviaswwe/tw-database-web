@@ -19,5 +19,5 @@ pnpm-lock.yaml
 # Docs
 docs/
 
-# Scripts
-start_proxy.ps1
+# Clinerules
+.clinerules
