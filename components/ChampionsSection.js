@@ -44,7 +44,7 @@ export default function ChampionsSection({ champions }) {
                             alt=""
                             fill
                             className="object-cover z-0"
-                            sizes="(max-width: 768px) 25vw, 12vw"
+                            sizes="(max-width: 768px) 50vw, 25vw"
                           />
                         )}
                         <Image
@@ -52,7 +52,7 @@ export default function ChampionsSection({ champions }) {
                           alt={w.name || "Champion"}
                           fill
                           className="object-cover z-10"
-                          sizes="(max-width: 768px) 25vw, 12vw"
+                          sizes="(max-width: 768px) 50vw, 25vw"
                         />
                         {c.plate && (
                           <Image
@@ -60,7 +60,7 @@ export default function ChampionsSection({ champions }) {
                             alt=""
                             fill
                             className="object-cover z-20 pointer-events-none"
-                            sizes="(max-width: 768px) 25vw, 12vw"
+                            sizes="(max-width: 768px) 50vw, 25vw"
                           />
                         )}
                       </div>
