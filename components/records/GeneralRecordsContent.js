@@ -33,7 +33,9 @@ export default function GeneralRecordsContent({ data, type }) {
 
   const isWrestler = type === "wrestler";
   const entityTitle = isWrestler ? "Wrestler" : "Interpreter";
-  const breakdownTitle = isWrestler ? "Interpreters breakdown:" : "Wrestlers breakdown:";
+  const breakdownTitle = isWrestler
+    ? "Interpreters breakdown:"
+    : "Wrestlers breakdown:";
   const entityUrl = isWrestler ? "/wrestlers" : "/interpreters";
   const breakdownUrl = isWrestler ? "/interpreters" : "/wrestlers";
 
@@ -47,18 +49,24 @@ export default function GeneralRecordsContent({ data, type }) {
 
   const sortedTopStats = useMemo(() => {
     return [...(data?.topStats || [])].sort((a, b) => {
-      const valA = topSort.key === "wins" ? a.wins : parseFloat(a.win_percentage);
-      const valB = topSort.key === "wins" ? b.wins : parseFloat(b.win_percentage);
+      const valA =
+        topSort.key === "wins" ? a.wins : parseFloat(a.win_percentage);
+      const valB =
+        topSort.key === "wins" ? b.wins : parseFloat(b.win_percentage);
       return valB - valA;
     });
   }, [data?.topStats, topSort]);
 
   const sortedLongestReigns = useMemo(() => {
-    return [...(data?.longestReigns || [])].sort((a, b) => b.days_held - a.days_held);
+    return [...(data?.longestReigns || [])].sort(
+      (a, b) => b.days_held - a.days_held,
+    );
   }, [data?.longestReigns]);
 
   const sortedMostDefenses = useMemo(() => {
-    return [...(data?.mostDefenses || [])].sort((a, b) => b.defenses_count - a.defenses_count);
+    return [...(data?.mostDefenses || [])].sort(
+      (a, b) => b.defenses_count - a.defenses_count,
+    );
   }, [data?.mostDefenses]);
 
   const sortedTotalChampionships = useMemo(() => {
@@ -174,7 +182,17 @@ export default function GeneralRecordsContent({ data, type }) {
       if (prev.key === key) {
         return { key, dir: prev.dir === "desc" ? "asc" : "desc" };
       }
-      return { key, dir: key === "name" || key === "rank" || key === "firstYear" || key === "firstEvent" || key === "lastEvent" ? "asc" : "desc" };
+      return {
+        key,
+        dir:
+          key === "name" ||
+          key === "rank" ||
+          key === "firstYear" ||
+          key === "firstEvent" ||
+          key === "lastEvent"
+            ? "asc"
+            : "desc",
+      };
     });
   };
 
@@ -199,15 +217,25 @@ export default function GeneralRecordsContent({ data, type }) {
     return grouped;
   }, [championships]);
 
-  const toggleExpand = (key) => setExpandedRow((prev) => (prev === key ? null : key));
+  const toggleExpand = (key) =>
+    setExpandedRow((prev) => (prev === key ? null : key));
 
   const renderTable = (
-    title, dataArr, columns, renderRow, expandPrefix = null, renderExpanded = null,
-    expandTitle = "Match breakdown:", isRowExpandable = () => true, onRowClick = null
+    title,
+    dataArr,
+    columns,
+    renderRow,
+    expandPrefix = null,
+    renderExpanded = null,
+    expandTitle = "Match breakdown:",
+    isRowExpandable = () => true,
+    onRowClick = null,
   ) => (
     <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden h-fit">
       <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800">
-        <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">{title}</h2>
+        <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">
+          {title}
+        </h2>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
@@ -215,10 +243,18 @@ export default function GeneralRecordsContent({ data, type }) {
             <tr className="bg-gray-50 dark:bg-zinc-900 text-gray-500 dark:text-gray-400 text-sm">
               <th className="px-4 py-2 w-12 text-center">#</th>
               {columns.map((col, i) => (
-                <th key={i} className={`px-4 py-2 ${col.onSort ? "cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors select-none" : ""}`} onClick={col.onSort ? col.onSort : undefined}>
-                  <div className={`flex items-center gap-1 ${col.align === "right" ? "justify-end" : ""}`}>
+                <th
+                  key={i}
+                  className={`px-4 py-2 ${col.onSort ? "cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors select-none" : ""}`}
+                  onClick={col.onSort ? col.onSort : undefined}
+                >
+                  <div
+                    className={`flex items-center gap-1 ${col.align === "right" ? "justify-end" : ""}`}
+                  >
                     {col.label}
-                    {col.sortDir && <span className="text-[10px] text-blue-500">▼</span>}
+                    {col.sortDir && (
+                      <span className="text-[10px] text-blue-500">▼</span>
+                    )}
                   </div>
                 </th>
               ))}
@@ -237,23 +273,46 @@ export default function GeneralRecordsContent({ data, type }) {
 
               return (
                 <React.Fragment key={idx}>
-                  <tr className={`hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors ${isExpandable || onRowClick ? "cursor-pointer" : ""}`} onClick={handleRowClick} title={isExpandable ? "Click to view breakdown" : onRowClick ? "Click to view profile" : ""}>
+                  <tr
+                    className={`hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors ${isExpandable || onRowClick ? "cursor-pointer" : ""}`}
+                    onClick={handleRowClick}
+                    title={
+                      isExpandable
+                        ? "Click to view breakdown"
+                        : onRowClick
+                          ? "Click to view profile"
+                          : ""
+                    }
+                  >
                     <td className="px-4 py-3 text-center font-semibold text-gray-500 dark:text-gray-400">
                       {isExpandable ? (
                         <span className="flex items-center justify-center gap-1">
-                          <span className={`text-[10px] transition-transform ${isExpanded ? "rotate-90 text-blue-500" : ""}`}>▶</span>
+                          <span
+                            className={`text-[10px] transition-transform ${isExpanded ? "rotate-90 text-blue-500" : ""}`}
+                          >
+                            ▶
+                          </span>
                           {idx + 1}
                         </span>
-                      ) : (idx + 1)}
+                      ) : (
+                        idx + 1
+                      )}
                     </td>
                     {renderRow(item)}
                   </tr>
                   {isExpanded && renderExpanded && (
                     <tr className="bg-gray-50 dark:bg-zinc-950/50">
-                      <td colSpan={columns.length + 1} className="px-4 py-4 border-b border-gray-200 dark:border-gray-800">
+                      <td
+                        colSpan={columns.length + 1}
+                        className="px-4 py-4 border-b border-gray-200 dark:border-gray-800"
+                      >
                         <div className="text-sm space-y-2 text-gray-700 dark:text-gray-300">
-                          <p className="font-semibold mb-2 text-blue-600 dark:text-sky-400">{expandTitle}</p>
-                          <ul className="space-y-1.5">{renderExpanded(item)}</ul>
+                          <p className="font-semibold mb-2 text-blue-600 dark:text-sky-400">
+                            {expandTitle}
+                          </p>
+                          <ul className="space-y-1.5">
+                            {renderExpanded(item)}
+                          </ul>
                         </div>
                       </td>
                     </tr>
@@ -268,18 +327,85 @@ export default function GeneralRecordsContent({ data, type }) {
   );
 
   const renderMatchDetail = (m, indexNumber, isBreaker = false) => {
-    const resultColor = m.result === "WIN" ? "text-[#16a34a] dark:text-[#93c47d]" : m.result === "LOSS" ? "text-red-500" : m.result === "DRAW" ? "text-[#d97706] dark:text-[#ffe599]" : "text-gray-500";
+    const resultColor =
+      m.result === "WIN"
+        ? "text-[#16a34a] dark:text-[#93c47d]"
+        : m.result === "LOSS"
+          ? "text-red-500"
+          : m.result === "DRAW"
+            ? "text-[#d97706] dark:text-[#ffe599]"
+            : "text-gray-500";
     return (
       <li key={indexNumber} className="pl-1 flex items-start text-sm">
-        <span className={`mr-2 inline-block min-w-[20px] text-gray-500 dark:text-gray-400 font-mono ${isBreaker ? "line-through opacity-70" : ""}`}>{indexNumber}.</span>
+        <span
+          className={`mr-2 inline-block min-w-[20px] text-gray-500 dark:text-gray-400 font-mono ${isBreaker ? "line-through opacity-70" : ""}`}
+        >
+          {indexNumber}.
+        </span>
         <div className="flex-1">
           <strong className={resultColor}>{m.result}</strong>{" "}
-          {m.isTagTeamChampionship 
-            ? m.partners.length > 0 && <span className="text-gray-600 dark:text-gray-400">{m.partners.map((pt, idx) => (<React.Fragment key={pt.id}>{idx > 0 && " & "}<Link href={`/wrestlers/${pt.id}`} className="text-blue-600 dark:text-sky-400" onClick={(e) => e.stopPropagation()}>{pt.name}</Link></React.Fragment>))} </span>
-            : m.partners.length > 0 && <span className="text-gray-600 dark:text-gray-400">w/ {m.partners.map((pt, idx) => (<React.Fragment key={pt.id}>{idx > 0 && " & "}<Link href={`/wrestlers/${pt.id}`} className="text-blue-600 dark:text-sky-400" onClick={(e) => e.stopPropagation()}>{pt.name}</Link></React.Fragment>))} </span>}
-          {m.scoreStr ? <span className="font-bold mx-1">{m.scoreStr}</span> : <span className="text-gray-600 dark:text-gray-400 mx-1">vs</span>}
-          {m.opponents.map((opp, idx) => (<React.Fragment key={opp.id}>{idx > 0 && " & "}<Link href={`/wrestlers/${opp.id}`} className="text-blue-600 dark:text-sky-400" onClick={(e) => e.stopPropagation()}>{opp.name}</Link></React.Fragment>))}
-          <span className="text-gray-500 text-[11px] ml-2 block sm:inline">(<Link href={`/events/${m.event_id}`} className="text-gray-500 dark:text-gray-400" onClick={(e) => e.stopPropagation()}>{m.event_name}</Link>)</span>
+          {m.isTagTeamChampionship
+            ? m.partners.length > 0 && (
+                <span className="text-gray-600 dark:text-gray-400">
+                  {m.partners.map((pt, idx) => (
+                    <React.Fragment key={pt.id}>
+                      {idx > 0 && " & "}
+                      <Link
+                        href={`/wrestlers/${pt.id}`}
+                        className="text-blue-600 dark:text-sky-400"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {pt.name}
+                      </Link>
+                    </React.Fragment>
+                  ))}{" "}
+                </span>
+              )
+            : m.partners.length > 0 && (
+                <span className="text-gray-600 dark:text-gray-400">
+                  w/{" "}
+                  {m.partners.map((pt, idx) => (
+                    <React.Fragment key={pt.id}>
+                      {idx > 0 && " & "}
+                      <Link
+                        href={`/wrestlers/${pt.id}`}
+                        className="text-blue-600 dark:text-sky-400"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {pt.name}
+                      </Link>
+                    </React.Fragment>
+                  ))}{" "}
+                </span>
+              )}
+          {m.scoreStr ? (
+            <span className="font-bold mx-1">{m.scoreStr}</span>
+          ) : (
+            <span className="text-gray-600 dark:text-gray-400 mx-1">vs</span>
+          )}
+          {m.opponents.map((opp, idx) => (
+            <React.Fragment key={opp.id}>
+              {idx > 0 && " & "}
+              <Link
+                href={`/wrestlers/${opp.id}`}
+                className="text-blue-600 dark:text-sky-400"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {opp.name}
+              </Link>
+            </React.Fragment>
+          ))}
+          <span className="text-gray-500 text-[11px] ml-2 block sm:inline">
+            (
+            <Link
+              href={`/events/${m.event_id}`}
+              className="text-gray-500 dark:text-gray-400"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {m.event_name}
+            </Link>
+            )
+          </span>
         </div>
       </li>
     );
@@ -289,146 +415,352 @@ export default function GeneralRecordsContent({ data, type }) {
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
         {renderTable(
-          "Most Matches", data?.matches || [],
+          "Most Matches",
+          data?.matches || [],
           [{ label: entityTitle }, { label: "Matches", align: "right" }],
           (item) => (
             <>
-              <td className="px-4 py-3"><Link href={`${entityUrl}/${item.id}`} className="text-blue-600 dark:text-sky-400 font-semibold flex items-center gap-2" onClick={(e) => e.stopPropagation()}><FlagWithName code={item.country} name={item.name} /></Link></td>
+              <td className="px-4 py-3">
+                <Link
+                  href={`${entityUrl}/${item.id}`}
+                  className="text-blue-600 dark:text-sky-400 font-semibold flex items-center gap-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <FlagWithName code={item.country} name={item.name} />
+                </Link>
+              </td>
               <td className="px-4 py-3 text-right font-bold">{item.total}</td>
             </>
           ),
           "matches",
           (item) => (
             <>
-              {item.breakdown?.sort((a, b) => b.count - a.count).map((bd, idx) => (
-                <li key={idx} className="pl-1 flex items-start text-sm">
-                  <span className="mr-2 inline-block min-w-[20px] text-gray-500 dark:text-gray-400 font-mono text-right font-bold">{bd.count}</span>
-                  {bd.id ? <Link href={`${breakdownUrl}/${bd.id}`} className="text-blue-600 dark:text-sky-400" onClick={(e) => e.stopPropagation()}>{bd.name}</Link> : <span className="text-gray-700 dark:text-gray-300">{bd.name}</span>}
-                </li>
-              ))}
+              {item.breakdown
+                ?.sort((a, b) => b.count - a.count)
+                .map((bd, idx) => (
+                  <li key={idx} className="pl-1 flex items-start text-sm">
+                    <span className="mr-2 inline-block min-w-[20px] text-gray-500 dark:text-gray-400 font-mono text-right font-bold">
+                      {bd.count}
+                    </span>
+                    {bd.id ? (
+                      <Link
+                        href={`${breakdownUrl}/${bd.id}`}
+                        className="text-blue-600 dark:text-sky-400"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {bd.name}
+                      </Link>
+                    ) : (
+                      <span className="text-gray-700 dark:text-gray-300">
+                        {bd.name}
+                      </span>
+                    )}
+                  </li>
+                ))}
             </>
           ),
           breakdownTitle,
-          (item) => item.breakdown?.length > 1
+          (item) => item.breakdown?.length > 1,
         )}
 
         <div className="md:col-span-2 lg:col-span-2">
           {renderTable(
-            `Top ${isWrestler ? "Wrestlers" : "Interpreters"} (Most Wins & Winrate)`, sortedTopStats,
+            `Top ${isWrestler ? "Wrestlers" : "Interpreters"} (Most Wins & Winrate)`,
+            sortedTopStats,
             [
-              { label: entityTitle }, { label: "Matches", align: "right" },
-              { label: "Wins", align: "right", onSort: () => setTopSort({ key: "wins", dir: "desc" }), sortDir: topSort.key === "wins" ? "desc" : null },
-              { label: "Win %", align: "right", onSort: () => setTopSort({ key: "win_percentage", dir: "desc" }), sortDir: topSort.key === "win_percentage" ? "desc" : null },
+              { label: entityTitle },
+              { label: "Matches", align: "right" },
+              {
+                label: "Wins",
+                align: "right",
+                onSort: () => setTopSort({ key: "wins", dir: "desc" }),
+                sortDir: topSort.key === "wins" ? "desc" : null,
+              },
+              {
+                label: "Win %",
+                align: "right",
+                onSort: () =>
+                  setTopSort({ key: "win_percentage", dir: "desc" }),
+                sortDir: topSort.key === "win_percentage" ? "desc" : null,
+              },
             ],
             (i) => (
               <>
-                <td className="px-4 py-3"><Link href={`${entityUrl}/${i.id}`} className="text-blue-600 dark:text-sky-400 font-semibold flex items-center gap-2"><FlagWithName code={i.country} name={i.name} /></Link></td>
-                <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-300">{i.total_matches}</td>
-                <td className="px-4 py-3 text-right font-bold text-[#16a34a] dark:text-[#93c47d]">{i.wins}</td>
-                <td className="px-4 py-3 text-right font-mono text-sm">{i.win_percentage}%</td>
+                <td className="px-4 py-3">
+                  <Link
+                    href={`${entityUrl}/${i.id}`}
+                    className="text-blue-600 dark:text-sky-400 font-semibold flex items-center gap-2"
+                  >
+                    <FlagWithName code={i.country} name={i.name} />
+                  </Link>
+                </td>
+                <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-300">
+                  {i.total_matches}
+                </td>
+                <td className="px-4 py-3 text-right font-bold text-[#16a34a] dark:text-[#93c47d]">
+                  {i.wins}
+                </td>
+                <td className="px-4 py-3 text-right font-mono text-sm">
+                  {i.win_percentage}%
+                </td>
               </>
-            )
+            ),
           )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start mt-8">
         {renderTable(
-          "Longest Undefeated Streak", sortedUndefeated,
+          "Longest Undefeated Streak",
+          sortedUndefeated,
           [
             { label: entityTitle },
-            { label: "Matches", align: "right", onSort: () => setUndefSort({ key: "count", dir: "desc" }), sortDir: undefSort.key === "count" ? "desc" : null },
-            { label: "Days", align: "right", onSort: () => setUndefSort({ key: "days", dir: "desc" }), sortDir: undefSort.key === "days" ? "desc" : null },
+            {
+              label: "Matches",
+              align: "right",
+              onSort: () => setUndefSort({ key: "count", dir: "desc" }),
+              sortDir: undefSort.key === "count" ? "desc" : null,
+            },
+            {
+              label: "Days",
+              align: "right",
+              onSort: () => setUndefSort({ key: "days", dir: "desc" }),
+              sortDir: undefSort.key === "days" ? "desc" : null,
+            },
           ],
           (s) => (
             <>
-              <td className="px-4 py-3"><span className="font-semibold flex items-center gap-2"><FlagWithName code={s.country} name={s.name} /></span></td>
+              <td className="px-4 py-3">
+                <span className="font-semibold flex items-center gap-2">
+                  <FlagWithName code={s.country} name={s.name} />
+                </span>
+              </td>
               <td className="px-4 py-3 text-right font-bold">{s.count}</td>
-              <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400 font-mono text-sm">{s.days}{!s.streakBreaker ? "+" : ""}</td>
+              <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400 font-mono text-sm">
+                {s.days}
+                {!s.streakBreaker ? "+" : ""}
+              </td>
             </>
           ),
           "undef",
           (s) => (
             <>
               {s.matches.map((m, i) => renderMatchDetail(m, i + 1, false))}
-              {s.streakBreaker && renderMatchDetail(s.streakBreaker, s.matches.length + 1, true)}
+              {s.streakBreaker &&
+                renderMatchDetail(s.streakBreaker, s.matches.length + 1, true)}
             </>
-          )
+          ),
         )}
 
         {renderTable(
-          "Longest Win Streak", data?.winStreaks || [],
+          "Longest Win Streak",
+          data?.winStreaks || [],
           [{ label: entityTitle }, { label: "Wins", align: "right" }],
           (s) => (
             <>
-              <td className="px-4 py-3"><span className="font-semibold flex items-center gap-2"><FlagWithName code={s.country} name={s.name} /></span></td>
-              <td className="px-4 py-3 text-right font-bold text-[#16a34a] dark:text-[#93c47d]">{s.count}</td>
+              <td className="px-4 py-3">
+                <span className="font-semibold flex items-center gap-2">
+                  <FlagWithName code={s.country} name={s.name} />
+                </span>
+              </td>
+              <td className="px-4 py-3 text-right font-bold text-[#16a34a] dark:text-[#93c47d]">
+                {s.count}
+              </td>
             </>
           ),
           "win",
           (s) => (
             <>
               {s.matches.map((m, i) => renderMatchDetail(m, i + 1, false))}
-              {s.streakBreaker && renderMatchDetail(s.streakBreaker, s.matches.length + 1, true)}
+              {s.streakBreaker &&
+                renderMatchDetail(s.streakBreaker, s.matches.length + 1, true)}
             </>
-          )
+          ),
         )}
       </div>
 
+      {/* 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start mt-8">
         {renderTable(
-          "Longest Reigns", sortedLongestReigns,
-          [{ label: "Champion" }, { label: "Title" }, { label: "Days", align: "right", onSort: () => setLrSort({ key: "days_held", dir: "desc" }), sortDir: lrSort.key === "days_held" ? "desc" : null }],
-          (r) => (
+          "Longest Winless Streak",
+          data?.winlessStreaks || [],
+          [{ label: entityTitle }, { label: "Matches", align: "right" }],
+          (s) => (
             <>
-              <td className="px-4 py-3 font-semibold text-blue-600 dark:text-sky-400">
-                {r.tag_team_id && isWrestler ? r.tag_team_name : (
-                  <div className="flex items-center gap-2"><FlagWithName code={r.country} name={r.entity_name || "Unknown"} /></div>
-                )}
+              <td className="px-4 py-3">
+                <span className="font-semibold flex items-center gap-2">
+                  <FlagWithName code={s.country} name={s.name} />
+                </span>
               </td>
-              <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                <div className="flex items-center gap-2" title={r.title_name}>
-                  {r.image_url && <Image src={r.image_url} alt={r.title_name} width={32} height={32} className="object-contain w-8 h-8" />}
-                  <span className="hidden sm:inline">{(r.title_name || "").replace(" Championship", "")}</span>
-                </div>
+              <td className="px-4 py-3 text-right font-bold text-gray-500 dark:text-gray-400">
+                {s.count}
               </td>
-              <td className="px-4 py-3 text-right font-bold text-gray-800 dark:text-gray-200 font-mono text-base">{r.days_held_label}</td>
             </>
           ),
-          null, null, "Match breakdown:", () => false,
-          (r) => {
-            if (r.tag_team_id && isWrestler) router.push(`/stables/${r.tag_team_id}`);
-            else if (r.wrestler_id) router.push(`/wrestlers/${r.wrestler_id}`);
-            else if (r.interpreter_id) router.push(`/interpreters/${r.interpreter_id}`);
-          }
+          "winless",
+          (s) => (
+            <>
+              {s.matches.map((m, i) => renderMatchDetail(m, i + 1, false))}
+              {s.streakBreaker &&
+                renderMatchDetail(s.streakBreaker, s.matches.length + 1, true)}
+            </>
+          ),
         )}
 
         {renderTable(
-          "Most Defenses in a Reign", sortedMostDefenses,
-          [{ label: "Champion" }, { label: "Title" }, { label: "Defenses", align: "right", onSort: () => setMdSort({ key: "defenses_count", dir: "desc" }), sortDir: mdSort.key === "defenses_count" ? "desc" : null }],
-          (r) => (
+          "Longest Losing Streak",
+          data?.losingStreaks || [],
+          [{ label: entityTitle }, { label: "Losses", align: "right" }],
+          (s) => (
             <>
               <td className="px-4 py-3">
-                {r.tag_team_id && isWrestler ? <span className="font-semibold text-gray-800 dark:text-white">{r.tag_team_name}</span> : (
-                  <span className="font-semibold flex items-center gap-2 text-gray-800 dark:text-white"><FlagWithName code={r.country} name={r.entity_name || "Unknown"} /></span>
+                <span className="font-semibold flex items-center gap-2">
+                  <FlagWithName code={s.country} name={s.name} />
+                </span>
+              </td>
+              <td className="px-4 py-3 text-right font-bold text-[#dc2626] dark:text-[#e06666]">
+                {s.count}
+              </td>
+            </>
+          ),
+          "losing",
+          (s) => (
+            <>
+              {s.matches.map((m, i) => renderMatchDetail(m, i + 1, false))}
+              {s.streakBreaker &&
+                renderMatchDetail(s.streakBreaker, s.matches.length + 1, true)}
+            </>
+          ),
+        )}
+      </div>
+      */}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start mt-8">
+        {renderTable(
+          "Longest Reigns",
+          sortedLongestReigns,
+          [
+            { label: "Champion" },
+            { label: "Title" },
+            {
+              label: "Days",
+              align: "right",
+              onSort: () => setLrSort({ key: "days_held", dir: "desc" }),
+              sortDir: lrSort.key === "days_held" ? "desc" : null,
+            },
+          ],
+          (r) => (
+            <>
+              <td className="px-4 py-3 font-semibold text-blue-600 dark:text-sky-400">
+                {r.tag_team_id && isWrestler ? (
+                  r.tag_team_name
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <FlagWithName
+                      code={r.country}
+                      name={r.entity_name || "Unknown"}
+                    />
+                  </div>
                 )}
               </td>
               <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
                 <div className="flex items-center gap-2" title={r.title_name}>
-                  {r.image_url && <Image src={r.image_url} alt={r.title_name} width={32} height={32} className="object-contain w-8 h-8" />}
-                  <span className="hidden sm:inline">{(r.title_name || "").replace(" Championship", "")}</span>
+                  {r.image_url && (
+                    <Image
+                      src={r.image_url}
+                      alt={r.title_name}
+                      width={32}
+                      height={32}
+                      className="object-contain w-8 h-8"
+                    />
+                  )}
+                  <span className="hidden sm:inline">
+                    {(r.title_name || "").replace(" Championship", "")}
+                  </span>
                 </div>
               </td>
-              <td className="px-4 py-3 text-right font-bold text-gray-800 dark:text-white">{r.defenses_count}</td>
+              <td className="px-4 py-3 text-right font-bold text-gray-800 dark:text-gray-200 font-mono text-base">
+                {r.days_held_label}
+              </td>
+            </>
+          ),
+          null,
+          null,
+          "Match breakdown:",
+          () => false,
+          (r) => {
+            if (r.tag_team_id && isWrestler)
+              router.push(`/stables/${r.tag_team_id}`);
+            else if (r.wrestler_id) router.push(`/wrestlers/${r.wrestler_id}`);
+            else if (r.interpreter_id)
+              router.push(`/interpreters/${r.interpreter_id}`);
+          },
+        )}
+
+        {renderTable(
+          "Most Defenses in a Reign",
+          sortedMostDefenses,
+          [
+            { label: "Champion" },
+            { label: "Title" },
+            {
+              label: "Defenses",
+              align: "right",
+              onSort: () => setMdSort({ key: "defenses_count", dir: "desc" }),
+              sortDir: mdSort.key === "defenses_count" ? "desc" : null,
+            },
+          ],
+          (r) => (
+            <>
+              <td className="px-4 py-3">
+                {r.tag_team_id && isWrestler ? (
+                  <span className="font-semibold text-gray-800 dark:text-white">
+                    {r.tag_team_name}
+                  </span>
+                ) : (
+                  <span className="font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
+                    <FlagWithName
+                      code={r.country}
+                      name={r.entity_name || "Unknown"}
+                    />
+                  </span>
+                )}
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                <div className="flex items-center gap-2" title={r.title_name}>
+                  {r.image_url && (
+                    <Image
+                      src={r.image_url}
+                      alt={r.title_name}
+                      width={32}
+                      height={32}
+                      className="object-contain w-8 h-8"
+                    />
+                  )}
+                  <span className="hidden sm:inline">
+                    {(r.title_name || "").replace(" Championship", "")}
+                  </span>
+                </div>
+              </td>
+              <td className="px-4 py-3 text-right font-bold text-gray-800 dark:text-white">
+                {r.defenses_count}
+              </td>
             </>
           ),
           "md",
           (r) => (
             <>
-              {r.defenses.length > 0 ? r.defenses.map((m, i) => renderMatchDetail(m, i + 1, false)) : <li className="text-gray-500 dark:text-gray-400 text-sm italic pl-1">No successful defenses.</li>}
-              {r.streakBreaker && renderMatchDetail(r.streakBreaker, r.defenses.length + 1, true)}
+              {r.defenses.length > 0 ? (
+                r.defenses.map((m, i) => renderMatchDetail(m, i + 1, false))
+              ) : (
+                <li className="text-gray-500 dark:text-gray-400 text-sm italic pl-1">
+                  No successful defenses.
+                </li>
+              )}
+              {r.streakBreaker &&
+                renderMatchDetail(r.streakBreaker, r.defenses.length + 1, true)}
             </>
-          )
+          ),
         )}
       </div>
 
@@ -452,7 +784,15 @@ export default function GeneralRecordsContent({ data, type }) {
                   <div className="flex items-center justify-center gap-1">
                     <span>N.°</span>
                     <span className="text-[10px] text-blue-500">
-                      {tcSort.key === "rank" ? (tcSort.dir === "asc" ? "▲" : "▼") : <span className="opacity-40 text-gray-400">⬍</span>}
+                      {tcSort.key === "rank" ? (
+                        tcSort.dir === "asc" ? (
+                          "▲"
+                        ) : (
+                          "▼"
+                        )
+                      ) : (
+                        <span className="opacity-40 text-gray-400">⬍</span>
+                      )}
                     </span>
                   </div>
                 </th>
@@ -465,7 +805,15 @@ export default function GeneralRecordsContent({ data, type }) {
                   <div className="flex items-center gap-1">
                     <span>{isWrestler ? "Wrestler" : "Interpreter"}</span>
                     <span className="text-[10px] text-blue-500">
-                      {tcSort.key === "name" ? (tcSort.dir === "asc" ? "▲" : "▼") : <span className="opacity-40 text-gray-400">⬍</span>}
+                      {tcSort.key === "name" ? (
+                        tcSort.dir === "asc" ? (
+                          "▲"
+                        ) : (
+                          "▼"
+                        )
+                      ) : (
+                        <span className="opacity-40 text-gray-400">⬍</span>
+                      )}
                     </span>
                   </div>
                 </th>
@@ -488,7 +836,15 @@ export default function GeneralRecordsContent({ data, type }) {
                   <div className="flex items-center justify-center gap-1">
                     <span>Total</span>
                     <span className="text-[10px] text-blue-500">
-                      {tcSort.key === "total" ? (tcSort.dir === "desc" ? "▼" : "▲") : <span className="opacity-40 text-gray-400">⬍</span>}
+                      {tcSort.key === "total" ? (
+                        tcSort.dir === "desc" ? (
+                          "▼"
+                        ) : (
+                          "▲"
+                        )
+                      ) : (
+                        <span className="opacity-40 text-gray-400">⬍</span>
+                      )}
                     </span>
                   </div>
                 </th>
@@ -523,12 +879,22 @@ export default function GeneralRecordsContent({ data, type }) {
                             </span>
                           )}
                           <span className="text-[10px] text-blue-500 leading-none">
-                            {isSorted ? (tcSort.dir === "desc" ? "▼" : "▲") : <span className="opacity-30 text-gray-400">⬍</span>}
+                            {isSorted ? (
+                              tcSort.dir === "desc" ? (
+                                "▼"
+                              ) : (
+                                "▲"
+                              )
+                            ) : (
+                              <span className="opacity-30 text-gray-400">
+                                ⬍
+                              </span>
+                            )}
                           </span>
                         </div>
                       </th>
                     );
-                  })
+                  }),
                 )}
               </tr>
             </thead>
@@ -571,7 +937,7 @@ export default function GeneralRecordsContent({ data, type }) {
                           )}
                         </td>
                       );
-                    })
+                    }),
                   )}
 
                   <td className="px-3 py-2.5 text-center font-bold font-mono text-sm border border-gray-200 dark:border-gray-800 bg-gray-50/70 dark:bg-zinc-900/70 text-gray-900 dark:text-white">
@@ -614,7 +980,15 @@ export default function GeneralRecordsContent({ data, type }) {
                   <div className="flex items-center justify-center gap-1">
                     <span>#</span>
                     <span className="text-[10px] text-blue-500">
-                      {pleSort.key === "rank" ? (pleSort.dir === "asc" ? "▲" : "▼") : <span className="opacity-40 text-gray-400">⬍</span>}
+                      {pleSort.key === "rank" ? (
+                        pleSort.dir === "asc" ? (
+                          "▲"
+                        ) : (
+                          "▼"
+                        )
+                      ) : (
+                        <span className="opacity-40 text-gray-400">⬍</span>
+                      )}
                     </span>
                   </div>
                 </th>
@@ -626,7 +1000,15 @@ export default function GeneralRecordsContent({ data, type }) {
                   <div className="flex items-center gap-1">
                     <span>{isWrestler ? "Wrestler" : "Interpreter"}</span>
                     <span className="text-[10px] text-blue-500">
-                      {pleSort.key === "name" ? (pleSort.dir === "asc" ? "▲" : "▼") : <span className="opacity-40 text-gray-400">⬍</span>}
+                      {pleSort.key === "name" ? (
+                        pleSort.dir === "asc" ? (
+                          "▲"
+                        ) : (
+                          "▼"
+                        )
+                      ) : (
+                        <span className="opacity-40 text-gray-400">⬍</span>
+                      )}
                     </span>
                   </div>
                 </th>
@@ -638,7 +1020,15 @@ export default function GeneralRecordsContent({ data, type }) {
                   <div className="flex items-center justify-center gap-1">
                     <span>N°</span>
                     <span className="text-[10px] text-blue-500">
-                      {pleSort.key === "count" ? (pleSort.dir === "desc" ? "▼" : "▲") : <span className="opacity-40 text-gray-400">⬍</span>}
+                      {pleSort.key === "count" ? (
+                        pleSort.dir === "desc" ? (
+                          "▼"
+                        ) : (
+                          "▲"
+                        )
+                      ) : (
+                        <span className="opacity-40 text-gray-400">⬍</span>
+                      )}
                     </span>
                   </div>
                 </th>
@@ -650,7 +1040,15 @@ export default function GeneralRecordsContent({ data, type }) {
                   <div className="flex items-center justify-center gap-1">
                     <span>First</span>
                     <span className="text-[10px] text-blue-500">
-                      {pleSort.key === "firstYear" ? (pleSort.dir === "asc" ? "▲" : "▼") : <span className="opacity-40 text-gray-400">⬍</span>}
+                      {pleSort.key === "firstYear" ? (
+                        pleSort.dir === "asc" ? (
+                          "▲"
+                        ) : (
+                          "▼"
+                        )
+                      ) : (
+                        <span className="opacity-40 text-gray-400">⬍</span>
+                      )}
                     </span>
                   </div>
                 </th>
@@ -662,7 +1060,15 @@ export default function GeneralRecordsContent({ data, type }) {
                   <div className="flex items-center gap-1">
                     <span>First Event</span>
                     <span className="text-[10px] text-blue-500">
-                      {pleSort.key === "firstEvent" ? (pleSort.dir === "asc" ? "▲" : "▼") : <span className="opacity-40 text-gray-400">⬍</span>}
+                      {pleSort.key === "firstEvent" ? (
+                        pleSort.dir === "asc" ? (
+                          "▲"
+                        ) : (
+                          "▼"
+                        )
+                      ) : (
+                        <span className="opacity-40 text-gray-400">⬍</span>
+                      )}
                     </span>
                   </div>
                 </th>
@@ -674,7 +1080,15 @@ export default function GeneralRecordsContent({ data, type }) {
                   <div className="flex items-center justify-center gap-1">
                     <span>Last</span>
                     <span className="text-[10px] text-blue-500">
-                      {pleSort.key === "lastYear" ? (pleSort.dir === "desc" ? "▼" : "▲") : <span className="opacity-40 text-gray-400">⬍</span>}
+                      {pleSort.key === "lastYear" ? (
+                        pleSort.dir === "desc" ? (
+                          "▼"
+                        ) : (
+                          "▲"
+                        )
+                      ) : (
+                        <span className="opacity-40 text-gray-400">⬍</span>
+                      )}
                     </span>
                   </div>
                 </th>
@@ -686,7 +1100,15 @@ export default function GeneralRecordsContent({ data, type }) {
                   <div className="flex items-center gap-1">
                     <span>Last Event</span>
                     <span className="text-[10px] text-blue-500">
-                      {pleSort.key === "lastEvent" ? (pleSort.dir === "asc" ? "▲" : "▼") : <span className="opacity-40 text-gray-400">⬍</span>}
+                      {pleSort.key === "lastEvent" ? (
+                        pleSort.dir === "asc" ? (
+                          "▲"
+                        ) : (
+                          "▼"
+                        )
+                      ) : (
+                        <span className="opacity-40 text-gray-400">⬍</span>
+                      )}
                     </span>
                   </div>
                 </th>
@@ -697,7 +1119,8 @@ export default function GeneralRecordsContent({ data, type }) {
               {sortedPleAppearances.map((item) => {
                 const uniqueId = `ple_${item.id}`;
                 const isExpanded = expandedRow === uniqueId;
-                const isExpandable = item.breakdown && item.breakdown.length > 1;
+                const isExpandable =
+                  item.breakdown && item.breakdown.length > 1;
 
                 const handleRowClick = () => {
                   if (isExpandable) toggleExpand(uniqueId);
@@ -818,7 +1241,10 @@ export default function GeneralRecordsContent({ data, type }) {
                             </p>
                             <ul className="space-y-1.5">
                               {item.breakdown?.map((bd, idx) => (
-                                <li key={idx} className="pl-1 flex items-start text-sm">
+                                <li
+                                  key={idx}
+                                  className="pl-1 flex items-start text-sm"
+                                >
                                   <span className="mr-2 inline-block min-w-[20px] text-gray-500 dark:text-gray-400 font-mono text-right font-bold">
                                     {bd.count}
                                   </span>
@@ -863,4 +1289,3 @@ export default function GeneralRecordsContent({ data, type }) {
     </>
   );
 }
-

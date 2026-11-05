@@ -7,11 +7,18 @@ import { useRouter } from "next/router";
 import pool from "../../lib/db";
 import FlagWithName from "../../components/FlagWithName";
 import MatchCard from "../../components/MatchCard";
+import MatchFilters from "../../components/MatchFilters";
 import { formatDateDDMMYYYY } from "../../lib/matchUtils";
 import {
-  useQueryFilter,
   useQueryToggle,
+  useQueryMultiSelect,
+  useQueryListToggle,
   usePagination,
+  DEFAULT_RESULTS,
+  DEFAULT_FORMATS,
+  parseResultFilter,
+  parseFormatFilter,
+  parseMultiValueFilter,
 } from "../../hooks/useQueryFilter";
 
 export async function getServerSideProps({ params, query, res }) {
@@ -43,46 +50,114 @@ export async function getServerSideProps({ params, query, res }) {
     const page = Math.max(1, parseInt(query.page) || 1);
     const limit = Math.min(50, parseInt(query.limit) || 20);
     const offset = (page - 1) * limit;
-    const filterWrestler = query.wrestler ? query.wrestler.trim() : "";
-    const filterEvent = query.filter ? query.filter.trim() : "";
+
+    const selectedWrestlers = parseMultiValueFilter(query.wrestler);
+    const selectedShows = parseMultiValueFilter(query.filter);
+    const selectedChamps = parseMultiValueFilter(query.champ);
+    const selectedStips = parseMultiValueFilter(query.matchtype);
+
     const filterTitle = query.title === "1";
     const filterStip = query.stip === "1";
-    const filterChamp = query.champ ? query.champ.trim() : "";
-    const filterMatchType = query.matchtype ? query.matchtype.trim() : "";
+    const filterResults = parseResultFilter(query.result);
+    const filterFormats = parseFormatFilter(query.format, query.one);
 
     const extraClauses = [];
     const extraParams = [];
 
-    if (filterWrestler) {
-      extraClauses.push(`
-        AND EXISTS (
+    if (filterResults.length === 0) {
+      extraClauses.push("AND 1 = 0");
+    } else if (filterResults.length < DEFAULT_RESULTS.length) {
+      const placeholders = filterResults.map(() => "?").join(",");
+      extraClauses.push(`AND mp.result IN (${placeholders})`);
+      extraParams.push(...filterResults);
+    }
+
+    if (filterFormats.length === 0) {
+      extraClauses.push("AND 1 = 0");
+    } else if (filterFormats.length < DEFAULT_FORMATS.length) {
+      const formatConditions = [];
+      for (const fmt of filterFormats) {
+        if (fmt === "1v1") {
+          formatConditions.push(`((SELECT COUNT(DISTINCT mp_c.team_number) FROM match_participants mp_c WHERE mp_c.match_id = m.id) = 2 AND (SELECT MAX(t.cnt) FROM (SELECT COUNT(*) AS cnt FROM match_participants mp_i WHERE mp_i.match_id = m.id GROUP BY mp_i.team_number) t) = 1)`);
+        } else if (fmt === "2v2") {
+          formatConditions.push(`((SELECT COUNT(DISTINCT mp_c.team_number) FROM match_participants mp_c WHERE mp_c.match_id = m.id) = 2 AND (SELECT MAX(t.cnt) FROM (SELECT COUNT(*) AS cnt FROM match_participants mp_i WHERE mp_i.match_id = m.id GROUP BY mp_i.team_number) t) = 2)`);
+        } else if (fmt === "3v3") {
+          formatConditions.push(`((SELECT COUNT(DISTINCT mp_c.team_number) FROM match_participants mp_c WHERE mp_c.match_id = m.id) = 2 AND (SELECT MAX(t.cnt) FROM (SELECT COUNT(*) AS cnt FROM match_participants mp_i WHERE mp_i.match_id = m.id GROUP BY mp_i.team_number) t) = 3)`);
+        } else if (fmt === "multiman") {
+          formatConditions.push(`((SELECT COUNT(DISTINCT mp_c.team_number) FROM match_participants mp_c WHERE mp_c.match_id = m.id) > 2 OR (SELECT MAX(t.cnt) FROM (SELECT COUNT(*) AS cnt FROM match_participants mp_i WHERE mp_i.match_id = m.id GROUP BY mp_i.team_number) t) > 3)`);
+        }
+      }
+      extraClauses.push(`AND (${formatConditions.join(" OR ")})`);
+    }
+
+    if (selectedWrestlers.length > 0) {
+      const conditions = selectedWrestlers.map(() => `
+        EXISTS (
           SELECT 1 FROM match_participants mp3
           JOIN wrestlers w3 ON mp3.wrestler_id = w3.id
           WHERE mp3.match_id = m.id
             AND LOWER(w3.wrestler) LIKE ?
-        )`);
-      extraParams.push(`%${filterWrestler.toLowerCase()}%`);
+        )
+      `).join(" AND ");
+      extraClauses.push(`AND (${conditions})`);
+      selectedWrestlers.forEach((w) => {
+        extraParams.push(`%${w.toLowerCase()}%`);
+      });
     }
-    if (filterEvent) {
-      extraClauses.push(`AND LOWER(e.name) LIKE ?`);
-      extraParams.push(`%${filterEvent.toLowerCase()}%`);
+
+    if (selectedShows.length > 0) {
+      const conditions = selectedShows
+        .map(() => `(LOWER(COALESCE(s.name, p.name, e.name)) = ? OR LOWER(e.name) LIKE ?)`)
+        .join(" OR ");
+      extraClauses.push(`AND (${conditions})`);
+      selectedShows.forEach((sh) => {
+        extraParams.push(sh.toLowerCase(), `%${sh.toLowerCase()}%`);
+      });
     }
+
     if (filterTitle) extraClauses.push(`AND m.title_match = 1`);
-    if (filterStip)
-      extraClauses.push(`AND m.match_type_id NOT IN (1, 2, 23, 32)`);
-    if (filterChamp) {
-      extraClauses.push(`AND LOWER(c.title_name) LIKE ?`);
-      extraParams.push(`%${filterChamp.toLowerCase()}%`);
+
+    const stipClauses = [];
+    if (filterStip) {
+      stipClauses.push("(m.match_type_id NOT IN (1, 2, 23, 32) AND LOWER(COALESCE(mt.name, '')) != 'singles')");
     }
-    if (filterMatchType) {
-      extraClauses.push(`AND LOWER(mt.name) LIKE ?`);
-      extraParams.push(`%${filterMatchType.toLowerCase()}%`);
+    if (selectedStips.length > 0) {
+      const specificStipConditions = selectedStips.map((stip) => {
+        if (stip.toLowerCase() === "singles") {
+          return "(m.match_type_id = 1 OR LOWER(mt.name) = 'singles')";
+        }
+        return "LOWER(mt.name) LIKE ?";
+      });
+      selectedStips.forEach((stip) => {
+        if (stip.toLowerCase() !== "singles") {
+          extraParams.push(`%${stip.toLowerCase()}%`);
+        }
+      });
+      stipClauses.push(...specificStipConditions);
+    }
+    if (stipClauses.length > 0) {
+      extraClauses.push(`AND (${stipClauses.join(" OR ")})`);
+    }
+
+    if (selectedChamps.length > 0) {
+      const conditions = selectedChamps.map(() => `LOWER(c.title_name) LIKE ?`).join(" OR ");
+      extraClauses.push(`AND (${conditions})`);
+      selectedChamps.forEach((c) => {
+        extraParams.push(`%${c.toLowerCase()}%`);
+      });
     }
 
     const extraSql = extraClauses.join("\n");
 
-    // ─── Grupo 1: miembros + stats (2 conexiones simultáneas) ─────────────
-    const [[memberRows], [[statsRow]]] = await Promise.all([
+    // ─── Grupo 1: miembros + stats + opciones de filtros (6 conexiones simultáneas) ─────────────
+    const [
+      [memberRows],
+      [[statsRow]],
+      [champRows],
+      [stipRows],
+      [wrestlerListRows],
+      [showListRows],
+    ] = await Promise.all([
       pool.query(
         `SELECT tm.wrestler_id, tm.status, w.wrestler AS name, w.country
          FROM tag_team_members tm JOIN wrestlers w ON w.id = tm.wrestler_id
@@ -102,6 +177,33 @@ export async function getServerSideProps({ params, query, res }) {
          WHERE mp.tag_team_id = ?`,
         [stableId],
       ),
+      pool.query(
+        `SELECT id, title_name AS name FROM championships WHERE show_in_ui = 1 ORDER BY id ASC`,
+      ),
+      pool.query(
+        `SELECT id, name FROM match_types ORDER BY order_in_page ASC`,
+      ),
+      pool.query(
+        `SELECT DISTINCT w2.id, w2.wrestler AS name
+         FROM match_participants mp1
+         JOIN match_participants mp2 ON mp1.match_id = mp2.match_id
+         JOIN wrestlers w2 ON mp2.wrestler_id = w2.id
+         WHERE mp1.tag_team_id = ?
+         ORDER BY w2.wrestler ASC`,
+        [stableId],
+      ),
+      pool.query(
+        `SELECT DISTINCT COALESCE(s.name, p.name, e.name) AS name
+         FROM match_participants mp
+         JOIN matches m ON mp.match_id = m.id
+         JOIN events e ON m.event_id = e.id
+         LEFT JOIN shows s ON e.show_id = s.id
+         LEFT JOIN ples p ON e.ple_id = p.id
+         WHERE mp.tag_team_id = ?
+           AND COALESCE(s.name, p.name, e.name) IS NOT NULL
+         ORDER BY name ASC`,
+        [stableId],
+      ),
     ]);
 
     // ─── Grupo 2: matches paginados + count (2 conexiones simultáneas) ────
@@ -116,10 +218,12 @@ export async function getServerSideProps({ params, query, res }) {
             FROM match_team_scores mts WHERE mts.match_id=m.id) AS scores
          FROM match_participants mp
          JOIN matches m ON mp.match_id=m.id JOIN events e ON m.event_id=e.id
+         LEFT JOIN shows s ON e.show_id = s.id
+         LEFT JOIN ples p ON e.ple_id = p.id
          LEFT JOIN match_types mt ON m.match_type_id=mt.id
          LEFT JOIN championships c ON m.championship_id=c.id
          WHERE mp.tag_team_id=? ${extraSql}
-         GROUP BY m.id, m.title_match, e.id, e.name, e.event_date, mp.team_number, mp.result, mt.id, mt.name, c.id, c.title_name
+         GROUP BY m.id, m.title_match, e.id, e.name, e.event_date, mp.team_number, mp.result, mt.id, mt.name, c.id, c.title_name, s.name, p.name
          ORDER BY e.event_date DESC, m.match_order DESC LIMIT ? OFFSET ?`,
         [stableId, ...extraParams, limit, offset],
       ),
@@ -127,6 +231,8 @@ export async function getServerSideProps({ params, query, res }) {
         `SELECT COUNT(DISTINCT m.id) AS total
          FROM match_participants mp JOIN matches m ON mp.match_id=m.id
          JOIN events e ON m.event_id=e.id
+         LEFT JOIN shows s ON e.show_id = s.id
+         LEFT JOIN ples p ON e.ple_id = p.id
          LEFT JOIN match_types mt ON m.match_type_id=mt.id
          LEFT JOIN championships c ON m.championship_id=c.id
          WHERE mp.tag_team_id=? ${extraSql}`,
@@ -176,12 +282,18 @@ export async function getServerSideProps({ params, query, res }) {
         activeMembers,
         formerMembers,
         stats,
-        filterWrestler,
-        filterEvent,
+        selectedWrestlers,
+        selectedShows,
+        selectedChamps,
+        selectedStips,
         filterTitle,
         filterStip,
-        filterChamp,
-        filterMatchType,
+        filterResults,
+        filterFormats,
+        championshipsList: champRows.map((r) => ({ id: r.id, name: r.name })),
+        stipulationsList: stipRows.map((r) => ({ id: r.id, name: r.name })),
+        wrestlersList: wrestlerListRows.map((r) => ({ id: r.id, name: r.name })),
+        showsList: showListRows.map((r) => ({ id: r.name, name: r.name })),
         matches,
         pagination: {
           page,
@@ -203,12 +315,18 @@ export default function StableDetail({
   activeMembers = [],
   formerMembers = [],
   stats,
-  filterWrestler,
-  filterEvent,
-  filterTitle,
-  filterStip,
-  filterChamp,
-  filterMatchType,
+  selectedWrestlers = [],
+  selectedShows = [],
+  selectedChamps = [],
+  selectedStips = [],
+  filterTitle = false,
+  filterStip = false,
+  filterResults = DEFAULT_RESULTS,
+  filterFormats = DEFAULT_FORMATS,
+  championshipsList = [],
+  stipulationsList = [],
+  wrestlersList = [],
+  showsList = [],
   matches,
   pagination,
 }) {
@@ -226,32 +344,39 @@ export default function StableDetail({
     );
   }
 
-  const { input: wrestlerInput, setInput: setWrestlerInput } = useQueryFilter(
-    "wrestler",
-    filterWrestler,
-    router,
-  );
-  const { input: eventInput, setInput: setEventInput } = useQueryFilter(
-    "filter",
-    filterEvent,
-    router,
-  );
-  const { input: champInput, setInput: setChampInput } = useQueryFilter(
-    "champ",
-    filterChamp,
-    router,
-  );
-  const { input: matchTypeInput, setInput: setMatchTypeInput } = useQueryFilter(
-    "matchtype",
-    filterMatchType,
-    router,
-  );
   const toggleTitle = useQueryToggle("title", filterTitle, router);
   const toggleStip = useQueryToggle("stip", filterStip, router);
+  const toggleResult = useQueryMultiSelect(
+    "result",
+    DEFAULT_RESULTS,
+    filterResults,
+    router,
+  );
+  const toggleFormat = useQueryMultiSelect(
+    "format",
+    DEFAULT_FORMATS,
+    filterFormats,
+    router,
+  );
+  const toggleWrestler = useQueryListToggle(
+    "wrestler",
+    selectedWrestlers,
+    router,
+  );
+  const toggleShow = useQueryListToggle("filter", selectedShows, router);
+  const toggleChamp = useQueryListToggle("champ", selectedChamps, router);
+  const toggleStipItem = useQueryListToggle(
+    "matchtype",
+    selectedStips,
+    router,
+  );
   const { goToPage, renderPageButtons } = usePagination(pagination, router);
 
-  const inputClass =
-    "w-full border dark:bg-zinc-950 border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600";
+  const handleResetFilters = () => {
+    router.push({ pathname: router.pathname, query: { id: stable.id } }, undefined, {
+      scroll: false,
+    });
+  };
 
   return (
     <>
@@ -340,54 +465,30 @@ export default function StableDetail({
 
         <h2 className="text-2xl font-semibold mb-3">Matches</h2>
 
-        <div className="flex flex-col gap-3 mb-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="text"
-              placeholder="Filter by wrestler name"
-              value={wrestlerInput}
-              onChange={(e) => setWrestlerInput(e.target.value)}
-              className={inputClass}
-            />
-            <input
-              type="text"
-              placeholder="Filter by event name"
-              value={eventInput}
-              onChange={(e) => setEventInput(e.target.value)}
-              className={inputClass}
-            />
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="text"
-              placeholder="Filter by championship"
-              value={champInput}
-              onChange={(e) => setChampInput(e.target.value)}
-              className={inputClass}
-            />
-            <input
-              type="text"
-              placeholder="Filter by stipulation"
-              value={matchTypeInput}
-              onChange={(e) => setMatchTypeInput(e.target.value)}
-              className={inputClass}
-            />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={toggleTitle}
-              className={`px-4 py-2 rounded font-semibold ${filterTitle ? "bg-blue-600 text-white shadow" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"}`}
-            >
-              Championship matches
-            </button>
-            <button
-              onClick={toggleStip}
-              className={`px-4 py-2 rounded font-semibold ${filterStip ? "bg-blue-600 text-white shadow" : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300"}`}
-            >
-              Stipulation matches
-            </button>
-          </div>
-        </div>
+        <MatchFilters
+          filterResults={filterResults}
+          toggleResult={toggleResult}
+          filterFormats={filterFormats}
+          toggleFormat={toggleFormat}
+          hasFormatFilter={true}
+          filterTitle={filterTitle}
+          toggleTitle={toggleTitle}
+          filterStip={filterStip}
+          toggleStip={toggleStip}
+          selectedChamps={selectedChamps}
+          toggleChamp={toggleChamp}
+          selectedStips={selectedStips}
+          toggleStipItem={toggleStipItem}
+          selectedWrestlers={selectedWrestlers}
+          toggleWrestler={toggleWrestler}
+          selectedShows={selectedShows}
+          toggleShow={toggleShow}
+          championshipsList={championshipsList}
+          stipulationsList={stipulationsList}
+          wrestlersList={wrestlersList}
+          showsList={showsList}
+          onReset={handleResetFilters}
+        />
 
         <ul className="space-y-3">
           {matches.length === 0 ? (

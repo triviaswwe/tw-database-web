@@ -3,6 +3,45 @@
 import { useState, useEffect } from "react";
 import { useDebounce } from "./useDebounce";
 
+export const DEFAULT_RESULTS = ["WIN", "DRAW", "LOSS"];
+export const DEFAULT_FORMATS = ["1v1", "2v2", "3v3", "multiman"];
+
+export function parseResultFilter(resultParam) {
+  if (resultParam === undefined || resultParam === null) {
+    return [...DEFAULT_RESULTS];
+  }
+  if (resultParam === "none" || resultParam === "") {
+    return [];
+  }
+  return resultParam
+    .split(",")
+    .map((s) => s.trim().toUpperCase())
+    .filter((s) => DEFAULT_RESULTS.includes(s));
+}
+
+export function parseMultiValueFilter(param) {
+  if (!param) return [];
+  return param
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+export function parseFormatFilter(formatParam, oneParam) {
+  if (formatParam) {
+    if (formatParam === "none") return [];
+    return formatParam
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter((s) => DEFAULT_FORMATS.includes(s));
+  }
+  // Compatibilidad con ?one=1
+  if (oneParam === "1") {
+    return ["1v1"];
+  }
+  return [...DEFAULT_FORMATS];
+}
+
 /**
  * Mantiene el estado local de un input de texto y lo sincroniza
  * con un query param de la URL tras el delay de debounce.
@@ -37,6 +76,63 @@ export function useQueryToggle(paramKey, isActive, router) {
     const q = { ...router.query, page: 1 };
     if (isActive) delete q[paramKey];
     else q[paramKey] = "1";
+    router.push({ pathname: router.pathname, query: q }, undefined, {
+      scroll: false,
+    });
+  };
+}
+
+/**
+ * Toggle para conjunto de valores múltiples en un solo query param separado por comas (o ausencia = todos por defecto).
+ */
+export function useQueryMultiSelect(paramKey, defaultValues, selectedValues, router) {
+  return (value) => {
+    const set = new Set(selectedValues);
+    if (set.has(value)) {
+      set.delete(value);
+    } else {
+      set.add(value);
+    }
+
+    const q = { ...router.query, page: 1 };
+    const allSelected = defaultValues.every((v) => set.has(v));
+    const noneSelected = set.size === 0;
+
+    if (allSelected) {
+      delete q[paramKey];
+    } else if (noneSelected) {
+      q[paramKey] = "none";
+    } else {
+      q[paramKey] = defaultValues.filter((v) => set.has(v)).join(",");
+    }
+
+    router.push({ pathname: router.pathname, query: q }, undefined, {
+      scroll: false,
+    });
+  };
+}
+
+/**
+ * Toggle para lista ad-hoc de strings (sin conjunto cerrado de defaultValues).
+ * Si no hay elementos seleccionados, se borra el query param.
+ */
+export function useQueryListToggle(paramKey, selectedValues, router) {
+  return (value) => {
+    const set = new Set(selectedValues);
+    if (set.has(value)) {
+      set.delete(value);
+    } else {
+      set.add(value);
+    }
+
+    const q = { ...router.query, page: 1 };
+    const arr = Array.from(set);
+    if (arr.length === 0) {
+      delete q[paramKey];
+    } else {
+      q[paramKey] = arr.join(",");
+    }
+
     router.push({ pathname: router.pathname, query: q }, undefined, {
       scroll: false,
     });
