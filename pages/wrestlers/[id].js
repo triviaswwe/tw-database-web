@@ -957,6 +957,9 @@ export default function WrestlerDetail({
                       <th className="px-4 py-3 font-semibold cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700" onClick={() => handleH2hSort("name")}>
                         Rival {h2hSort.key === "name" && (h2hSort.dir === "asc" ? "↑" : "↓")}
                       </th>
+                      <th className="px-4 py-3 font-semibold text-center cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700" onClick={() => handleH2hSort("diff")}>
+                        +/- {h2hSort.key === "diff" && (h2hSort.dir === "asc" ? "↑" : "↓")}
+                      </th>
                       <th className="px-4 py-3 font-semibold text-center cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700" onClick={() => handleH2hSort("total")}>
                         Matches {h2hSort.key === "total" && (h2hSort.dir === "asc" ? "↑" : "↓")}
                       </th>
@@ -968,9 +971,6 @@ export default function WrestlerDetail({
                       </th>
                       <th className="px-4 py-3 font-semibold text-center cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700" onClick={() => handleH2hSort("losses")}>
                         Losses {h2hSort.key === "losses" && (h2hSort.dir === "asc" ? "↑" : "↓")}
-                      </th>
-                      <th className="px-4 py-3 font-semibold text-right cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700" onClick={() => handleH2hSort("diff")}>
-                        +/- {h2hSort.key === "diff" && (h2hSort.dir === "asc" ? "↑" : "↓")}
                       </th>
                     </tr>
                   </thead>
@@ -993,6 +993,17 @@ export default function WrestlerDetail({
                               <FlagWithName code={r.country} name={r.name} />
                             </Link>
                           </td>
+                          <td
+                            className={`px-4 py-3 text-center font-bold ${
+                              r.diff > 0
+                                ? "text-[#16a34a] dark:text-[#93c47d]"
+                                : r.diff < 0
+                                  ? "text-red-500"
+                                  : "text-gray-500 dark:text-gray-400"
+                            }`}
+                          >
+                            {r.diff > 0 ? `+${r.diff}` : r.diff}
+                          </td>
                           <td className="px-4 py-3 text-center font-bold text-gray-800 dark:text-white">
                             {r.total}
                           </td>
@@ -1004,17 +1015,6 @@ export default function WrestlerDetail({
                           </td>
                           <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400">
                             {r.losses}
-                          </td>
-                          <td
-                            className={`px-4 py-3 text-right font-bold ${
-                              r.diff > 0
-                                ? "text-[#16a34a] dark:text-[#93c47d]"
-                                : r.diff < 0
-                                  ? "text-red-500"
-                                  : "text-gray-500 dark:text-gray-400"
-                            }`}
-                          >
-                            {r.diff > 0 ? `+${r.diff}` : r.diff}
                           </td>
                         </tr>
                         {expandedH2hRow === r.id && (
