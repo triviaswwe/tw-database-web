@@ -8,7 +8,7 @@ import pool from "../../lib/db";
 import FlagWithName from "../../components/FlagWithName";
 import MatchCard from "../../components/MatchCard";
 import MatchFilters from "../../components/MatchFilters";
-import { formatDateDDMMYYYY } from "../../lib/matchUtils";
+import { formatDateDDMMYYYY, buildH2hMatches, computeH2hRecords } from "../../lib/matchUtils";
 import React, { useState, useMemo } from "react";
 import {
   useQueryToggle,
@@ -314,9 +314,10 @@ export async function getServerSideProps({ params, query, res }) {
     };
 
     // ==========================================
-    // CHAMPIONSHIPS TAB DATA
+    // CHAMPIONSHIPS & H2H TAB DATA
     // ==========================================
-    const [reignsRows] = await pool.query(`
+    const [[reignsRows], [h2hRawMatches]] = await Promise.all([
+      pool.query(`
       SELECT 
           cr.id AS reign_id, 
           COALESCE(rm.start_date, cr.won_date) AS won_date, 
@@ -356,7 +357,21 @@ export async function getServerSideProps({ params, query, res }) {
           AND (COALESCE(rm.start_date, cr.won_date) <= ct.end_date OR ct.end_date IS NULL)
       WHERE cr.wrestler_id = ? OR rm.wrestler_id = ?
       ORDER BY won_date ASC
-    `, [wrestlerId, wrestlerId, wrestlerId, wrestlerId]);
+    `, [wrestlerId, wrestlerId, wrestlerId, wrestlerId]),
+      pool.query(`
+        SELECT m.id AS match_id, m.title_match, e.id AS event_id, e.name AS event_name,
+          (SELECT JSON_ARRAYAGG(JSON_OBJECT('wrestler_id', mp2.wrestler_id, 'wrestler', w2.wrestler, 'country', w2.country, 'team_number', mp2.team_number, 'result', mp2.result))
+           FROM match_participants mp2 JOIN wrestlers w2 ON w2.id = mp2.wrestler_id WHERE mp2.match_id = m.id) AS participants,
+          (SELECT JSON_ARRAYAGG(JSON_OBJECT('team_number', mts.team_number, 'score', mts.score))
+           FROM match_team_scores mts WHERE mts.match_id = m.id) AS scores
+        FROM match_participants mp
+        JOIN matches m ON mp.match_id = m.id
+        JOIN events e ON m.event_id = e.id
+        WHERE mp.wrestler_id = ? AND mp.result IS NOT NULL AND mp.result != ''
+        GROUP BY m.id, m.title_match, e.id, e.name, e.event_date, m.match_order
+        ORDER BY e.event_date ASC, m.match_order ASC
+      `, [wrestlerId]),
+    ]);
 
     let globalDefenses = [];
     if (reignsRows.length > 0) {
@@ -445,6 +460,8 @@ export async function getServerSideProps({ params, query, res }) {
       };
     });
 
+    const h2hMatches = buildH2hMatches(h2hRawMatches, wrestlerId, false);
+
     return {
       props: {
         wrestler,
@@ -463,6 +480,7 @@ export async function getServerSideProps({ params, query, res }) {
         wrestlersList: wrestlerListRows.map((r) => ({ id: r.id, name: r.name })),
         showsList: showListRows.map((r) => ({ id: r.name, name: r.name })),
         championships: JSON.parse(JSON.stringify(processedReigns)),
+        h2hMatches,
         matches: {
           stats,
           matches: matchesDetail,
@@ -500,6 +518,7 @@ export default function WrestlerDetail({
   showsList = [],
   matches,
   championships = [],
+  h2hMatches = [],
 }) {
   const router = useRouter();
 
@@ -546,6 +565,22 @@ export default function WrestlerDetail({
   const [activeTab, setActiveTab] = useState("matches");
   const [expandedRow, setExpandedRow] = useState(null);
   const [champSort, setChampSort] = useState({ key: 'won_date', dir: 'asc' });
+  const [h2hOnly1v1, setH2hOnly1v1] = useState(false);
+  const [h2hOnlyTitle, setH2hOnlyTitle] = useState(false);
+  const [h2hSort, setH2hSort] = useState({ key: "total", dir: "desc" });
+  const [expandedH2hRow, setExpandedH2hRow] = useState(null);
+
+  const sortedH2H = useMemo(
+    () => computeH2hRecords(h2hMatches, h2hOnly1v1, h2hOnlyTitle, h2hSort),
+    [h2hMatches, h2hOnly1v1, h2hOnlyTitle, h2hSort],
+  );
+
+  const handleH2hSort = (key) => {
+    setH2hSort((prev) => ({
+      key,
+      dir: prev.key === key ? (prev.dir === "desc" ? "asc" : "desc") : (key === "name" ? "asc" : "desc"),
+    }));
+  };
 
   const sortedChampionships = useMemo(() => {
     if (!championships) return [];
@@ -613,18 +648,18 @@ export default function WrestlerDetail({
 
       <div className="p-4 max-w-3xl mx-auto">
         {/* Pestañas de navegación */}
-        {championships && championships.length > 0 && (
-          <div className="flex space-x-6 border-b border-gray-200 dark:border-gray-800 mb-6 mt-4">
-            <button
-              onClick={() => setActiveTab("matches")}
-              className={`pb-2 px-1 border-b-2 font-medium text-lg transition-colors cursor-pointer ${
-                activeTab === "matches"
-                  ? "border-blue-600 text-blue-600 dark:text-sky-400 dark:border-sky-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-              }`}
-            >
-              Matches
-            </button>
+        <div className="flex space-x-6 border-b border-gray-200 dark:border-gray-800 mb-6 mt-4">
+          <button
+            onClick={() => setActiveTab("matches")}
+            className={`pb-2 px-1 border-b-2 font-medium text-lg transition-colors cursor-pointer ${
+              activeTab === "matches"
+                ? "border-blue-600 text-blue-600 dark:text-sky-400 dark:border-sky-400"
+                : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+          >
+            Matches
+          </button>
+          {championships && championships.length > 0 && (
             <button
               onClick={() => setActiveTab("championships")}
               className={`pb-2 px-1 border-b-2 font-medium text-lg transition-colors cursor-pointer ${
@@ -635,8 +670,18 @@ export default function WrestlerDetail({
             >
               Championships
             </button>
-          </div>
-        )}
+          )}
+          <button
+            onClick={() => setActiveTab("h2h")}
+            className={`pb-2 px-1 border-b-2 font-medium text-lg transition-colors cursor-pointer ${
+              activeTab === "h2h"
+                ? "border-blue-600 text-blue-600 dark:text-sky-400 dark:border-sky-400"
+                : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+          >
+            Head-to-Head Records
+          </button>
+        </div>
         <div className="md:flex md:items-stretch md:space-x-6">
           <div className="md:flex-1">
             <h1 className="text-3xl font-bold mb-2">{wrestler.wrestler}</h1>
@@ -861,6 +906,122 @@ export default function WrestlerDetail({
                                     {!r.streakBreaker && r.lost_date === null && <li className="text-blue-600 dark:text-sky-400 text-sm italic pl-1 mt-2 font-medium">Current Champion</li>}
                                   </>
                                 )}
+                              </ul>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "h2h" && (
+          <div className="mt-2">
+            <div className="grid grid-cols-2 gap-2 w-full mb-4">
+              <button
+                type="button"
+                onClick={() => setH2hOnly1v1((v) => !v)}
+                className={`w-full px-3 py-2 rounded font-semibold text-xs transition-colors flex items-center justify-center select-none cursor-pointer ${
+                  h2hOnly1v1
+                    ? "bg-blue-600 text-white shadow"
+                    : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-800"
+                }`}
+              >
+                1-on-1
+              </button>
+              <button
+                type="button"
+                onClick={() => setH2hOnlyTitle((v) => !v)}
+                className={`w-full px-3 py-2 rounded font-semibold text-xs transition-colors flex items-center justify-center select-none cursor-pointer ${
+                  h2hOnlyTitle
+                    ? "bg-blue-600 text-white shadow"
+                    : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-800"
+                }`}
+              >
+                Championship Matches
+              </button>
+            </div>
+
+            {sortedH2H.length === 0 ? (
+              <p className="text-gray-500 dark:text-gray-400">No head-to-head records found.</p>
+            ) : (
+              <div className="overflow-x-auto shadow-sm rounded-lg border border-gray-200 dark:border-gray-800">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-800 select-none">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold text-center">#</th>
+                      <th className="px-4 py-3 font-semibold cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700" onClick={() => handleH2hSort("name")}>
+                        Rival {h2hSort.key === "name" && (h2hSort.dir === "asc" ? "↑" : "↓")}
+                      </th>
+                      <th className="px-4 py-3 font-semibold text-center cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700" onClick={() => handleH2hSort("total")}>
+                        Matches {h2hSort.key === "total" && (h2hSort.dir === "asc" ? "↑" : "↓")}
+                      </th>
+                      <th className="px-4 py-3 font-semibold text-center cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700" onClick={() => handleH2hSort("wins")}>
+                        Wins {h2hSort.key === "wins" && (h2hSort.dir === "asc" ? "↑" : "↓")}
+                      </th>
+                      <th className="px-4 py-3 font-semibold text-center cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700" onClick={() => handleH2hSort("draws")}>
+                        Draws {h2hSort.key === "draws" && (h2hSort.dir === "asc" ? "↑" : "↓")}
+                      </th>
+                      <th className="px-4 py-3 font-semibold text-center cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700" onClick={() => handleH2hSort("losses")}>
+                        Losses {h2hSort.key === "losses" && (h2hSort.dir === "asc" ? "↑" : "↓")}
+                      </th>
+                      <th className="px-4 py-3 font-semibold text-right cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700" onClick={() => handleH2hSort("diff")}>
+                        +/- {h2hSort.key === "diff" && (h2hSort.dir === "asc" ? "↑" : "↓")}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-zinc-950">
+                    {sortedH2H.map((r, idx) => (
+                      <React.Fragment key={r.id}>
+                        <tr
+                          className="hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition-colors"
+                          onClick={() => setExpandedH2hRow(expandedH2hRow === r.id ? null : r.id)}
+                        >
+                          <td className="px-4 py-3 text-center text-gray-500 font-mono">
+                            {idx + 1}
+                          </td>
+                          <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
+                            <Link
+                              href={`/wrestlers/${r.id}`}
+                              className="text-blue-600 dark:text-sky-400 hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <FlagWithName code={r.country} name={r.name} />
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3 text-center font-bold text-gray-800 dark:text-white">
+                            {r.total}
+                          </td>
+                          <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400">
+                            {r.wins}
+                          </td>
+                          <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400">
+                            {r.draws}
+                          </td>
+                          <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400">
+                            {r.losses}
+                          </td>
+                          <td
+                            className={`px-4 py-3 text-right font-bold ${
+                              r.diff > 0
+                                ? "text-[#16a34a] dark:text-[#93c47d]"
+                                : r.diff < 0
+                                  ? "text-red-500"
+                                  : "text-gray-500 dark:text-gray-400"
+                            }`}
+                          >
+                            {r.diff > 0 ? `+${r.diff}` : r.diff}
+                          </td>
+                        </tr>
+                        {expandedH2hRow === r.id && (
+                          <tr className="bg-gray-50/50 dark:bg-gray-900/50">
+                            <td colSpan={7} className="px-4 py-3 border-l-4 border-blue-500 dark:border-sky-500">
+                              <ul className="space-y-2 py-1 max-w-full overflow-hidden whitespace-normal">
+                                {r.matches.map((m, i) => renderMatchDetail(m, i + 1, false))}
                               </ul>
                             </td>
                           </tr>
