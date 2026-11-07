@@ -9,6 +9,57 @@ export default async function handler(req, res) {
   );
 
   try {
+    if (req.query.calendar === '1') {
+      const [[bounds]] = await pool.query(
+        `SELECT
+           MIN(YEAR(event_date))  AS minYear,
+           MAX(YEAR(event_date))  AS maxYear,
+           YEAR(CURDATE())        AS curYear,
+           MONTH(CURDATE())       AS curMonth,
+           YEAR(MAX(event_date))  AS latestYear,
+           MONTH(MAX(event_date)) AS latestMonth
+         FROM events`
+      );
+
+      const minYear = bounds?.minYear || new Date().getUTCFullYear();
+      const maxYear = bounds?.maxYear || new Date().getUTCFullYear();
+
+      let year = parseInt(req.query.year, 10);
+      let month = parseInt(req.query.month, 10);
+
+      if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+        const curY = bounds?.curYear || new Date().getUTCFullYear();
+        const curM = bounds?.curMonth || new Date().getUTCMonth() + 1;
+        if (
+          bounds?.latestYear &&
+          (curY > bounds.latestYear ||
+            (curY === bounds.latestYear && curM > bounds.latestMonth))
+        ) {
+          year = bounds.latestYear;
+          month = bounds.latestMonth;
+        } else {
+          year = curY;
+          month = curM;
+        }
+      }
+
+      const [rows] = await pool.query(
+        `SELECT
+           events.*,
+           events.image_url AS event_image_url,
+           shows.name       AS show_name,
+           ples.image_url   AS ple_image_url
+         FROM events
+         LEFT JOIN shows ON events.show_id = shows.id
+         LEFT JOIN ples  ON events.ple_id  = ples.id
+         WHERE YEAR(events.event_date) = ? AND MONTH(events.event_date) = ?
+         ORDER BY events.event_date ASC, events.id ASC`,
+        [year, month]
+      );
+
+      return res.status(200).json({ events: rows, year, month, minYear, maxYear });
+    }
+
     const page      = Math.max(1, parseInt(req.query.page)   || 1);
     const limit     = Math.min(100, parseInt(req.query.limit) || 33);
     const offset    = (page - 1) * limit;
