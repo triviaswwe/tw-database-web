@@ -565,12 +565,13 @@ export default function InterpreterDetail({
   const [champSort, setChampSort] = useState({ key: 'won_date', dir: 'asc' });
   const [h2hOnly1v1, setH2hOnly1v1] = useState(false);
   const [h2hOnlyTitle, setH2hOnlyTitle] = useState(false);
+  const [h2hSearch, setH2hSearch] = useState("");
   const [h2hSort, setH2hSort] = useState({ key: "total", dir: "desc" });
   const [expandedH2hRow, setExpandedH2hRow] = useState(null);
 
   const sortedH2H = useMemo(
-    () => computeH2hRecords(h2hMatches, h2hOnly1v1, h2hOnlyTitle, h2hSort),
-    [h2hMatches, h2hOnly1v1, h2hOnlyTitle, h2hSort],
+    () => computeH2hRecords(h2hMatches, h2hOnly1v1, h2hOnlyTitle, h2hSort, h2hSearch),
+    [h2hMatches, h2hOnly1v1, h2hOnlyTitle, h2hSort, h2hSearch],
   );
 
   const handleH2hSort = (key) => {
@@ -903,6 +904,13 @@ export default function InterpreterDetail({
 
         {activeTab === "h2h" && (
           <div className="mt-6">
+            <input
+              type="text"
+              placeholder="Search interpreter..."
+              value={h2hSearch}
+              onChange={(e) => setH2hSearch(e.target.value)}
+              className="w-full mb-2 px-3 py-2 text-xs rounded border border-gray-300 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
             <div className="grid grid-cols-2 gap-2 w-full mb-4">
               <button
                 type="button"
