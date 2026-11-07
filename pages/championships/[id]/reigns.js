@@ -3,6 +3,7 @@
 import useSWR from "swr";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import { ChampionshipSubpageListSkeleton } from "../../../components/Skeletons";
 
 const fetcher = (url) => fetch(url).then((r) => r.json());
 
@@ -13,7 +14,7 @@ export default function ChampionshipReigns() {
     fetcher
   );
 
-  if (!reigns) return <p>Loading...</p>;
+  if (!reigns) return <ChampionshipSubpageListSkeleton title="Reigns" />;
 
   return (
     <div className="p-6 space-y-4">

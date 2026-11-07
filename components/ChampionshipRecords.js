@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
 import Image from 'next/image';
+import { ChampionshipRecordsSkeleton } from './Skeletons';
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
@@ -168,7 +169,7 @@ export default function ChampionshipRecords() {
   const [activeTab, setActiveTab] = useState('grand_slam');
 
   if (error) return <div className="text-red-500">Failed to load records.</div>;
-  if (!data) return <div className="text-gray-500 my-4">Loading records...</div>;
+  if (!data) return <ChampionshipRecordsSkeleton />;
 
   return (
     <div className="mb-8">

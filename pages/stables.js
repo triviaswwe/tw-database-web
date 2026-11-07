@@ -4,7 +4,7 @@ import Head from "next/head";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import Spinner from "../components/Spinner";
+import { StableGridSkeleton } from "../components/Skeletons";
 import { useDebounce } from "../hooks/useDebounce";
 
 const STABLES_PER_PAGE = 33;
@@ -105,7 +105,7 @@ export default function StablesPage() {
         />
 
         {loading ? (
-          <Spinner />
+          <StableGridSkeleton />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {stables.length === 0 ? (

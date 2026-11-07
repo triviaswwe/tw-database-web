@@ -2,6 +2,7 @@
 
 import useSWR      from 'swr'
 import { useRouter } from 'next/router'
+import { ChampionshipSubpageListSkeleton } from '../../../components/Skeletons'
 
 const fetcher = (url) => fetch(url).then((r) => r.json())
 
@@ -12,7 +13,7 @@ export default function ChampionshipTagTeams() {
     fetcher
   )
 
-  if (!teams) return <p>Loading...</p>
+  if (!teams) return <ChampionshipSubpageListSkeleton title="Tag Teams" />
   return (
     <div className="p-6 space-y-4">
       <h2 className="text-xl font-semibold">Tag Teams</h2>

@@ -3,6 +3,7 @@
 import useSWR from "swr";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import { ChampionshipDetailSkeleton } from "../../components/Skeletons";
 
 const fetcher = (url) => fetch(url).then((r) => r.json());
 
@@ -13,7 +14,7 @@ export default function ChampionshipPage() {
     fetcher
   );
 
-  if (!champ) return <p>Loading...</p>;
+  if (!champ) return <ChampionshipDetailSkeleton />;
 
   return (
     <div className="p-6">

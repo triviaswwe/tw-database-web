@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import Spinner from "../../components/Spinner";
+import { ChampionshipRecordsSkeleton } from "../../components/Skeletons";
 import ChampionshipRecords from "../../components/ChampionshipRecords";
 
 export default function ChampionshipRecordsPage() {
@@ -61,9 +61,7 @@ export default function ChampionshipRecordsPage() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <Spinner />
-          </div>
+          <ChampionshipRecordsSkeleton />
         ) : (
           <div className="space-y-4">
             <ChampionshipRecords />

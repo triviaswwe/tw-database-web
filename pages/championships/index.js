@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import Spinner from "../../components/Spinner";
+import { BeltButtonsSkeleton, ChampionshipReignDetailSkeleton } from "../../components/Skeletons";
 
 export default function ChampionshipsIndex() {
   const router = useRouter();
@@ -60,8 +60,9 @@ export default function ChampionshipsIndex() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <Spinner />
+          <div className="space-y-4">
+            <BeltButtonsSkeleton />
+            <ChampionshipReignDetailSkeleton />
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">

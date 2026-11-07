@@ -7,7 +7,7 @@ import useSWR from "swr";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
-import Spinner from "../../components/Spinner";
+import { BeltButtonsSkeleton, ChampionshipReignDetailSkeleton } from "../../components/Skeletons";
 import FlagWithName from "../../components/FlagWithName";
 import { useChampionshipSort } from "../../hooks/useChampionshipSort";
 import { useChampionshipStats } from "../../hooks/useChampionshipStats";
@@ -403,14 +403,15 @@ export default function ChampionshipsPage() {
           </div>
 
           {loading ? (
-            <div className="flex justify-center items-center py-20">
-              <Spinner />
+            <div className="space-y-4">
+              <BeltButtonsSkeleton />
+              <ChampionshipReignDetailSkeleton />
             </div>
           ) : (
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-3 md:gap-4 mt-4 mb-6">
                 {!Array.isArray(championsList) ? (
-                  <p className="text-sm text-gray-400">Loading...</p>
+                  <BeltButtonsSkeleton />
                 ) : (
                   championsList.map((c) => {
                     const isSelected = sel === c.id;
@@ -451,7 +452,7 @@ export default function ChampionshipsPage() {
               {sel && (
                 <div className="space-y-4">
                   {!champ || !reignsArr.length ? (
-                    <p>Loading...</p>
+                    <ChampionshipReignDetailSkeleton />
                   ) : (
                     <>
                       {currentReignText && (

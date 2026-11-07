@@ -3,7 +3,7 @@
 import Head from "next/head";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Spinner from "../components/Spinner";
+import { InterpreterGridSkeleton } from "../components/Skeletons";
 import FlagWithName from "../components/FlagWithName";
 
 const INTERPRETERS_PER_PAGE = 33;
@@ -105,7 +105,7 @@ export default function InterpretersPage() {
         />
 
         {loading ? (
-          <Spinner />
+          <InterpreterGridSkeleton />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {interpreters.length === 0 ? (

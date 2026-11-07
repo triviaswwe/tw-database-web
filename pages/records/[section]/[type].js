@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import pool from "../../../lib/db";
-import Spinner from "../../../components/Spinner";
+import { RecordsContentSkeleton } from "../../../components/Skeletons";
 import RecordsNav from "../../../components/records/RecordsNav";
 import GeneralRecordsContent from "../../../components/records/GeneralRecordsContent";
 import SlammyAwardsContent from "../../../components/records/SlammyAwardsContent";
@@ -114,9 +114,7 @@ export default function RecordsSectionPage({ error, section, type, data }) {
               </p>
             </div>
           ) : loading ? (
-            <div className="flex justify-center items-center py-20">
-              <Spinner />
-            </div>
+            <RecordsContentSkeleton />
           ) : (
             <>
               {section === "general" && (

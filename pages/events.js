@@ -5,7 +5,7 @@ import Link from "next/link";
 import Head from "next/head";
 import Image from "next/image";
 import { ChevronDown } from "lucide-react";
-import Spinner from "../components/Spinner";
+import { EventGridSkeleton, CalendarSkeleton } from "../components/Skeletons";
 
 const EVENTS_PER_PAGE = 33;
 
@@ -376,7 +376,7 @@ export default function EventsPage() {
 
             {/* Lista de eventos */}
             {loading ? (
-              <Spinner />
+              <EventGridSkeleton />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
                 {events.length === 0 ? (
@@ -568,7 +568,7 @@ export default function EventsPage() {
             </div>
 
             {calLoading || !calYear || !calMonth ? (
-              <Spinner />
+              <CalendarSkeleton />
             ) : (
               <div className="border border-gray-300 dark:border-gray-800 rounded overflow-hidden shadow-sm">
                 {/* Encabezado de días de la semana (Lunes a Domingo) */}
