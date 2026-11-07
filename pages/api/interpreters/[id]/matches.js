@@ -1,6 +1,7 @@
 // pages/api/interpreters/[id]/matches.js
 
 import pool from '../../../../lib/db';
+import { wrestlerNameSql } from '../../../../lib/matchUtils';
 
 export default async function handler(req, res) {
   res.setHeader(
@@ -52,7 +53,7 @@ export default async function handler(req, res) {
       const [participants] = await pool.query(
         `SELECT
            w.id         AS wrestler_id,
-           CASE WHEN w.id = 8 AND e.event_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE w.wrestler END AS wrestler,
+           ${wrestlerNameSql("w.id", "e.event_date", "w.wrestler")} AS wrestler,
            mp.team_number,
            mp.result,
            i.interpreter,

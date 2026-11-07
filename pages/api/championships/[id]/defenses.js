@@ -2,6 +2,7 @@
 
 import pool from '../../../../lib/db';
 import { setCacheHeaders } from '../../../../lib/db';
+import { wrestlerNameSql } from '../../../../lib/matchUtils';
 
 export default async function handler(req, res) {
   res.setHeader(
@@ -81,7 +82,7 @@ export default async function handler(req, res) {
         /* Subconsultas para evitar duplicados en los cruces de JOINs */
         (
           SELECT GROUP_CONCAT(
-            DISTINCT CONCAT(w_opp.id, '|', CASE WHEN w_opp.id = 8 AND e.event_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE w_opp.wrestler END, '|', w_opp.country)
+            DISTINCT CONCAT(w_opp.id, '|', ${wrestlerNameSql("w_opp.id", "e.event_date", "w_opp.wrestler")}, '|', w_opp.country)
             ORDER BY w_opp.wrestler
             SEPARATOR ','
           )
@@ -113,7 +114,7 @@ export default async function handler(req, res) {
 
         (
           SELECT GROUP_CONCAT(
-            DISTINCT CONCAT(opp_part.wrestler_id, '|', CASE WHEN wot.id = 8 AND e.event_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE wot.wrestler END, '|', wot.country)
+            DISTINCT CONCAT(opp_part.wrestler_id, '|', ${wrestlerNameSql("wot.id", "e.event_date", "wot.wrestler")}, '|', wot.country)
             ORDER BY wot.wrestler
             SEPARATOR ','
           )

@@ -1,6 +1,7 @@
 // pages/api/wrestlers.js
 
 import pool from '../../lib/db';
+import { wrestlerSearchSql } from '../../lib/matchUtils';
 
 export default async function handler(req, res) {
   res.setHeader(
@@ -30,8 +31,8 @@ export default async function handler(req, res) {
     }
 
     if (filter) {
-      where.push("(LOWER(w.wrestler) LIKE ? OR (w.id = 8 AND 'dean ambrose' LIKE ?))");
-      params.push(`%${filter.toLowerCase()}%`, `%${filter.toLowerCase()}%`);
+      where.push(wrestlerSearchSql("w.id", "w.wrestler"));
+      const p = `%${filter.toLowerCase()}%`; params.push(p, p, p, p, p);
     }
 
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';

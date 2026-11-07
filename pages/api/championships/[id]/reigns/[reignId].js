@@ -1,6 +1,7 @@
 // pages/api/championships/[id]/reigns/[reignId].js
 
 import { query } from '../../../../../lib/db';
+import { wrestlerNameSql } from '../../../../../lib/matchUtils';
 
 export default async function handler(req, res) {
   res.setHeader(
@@ -18,7 +19,7 @@ export default async function handler(req, res) {
        r.lost_date,
        r.days_held,
        r.wrestler_id,
-       CASE WHEN r.wrestler_id = 8 AND r.won_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE w.wrestler END AS wrestler,
+       ${wrestlerNameSql("r.wrestler_id", "r.won_date", "w.wrestler")} AS wrestler,
        w.country,
        r.interpreter_id,
        i.interpreter AS interpreter,

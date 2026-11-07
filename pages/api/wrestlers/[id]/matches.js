@@ -2,6 +2,7 @@
 // OPTIMIZADO: Elimina N+1 queries → una sola query consolidada con JOINs + paginación
 
 import pool from '../../../../lib/db';
+import { wrestlerNameSql } from '../../../../lib/matchUtils';
 
 export default async function handler(req, res) {
   res.setHeader(
@@ -68,7 +69,7 @@ export default async function handler(req, res) {
          (
            SELECT JSON_ARRAYAGG(JSON_OBJECT(
              'wrestler_id', mp2.wrestler_id,
-             'wrestler',    CASE WHEN mp2.wrestler_id = 8 AND e.event_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE w2.wrestler END,
+             'wrestler',    ${wrestlerNameSql("mp2.wrestler_id", "e.event_date", "w2.wrestler")},
              'team_number', mp2.team_number,
              'result',      mp2.result
            ))

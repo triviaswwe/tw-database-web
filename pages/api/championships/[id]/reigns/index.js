@@ -2,6 +2,7 @@
 
 import pool from "../../../../../lib/db";
 import { setCacheHeaders } from "../../../../../lib/db";
+import { wrestlerNameSql } from "../../../../../lib/matchUtils";
 
 export default async function handler(req, res) {
   res.setHeader(
@@ -26,7 +27,7 @@ export default async function handler(req, res) {
 
         /* ---------- datos singles ---------- */
         r.wrestler_id,
-        CASE WHEN r.wrestler_id = 8 AND r.won_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE w.wrestler END AS wrestler,
+        ${wrestlerNameSql("r.wrestler_id", "r.won_date", "w.wrestler")} AS wrestler,
         w.country               AS country,
 
         /* ---------- intérprete ---------- */
@@ -42,7 +43,7 @@ export default async function handler(req, res) {
         (
           SELECT GROUP_CONCAT(
             DISTINCT CONCAT(
-              wrm.id, '|', CASE WHEN wrm.id = 8 AND r.won_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE wrm.wrestler END, '|', wrm.country, '|',
+              wrm.id, '|', ${wrestlerNameSql("wrm.id", "r.won_date", "wrm.wrestler")}, '|', wrm.country, '|',
               (
                 SELECT COUNT(*)
                 FROM reign_members rm3
@@ -52,7 +53,7 @@ export default async function handler(req, res) {
                   AND r3.won_date <= r.won_date
               )
             )
-            ORDER BY CASE WHEN wrm.id = 8 AND r.won_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE wrm.wrestler END
+            ORDER BY ${wrestlerNameSql("wrm.id", "r.won_date", "wrm.wrestler")}
             SEPARATOR ','
           )
           FROM reign_members rm2
@@ -64,11 +65,11 @@ export default async function handler(req, res) {
         (
           SELECT GROUP_CONCAT(
             DISTINCT CONCAT(
-              rm_ind.wrestler_id, '|', CASE WHEN wi.id = 8 AND r.won_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE wi.wrestler END, '|', wi.country, '|',
+              rm_ind.wrestler_id, '|', ${wrestlerNameSql("wi.id", "r.won_date", "wi.wrestler")}, '|', wi.country, '|',
               DATE_FORMAT(rm_ind.start_date,'%Y-%m-%d'), '|',
               IFNULL(DATE_FORMAT(rm_ind.end_date,'%Y-%m-%d'),'')
             )
-            ORDER BY CASE WHEN wi.id = 8 AND r.won_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE wi.wrestler END
+            ORDER BY ${wrestlerNameSql("wi.id", "r.won_date", "wi.wrestler")}
             SEPARATOR ','
           )
           FROM reign_members rm_ind
@@ -102,8 +103,8 @@ export default async function handler(req, res) {
 
         (
           SELECT GROUP_CONCAT(
-            DISTINCT CONCAT(opp_part.wrestler_id, '|', CASE WHEN wot.id = 8 AND r.won_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE wot.wrestler END, '|', wot.country)
-            ORDER BY CASE WHEN wot.id = 8 AND r.won_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE wot.wrestler END
+            DISTINCT CONCAT(opp_part.wrestler_id, '|', ${wrestlerNameSql("wot.id", "r.won_date", "wot.wrestler")}, '|', wot.country)
+            ORDER BY ${wrestlerNameSql("wot.id", "r.won_date", "wot.wrestler")}
             SEPARATOR ','
           )
           FROM match_participants mp_opp
@@ -117,8 +118,8 @@ export default async function handler(req, res) {
         /* Subconsulta para Rival Single (Todos los oponentes) */
         (
           SELECT GROUP_CONCAT(
-            DISTINCT CONCAT(w_opp.id, '|', CASE WHEN w_opp.id = 8 AND r.won_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE w_opp.wrestler END, '|', w_opp.country)
-            ORDER BY CASE WHEN w_opp.id = 8 AND r.won_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE w_opp.wrestler END
+            DISTINCT CONCAT(w_opp.id, '|', ${wrestlerNameSql("w_opp.id", "r.won_date", "w_opp.wrestler")}, '|', w_opp.country)
+            ORDER BY ${wrestlerNameSql("w_opp.id", "r.won_date", "w_opp.wrestler")}
             SEPARATOR ','
           )
           FROM match_participants mp_opp

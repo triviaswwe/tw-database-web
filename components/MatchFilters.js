@@ -1,6 +1,7 @@
 // components/MatchFilters.js
 import React, { useState, useRef, useEffect } from "react";
 import { ChevronDown, X, RotateCcw } from "lucide-react";
+import { WRESTLER_ALIASES } from "../lib/matchUtils";
 
 export default function MatchFilters({
   filterResults = [],
@@ -120,9 +121,10 @@ export default function MatchFilters({
               />
               <div className="space-y-1 max-h-48 overflow-y-auto">
                 {wrestlersList
-                  .filter((w) =>
-                    w.name.toLowerCase().includes(searchWrestler.toLowerCase())
-                  )
+                  .filter((w) => {
+                    const q = searchWrestler.toLowerCase();
+                    return w.name.toLowerCase().includes(q) || WRESTLER_ALIASES[w.id]?.search.includes(q);
+                  })
                   .map((w) => {
                     const checked = selectedWrestlers.includes(w.name);
                     return (

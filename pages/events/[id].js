@@ -4,7 +4,7 @@ import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
 import pool from "../../lib/db";
-import { getPhrase, buildTopLine } from "../../lib/matchUtils";
+import { getPhrase, buildTopLine, wrestlerNameSql } from "../../lib/matchUtils";
 
 // Dominio base de Vercel Blob y Mapas de imágenes
 const BLOB_BASE_URL = 'https://ljejfdquofuxccca.public.blob.vercel-storage.com';
@@ -73,7 +73,7 @@ export async function getServerSideProps({ params, res }) {
            (
              SELECT JSON_ARRAYAGG(JSON_OBJECT(
                'wrestler_id', mp2.wrestler_id,
-               'wrestler',    CASE WHEN mp2.wrestler_id = 8 AND e.event_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE w2.wrestler END,
+               'wrestler',    ${wrestlerNameSql("mp2.wrestler_id", "e.event_date", "w2.wrestler")},
                'team_number', mp2.team_number,
                'result',      mp2.result
              ))
