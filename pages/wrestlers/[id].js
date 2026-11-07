@@ -100,12 +100,13 @@ export async function getServerSideProps({ params, query, res }) {
           JOIN wrestlers w3 ON mp3.wrestler_id = w3.id
           WHERE mp3.match_id = m.id
             AND mp3.wrestler_id != ?
-            AND LOWER(w3.wrestler) LIKE ?
+            AND (LOWER(w3.wrestler) LIKE ? OR (w3.id = 8 AND 'dean ambrose' LIKE ?))
         )
       `).join(" AND ");
       extraClauses.push(`AND (${conditions})`);
       selectedWrestlers.forEach((w) => {
-        extraParams.push(wrestlerId, `%${w.toLowerCase()}%`);
+        const p = `%${w.toLowerCase()}%`;
+        extraParams.push(wrestlerId, p, p);
       });
     }
 
@@ -228,7 +229,7 @@ export async function getServerSideProps({ params, query, res }) {
         `SELECT m.id, m.event_id, m.title_match, e.name AS event, e.event_date, m.match_order,
            mp.team_number, mp.result, mt.id AS match_type_id, mt.name AS match_type_name,
            c.id AS championship_id, c.title_name AS championship_name,
-           (SELECT JSON_ARRAYAGG(JSON_OBJECT('wrestler_id',mp2.wrestler_id,'wrestler',w2.wrestler,'team_number',mp2.team_number,'result',mp2.result))
+           (SELECT JSON_ARRAYAGG(JSON_OBJECT('wrestler_id',mp2.wrestler_id,'wrestler',CASE WHEN mp2.wrestler_id = 8 AND e.event_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE w2.wrestler END,'team_number',mp2.team_number,'result',mp2.result))
             FROM match_participants mp2 JOIN wrestlers w2 ON mp2.wrestler_id=w2.id WHERE mp2.match_id=m.id) AS participants,
            (SELECT JSON_ARRAYAGG(JSON_OBJECT('team_number',mts.team_number,'score',mts.score))
             FROM match_team_scores mts WHERE mts.match_id=m.id) AS scores
@@ -360,7 +361,7 @@ export async function getServerSideProps({ params, query, res }) {
     `, [wrestlerId, wrestlerId, wrestlerId, wrestlerId]),
       pool.query(`
         SELECT m.id AS match_id, m.title_match, e.id AS event_id, e.name AS event_name,
-          (SELECT JSON_ARRAYAGG(JSON_OBJECT('wrestler_id', mp2.wrestler_id, 'wrestler', w2.wrestler, 'country', w2.country, 'team_number', mp2.team_number, 'result', mp2.result))
+          (SELECT JSON_ARRAYAGG(JSON_OBJECT('wrestler_id', mp2.wrestler_id, 'wrestler', CASE WHEN mp2.wrestler_id = 8 AND e.event_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE w2.wrestler END, 'country', w2.country, 'team_number', mp2.team_number, 'result', mp2.result))
            FROM match_participants mp2 JOIN wrestlers w2 ON w2.id = mp2.wrestler_id WHERE mp2.match_id = m.id) AS participants,
           (SELECT JSON_ARRAYAGG(JSON_OBJECT('team_number', mts.team_number, 'score', mts.score))
            FROM match_team_scores mts WHERE mts.match_id = m.id) AS scores
@@ -379,7 +380,7 @@ export async function getServerSideProps({ params, query, res }) {
       const placeholders = reignIds.map(() => "?").join(",");
       const [defenseMatches] = await pool.query(`
         SELECT cr.id AS reign_id, m.id AS match_id, m.title_changed, e.id AS event_id, e.name AS event_name,
-            (SELECT JSON_ARRAYAGG(JSON_OBJECT('wrestler_id', mp.wrestler_id, 'wrestler', w2.wrestler, 'team_number', mp.team_number, 'result', mp.result, 'tag_team_id', mp.tag_team_id))
+            (SELECT JSON_ARRAYAGG(JSON_OBJECT('wrestler_id', mp.wrestler_id, 'wrestler', CASE WHEN mp.wrestler_id = 8 AND e.event_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE w2.wrestler END, 'team_number', mp.team_number, 'result', mp.result, 'tag_team_id', mp.tag_team_id))
              FROM match_participants mp JOIN wrestlers w2 ON w2.id = mp.wrestler_id WHERE mp.match_id = m.id) AS participants,
             (SELECT JSON_ARRAYAGG(JSON_OBJECT('team_number', mts.team_number, 'score', mts.score))
              FROM match_team_scores mts WHERE mts.match_id = m.id) AS scores,
@@ -685,7 +686,12 @@ export default function WrestlerDetail({
         </div>
         <div className="md:flex md:items-stretch md:space-x-6">
           <div className="md:flex-1">
-            <h1 className="text-3xl font-bold mb-2">{wrestler.wrestler}</h1>
+            <h1 className={`text-3xl font-bold ${wrestler.id === 8 ? "mb-0.5" : "mb-2"}`}>{wrestler.wrestler}</h1>
+            {wrestler.id === 8 && (
+              <p className="italic text-gray-500 dark:text-gray-400 text-sm mb-2">
+                formerly known as Dean Ambrose
+              </p>
+            )}
 
             <p className="text-gray-600 mb-1 dark:text-white">
               Country:{" "}

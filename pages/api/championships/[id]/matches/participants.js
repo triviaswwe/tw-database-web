@@ -17,9 +17,9 @@ export default async function handler(req, res) {
       SELECT
         mp.match_id,
         mp.wrestler_id,
-        w.wrestler
+        CASE WHEN w.id = 8 AND e.event_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE w.wrestler END AS wrestler
       FROM match_participants mp
-      JOIN wrestlers w ON mp.wrestler_id = w.id
+      JOIN matches m ON mp.match_id = m.id JOIN events e ON m.event_id = e.id JOIN wrestlers w ON mp.wrestler_id = w.id
       WHERE mp.match_id = ?
     `, [id]);
 

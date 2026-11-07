@@ -95,12 +95,13 @@ export async function getServerSideProps({ params, query, res }) {
           SELECT 1 FROM match_participants mp3
           JOIN wrestlers w3 ON mp3.wrestler_id = w3.id
           WHERE mp3.match_id = m.id
-            AND LOWER(w3.wrestler) LIKE ?
+            AND (LOWER(w3.wrestler) LIKE ? OR (w3.id = 8 AND 'dean ambrose' LIKE ?))
         )
       `).join(" AND ");
       extraClauses.push(`AND (${conditions})`);
       selectedWrestlers.forEach((w) => {
-        extraParams.push(`%${w.toLowerCase()}%`);
+        const p = `%${w.toLowerCase()}%`;
+        extraParams.push(p, p);
       });
     }
 
@@ -221,7 +222,7 @@ export async function getServerSideProps({ params, query, res }) {
         `SELECT m.id, m.event_id, m.title_match, e.name AS event, e.event_date, m.match_order,
            mp.team_number, mp.result, mt.id AS match_type_id, mt.name AS match_type_name,
            c.id AS championship_id, c.title_name AS championship_name,
-           (SELECT JSON_ARRAYAGG(JSON_OBJECT('wrestler_id',mp2.wrestler_id,'wrestler',w2.wrestler,'team_number',mp2.team_number,'result',mp2.result))
+           (SELECT JSON_ARRAYAGG(JSON_OBJECT('wrestler_id',mp2.wrestler_id,'wrestler',CASE WHEN mp2.wrestler_id = 8 AND e.event_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE w2.wrestler END,'team_number',mp2.team_number,'result',mp2.result))
             FROM match_participants mp2 JOIN wrestlers w2 ON mp2.wrestler_id=w2.id WHERE mp2.match_id=m.id) AS participants,
            (SELECT JSON_ARRAYAGG(JSON_OBJECT('team_number',mts.team_number,'score',mts.score))
             FROM match_team_scores mts WHERE mts.match_id=m.id) AS scores
@@ -353,7 +354,7 @@ export async function getServerSideProps({ params, query, res }) {
       pool.query(`
         SELECT m.id AS match_id, m.title_match, e.id AS event_id, e.name AS event_name,
           (SELECT JSON_ARRAYAGG(JSON_OBJECT(
-            'wrestler_id', mp2.wrestler_id, 'wrestler', w2.wrestler,
+            'wrestler_id', mp2.wrestler_id, 'wrestler', CASE WHEN mp2.wrestler_id = 8 AND e.event_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE w2.wrestler END,
             'interpreter_id', mp2.interpreter_id, 'interpreter', i2.interpreter, 'interpreter_country', i2.nationality,
             'team_number', mp2.team_number, 'result', mp2.result
           ))
@@ -378,7 +379,7 @@ export async function getServerSideProps({ params, query, res }) {
       const placeholders = reignIds.map(() => "?").join(",");
       const [defenseMatches] = await pool.query(`
         SELECT cr.id AS reign_id, m.id AS match_id, m.title_changed, e.id AS event_id, e.name AS event_name,
-            (SELECT JSON_ARRAYAGG(JSON_OBJECT('wrestler_id', mp.wrestler_id, 'wrestler', w2.wrestler, 'team_number', mp.team_number, 'result', mp.result, 'tag_team_id', mp.tag_team_id))
+            (SELECT JSON_ARRAYAGG(JSON_OBJECT('wrestler_id', mp.wrestler_id, 'wrestler', CASE WHEN mp.wrestler_id = 8 AND e.event_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE w2.wrestler END, 'team_number', mp.team_number, 'result', mp.result, 'tag_team_id', mp.tag_team_id))
              FROM match_participants mp JOIN wrestlers w2 ON w2.id = mp.wrestler_id WHERE mp.match_id = m.id) AS participants,
             (SELECT JSON_ARRAYAGG(JSON_OBJECT('team_number', mts.team_number, 'score', mts.score))
              FROM match_team_scores mts WHERE mts.match_id = m.id) AS scores,

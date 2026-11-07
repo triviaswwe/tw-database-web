@@ -68,7 +68,7 @@ export default async function handler(req, res) {
          (
            SELECT JSON_ARRAYAGG(JSON_OBJECT(
              'wrestler_id', mp2.wrestler_id,
-             'wrestler',    w2.wrestler,
+             'wrestler',    CASE WHEN mp2.wrestler_id = 8 AND e.event_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE w2.wrestler END,
              'team_number', mp2.team_number,
              'result',      mp2.result
            ))

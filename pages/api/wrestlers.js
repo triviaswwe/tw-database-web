@@ -30,8 +30,8 @@ export default async function handler(req, res) {
     }
 
     if (filter) {
-      where.push('LOWER(w.wrestler) LIKE ?');
-      params.push(`%${filter.toLowerCase()}%`);
+      where.push("(LOWER(w.wrestler) LIKE ? OR (w.id = 8 AND 'dean ambrose' LIKE ?))");
+      params.push(`%${filter.toLowerCase()}%`, `%${filter.toLowerCase()}%`);
     }
 
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';

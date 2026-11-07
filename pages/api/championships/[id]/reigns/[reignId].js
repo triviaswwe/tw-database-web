@@ -18,7 +18,7 @@ export default async function handler(req, res) {
        r.lost_date,
        r.days_held,
        r.wrestler_id,
-       w.wrestler    AS wrestler,
+       CASE WHEN r.wrestler_id = 8 AND r.won_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE w.wrestler END AS wrestler,
        w.country,
        r.interpreter_id,
        i.interpreter AS interpreter,

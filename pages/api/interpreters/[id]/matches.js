@@ -52,13 +52,13 @@ export default async function handler(req, res) {
       const [participants] = await pool.query(
         `SELECT
            w.id         AS wrestler_id,
-           w.wrestler,
+           CASE WHEN w.id = 8 AND e.event_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE w.wrestler END AS wrestler,
            mp.team_number,
            mp.result,
            i.interpreter,
            i.id         AS interpreter_id
          FROM match_participants mp
-         JOIN wrestlers w      ON mp.wrestler_id    = w.id
+         JOIN matches m ON mp.match_id = m.id JOIN events e ON m.event_id = e.id JOIN wrestlers w ON mp.wrestler_id = w.id
          LEFT JOIN interpreters i ON mp.interpreter_id = i.id
          WHERE mp.match_id = ?
          ORDER BY mp.team_number ASC, w.wrestler ASC`,

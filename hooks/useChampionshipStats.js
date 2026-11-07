@@ -120,7 +120,7 @@ export function useChampionshipStats(reignsArr, defenseSummary, defenses, tagInd
       const defs    = sel === 8 ? 0 : (defMap.get(r.id) || 0);
       if (!map.has(r.wrestler_id)) {
         map.set(r.wrestler_id, {
-          wrestlerId: r.wrestler_id, wrestlerName: r.wrestler, country: r.country,
+          wrestlerId: r.wrestler_id, wrestlerName: r.wrestler_id === 8 ? "Jon Moxley" : r.wrestler, country: r.country,
           interpreterId: r.interpreter_id, interpreterName: r.interpreter, interpreterCountry: r.nationality,
           reignCount: 0, defenses: 0, totalDays: 0, isCurrent: false,
         });
@@ -170,7 +170,7 @@ export function useChampionshipStats(reignsArr, defenseSummary, defenses, tagInd
       if (r.lost_date === null) o.isCurrent = true;
       (r.team_members_raw || "").split(",").forEach((raw) => {
         const [id, name, country] = raw.split("|");
-        if (id) o.members.set(+id, { id: +id, name, country });
+        if (id) o.members.set(+id, { id: +id, name: +id === 8 ? "Jon Moxley" : name, country });
       });
     });
 
@@ -219,7 +219,7 @@ export function useChampionshipStats(reignsArr, defenseSummary, defenses, tagInd
         members.forEach((m) => { if (m && Number.isFinite(m.id)) o.members.set(m.id, m); });
       } else if (!isTag && r.wrestler_id) {
         const key = r.wrestler_id;
-        if (!map.has(key)) map.set(key, { wrestlerId: key, wrestlerName: r.wrestler, country: r.country, interpreterId: r.interpreter_id, interpreterName: r.interpreter, interpreterCountry: r.nationality, reignCount: 0, defenses: 0, totalDays: 0, isCurrent: false });
+        if (!map.has(key)) map.set(key, { wrestlerId: key, wrestlerName: key === 8 ? "Jon Moxley" : r.wrestler, country: r.country, interpreterId: r.interpreter_id, interpreterName: r.interpreter, interpreterCountry: r.nationality, reignCount: 0, defenses: 0, totalDays: 0, isCurrent: false });
         const o = map.get(key);
         o.reignCount++; o.defenses += defs; o.totalDays += daysNum;
         if (r.lost_date === null) o.isCurrent = true;

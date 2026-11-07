@@ -26,7 +26,7 @@ export default async function handler(req, res) {
 
         /* ---------- datos singles ---------- */
         r.wrestler_id,
-        w.wrestler              AS wrestler,
+        CASE WHEN r.wrestler_id = 8 AND r.won_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE w.wrestler END AS wrestler,
         w.country               AS country,
 
         /* ---------- intérprete ---------- */
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
         (
           SELECT GROUP_CONCAT(
             DISTINCT CONCAT(
-              wrm.id, '|', wrm.wrestler, '|', wrm.country, '|',
+              wrm.id, '|', CASE WHEN wrm.id = 8 AND r.won_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE wrm.wrestler END, '|', wrm.country, '|',
               (
                 SELECT COUNT(*)
                 FROM reign_members rm3
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
                   AND r3.won_date <= r.won_date
               )
             )
-            ORDER BY wrm.wrestler
+            ORDER BY CASE WHEN wrm.id = 8 AND r.won_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE wrm.wrestler END
             SEPARATOR ','
           )
           FROM reign_members rm2
@@ -64,11 +64,11 @@ export default async function handler(req, res) {
         (
           SELECT GROUP_CONCAT(
             DISTINCT CONCAT(
-              rm_ind.wrestler_id, '|', wi.wrestler, '|', wi.country, '|',
+              rm_ind.wrestler_id, '|', CASE WHEN wi.id = 8 AND r.won_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE wi.wrestler END, '|', wi.country, '|',
               DATE_FORMAT(rm_ind.start_date,'%Y-%m-%d'), '|',
               IFNULL(DATE_FORMAT(rm_ind.end_date,'%Y-%m-%d'),'')
             )
-            ORDER BY wi.wrestler
+            ORDER BY CASE WHEN wi.id = 8 AND r.won_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE wi.wrestler END
             SEPARATOR ','
           )
           FROM reign_members rm_ind
@@ -102,8 +102,8 @@ export default async function handler(req, res) {
 
         (
           SELECT GROUP_CONCAT(
-            DISTINCT CONCAT(opp_part.wrestler_id, '|', wot.wrestler, '|', wot.country)
-            ORDER BY wot.wrestler
+            DISTINCT CONCAT(opp_part.wrestler_id, '|', CASE WHEN wot.id = 8 AND r.won_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE wot.wrestler END, '|', wot.country)
+            ORDER BY CASE WHEN wot.id = 8 AND r.won_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE wot.wrestler END
             SEPARATOR ','
           )
           FROM match_participants mp_opp
@@ -117,8 +117,8 @@ export default async function handler(req, res) {
         /* Subconsulta para Rival Single (Todos los oponentes) */
         (
           SELECT GROUP_CONCAT(
-            DISTINCT CONCAT(w_opp.id, '|', w_opp.wrestler, '|', w_opp.country)
-            ORDER BY w_opp.wrestler
+            DISTINCT CONCAT(w_opp.id, '|', CASE WHEN w_opp.id = 8 AND r.won_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE w_opp.wrestler END, '|', w_opp.country)
+            ORDER BY CASE WHEN w_opp.id = 8 AND r.won_date <= '2025-10-26' THEN 'Dean Ambrose' ELSE w_opp.wrestler END
             SEPARATOR ','
           )
           FROM match_participants mp_opp
