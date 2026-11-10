@@ -17,7 +17,7 @@ const fetcher = (url) => fetch(url).then((r) => r.json());
 
 const aggColumns = [
   { label: "#" },
-  { label: "Champion", widthClass: "whitespace-nowrap" },
+  { label: "Champion", widthClass: "md:whitespace-nowrap" },
   { label: "Interpreter" },
   { label: "Reigns" },
   { label: "Successful defenses" },
@@ -26,7 +26,7 @@ const aggColumns = [
 
 const tableColumns = [
   { label: "#", key: "index" },
-  { label: "Champion", key: "champion", widthClass: "whitespace-nowrap" },
+  { label: "Champion", key: "champion", widthClass: "md:whitespace-nowrap" },
   { label: "Interpreter", key: "interpreter" },
   { label: "Won Date", key: "won_date" },
   { label: "Event", key: "event" },
@@ -239,7 +239,7 @@ export default function ChampionshipsPage() {
         <td className="border px-2 py-1 text-center">{displayIndex}</td>
         <td
           className={`border px-2 py-1 font-semibold ${
-            sel === 5 ? "md:w-[20%]" : "whitespace-nowrap"
+            sel === 5 ? "md:w-[20%]" : "md:whitespace-nowrap"
           }`}
         >
           {r.tag_team_id ? (
@@ -283,7 +283,7 @@ export default function ChampionshipsPage() {
               href={`/wrestlers/${r.wrestler_id}`}
               className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400"
             >
-              <FlagWithName code={r.country} name={r.wrestler} />
+              <FlagWithName code={r.country} name={r.wrestler} breakOnSpace />
             </Link>
           ) : (
             "—"
@@ -904,12 +904,12 @@ export default function ChampionshipsPage() {
                                             }
                                           >
                                             <td className="border px-2 py-1 text-center">{idx + 1}</td>
-                                            <td className="border px-2 py-1 font-semibold whitespace-nowrap">
+                                            <td className="border px-2 py-1 font-semibold md:whitespace-nowrap">
                                               <Link
                                                 href={`/wrestlers/${row.wrestlerId}`}
                                                 className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-semibold"
                                               >
-                                                <FlagWithName code={row.country} name={row.wrestlerName} />
+                                                <FlagWithName code={row.country} name={row.wrestlerName} breakOnSpace />
                                               </Link>
                                             </td>
                                             <td className="border px-2 py-1">
@@ -977,7 +977,7 @@ export default function ChampionshipsPage() {
                                                   }
                                                   className={`border px-2 py-1 text-center select-none ${
                                                     sortKey !== "none" ? "cursor-pointer" : ""
-                                                  } ${label.startsWith("Champion") ? "whitespace-nowrap" : ""}`}
+                                                  } ${label.startsWith("Champion") ? "md:whitespace-nowrap" : ""}`}
                                                 >
                                                   {label}
                                                   {sortKey !== "none" && renderInterpreterSortIcon(sortKey)}
@@ -1008,14 +1008,14 @@ export default function ChampionshipsPage() {
                                                 />
                                               </Link>
                                             </td>
-                                            <td className="border px-2 py-1 whitespace-nowrap">
+                                            <td className="border px-2 py-1 md:whitespace-nowrap">
                                               {row.champions.map((champ, cIdx) => (
                                                 <React.Fragment key={champ.id}>
                                                   <Link
                                                     href={`/wrestlers/${champ.id}`}
                                                     className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-semibold"
                                                   >
-                                                    <FlagWithName code={champ.country} name={champ.name} />
+                                                    <FlagWithName code={champ.country} name={champ.name} breakOnSpace />
                                                   </Link>
                                                   {cIdx < row.champions.length - 1 && <br />}
                                                 </React.Fragment>
@@ -1072,12 +1072,12 @@ export default function ChampionshipsPage() {
                                         }
                                       >
                                         <td className="border px-2 py-1 text-center">{idx + 1}</td>
-                                        <td className="border px-2 py-1 font-semibold whitespace-nowrap">
+                                        <td className="border px-2 py-1 font-semibold md:whitespace-nowrap">
                                           <Link
                                             href={`/wrestlers/${row.wrestlerId}`}
                                             className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-semibold"
                                           >
-                                            <FlagWithName code={row.country} name={row.wrestlerName} />
+                                            <FlagWithName code={row.country} name={row.wrestlerName} breakOnSpace />
                                           </Link>
                                         </td>
                                         <td className="border px-2 py-1">
