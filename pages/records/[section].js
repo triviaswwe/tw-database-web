@@ -34,7 +34,7 @@ export async function getServerSideProps(context) {
   // Fallback for any other single slug
   return {
     redirect: {
-      destination: "/records/general/wrestler",
+      destination: "/records",
       permanent: false,
     },
   };
