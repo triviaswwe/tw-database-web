@@ -120,3 +120,46 @@ html:not(.dark) .eapps-instagram-feed-posts-item-text {
 html:not(.dark) .eapps-instagram-feed {
     background-color: transparent !important;
 }
+
+/* ========================================================
+   Helper para captura completa de tablas (html-to-image)
+   ======================================================== */
+[data-capturing="true"] {
+  margin: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+[data-capturing="true"] .overflow-x-auto,
+[data-capturing="true"] .overflow-y-auto,
+[data-capturing="true"] .overflow-auto {
+  overflow: visible !important;
+  width: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  height: auto !important;
+}
+
+[data-capturing="true"] .no-screenshot {
+  display: none !important;
+}
+
+.screenshot-only {
+  display: none !important;
+}
+
+[data-capturing="true"] .screenshot-only {
+  display: flex !important;
+}
+
+/* Evita que html-to-image congele un width subpíxel en inline-block y parta nombres en 2 líneas dentro del SVG */
+[data-capturing="true"] span.inline-block {
+  display: inline !important;
+}
+
+[data-capturing="true"] .inline-flex {
+  white-space: nowrap !important;
+}

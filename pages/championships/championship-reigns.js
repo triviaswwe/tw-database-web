@@ -9,6 +9,7 @@ import Image from "next/image";
 import { useRouter } from "next/router";
 import { BeltButtonsSkeleton, ChampionshipReignDetailSkeleton } from "../../components/Skeletons";
 import FlagWithName from "../../components/FlagWithName";
+import TableScreenshotButton from "../../components/TableScreenshotButton";
 import { useChampionshipSort } from "../../hooks/useChampionshipSort";
 import { useChampionshipStats } from "../../hooks/useChampionshipStats";
 import { formatEnglishDate } from "../../hooks/useChampionshipHelpers";
@@ -32,7 +33,7 @@ const tableColumns = [
   { label: "Event", key: "event" },
   { label: "Reign #", key: "reign_number" },
   { label: "Days Held", key: "days_held" },
-  { label: "Notes", key: "notes", widthClass: "md:w-[25%]" },
+  { label: "Notes", key: "notes", widthClass: "w-[25%] min-w-[180px] max-w-[260px] md:max-w-none" },
 ];
 
 export default function ChampionshipsPage() {
@@ -71,6 +72,44 @@ export default function ChampionshipsPage() {
   const defenses = defensesData?.details || [];
   const defenseSummary = defensesData?.summary || [];
   const tagIndividualStats = tagIndStats || [];
+
+  const selectedChamp = useMemo(
+    () => (Array.isArray(championsList) ? championsList.find((c) => c.id === sel) : null),
+    [championsList, sel],
+  );
+  const champTitle =
+    selectedChamp?.title_name || champ?.champ?.title_name || champ?.title_name || "Championship";
+  const champImage = selectedChamp?.image_url || null;
+
+  const renderScreenshotCover = (subtitle, extraNote) => (
+    <div className="screenshot-only flex-row items-center justify-start gap-4 text-left pb-3 mb-3 border-b border-gray-200 dark:border-zinc-800">
+      {champImage && (
+        <Image
+          src={champImage}
+          alt={champTitle}
+          width={140}
+          height={90}
+          priority
+          className="object-contain max-h-20 w-auto drop-shadow-md shrink-0"
+        />
+      )}
+      <div className="flex flex-col justify-center">
+        <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-gray-900 dark:text-white leading-tight">
+          {champTitle}
+        </h2>
+        {subtitle && (
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mt-0.5">
+            {subtitle}
+          </p>
+        )}
+        {extraNote && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            {extraNote}
+          </p>
+        )}
+      </div>
+    </div>
+  );
 
   // ─── Hooks de lógica ─────────────────────────────────────────────────────
   const {
@@ -324,7 +363,7 @@ export default function ChampionshipsPage() {
             {r.lost_date === null ? daysHeldRaw : daysHeldRaw.replace("+", "")}
           </td>
         )}
-        <td className="border px-2 py-1 text-[12px] break-words">
+        <td className="border px-2 py-1 text-[12px] break-words max-w-[260px] md:max-w-none">
           {r.notes || "—"}
           {sel !== 2 && sel !== 8 && r.id === longestReignId && (
             <span className="ml-1">
@@ -645,84 +684,123 @@ export default function ChampionshipsPage() {
                         </div>
                       )}
 
-                      <h2 className="text-2xl font-semibold">{champ?.title_name}</h2>
+                      <div data-screenshot-target="true" className="space-y-2 mb-8">
+                        {renderScreenshotCover("Championship Reigns")}
+                        <div className="no-screenshot flex items-center justify-between">
+                          <h2 className="text-2xl font-semibold">{champTitle}</h2>
+                          <TableScreenshotButton
+                            title={`${champTitle} - Reigns`}
+                          />
+                        </div>
 
-                      <div className="overflow-x-auto no-scrollbar">
-                        <table className="table-auto w-full border-collapse text-xs md:text-sm md:min-w-[800px]">
-                          <thead>
-                            <tr className="bg-gray-100 dark:bg-gray-700">
-                              {tableColumns
-                                .filter(
-                                  (c) =>
-                                    !(c.key === "interpreter" && sel === 5) &&
-                                    !(c.key === "days_held" && sel === 8),
-                                )
-                                .map(({ label, key, widthClass }) => {
-                                  const colClass =
-                                    key === "champion" && sel === 5
-                                      ? "md:w-[20%]"
-                                      : (widthClass || "");
-                                  return (
-                                    <th
-                                      key={key}
-                                      onClick={() => handleSort(label)}
-                                      className={`cursor-pointer border px-2 py-1 text-center ${colClass}`}
-                                    >
-                                      {label}
-                                      {renderSortIcon(label)}
-                                    </th>
-                                  );
-                                })}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y">
-                            {sortKey === null ? (
-                              (() => {
-                                let globalCounter = 0;
-                                const erasWithReigns = orderedEraNames
-                                  .map((eraName) => ({
-                                    name: eraName,
-                                    rows: sortedReigns.filter((r) => r.era_name === eraName),
-                                  }))
-                                  .filter((era) => era.rows.length > 0);
-
-                                return erasWithReigns.map(({ name: eraName, rows }) => (
-                                  <React.Fragment key={eraName}>
-                                    <tr className="bg-gray-200 dark:bg-gray-800">
-                                      <td
-                                        className="border px-2 py-1 font-semibold text-center"
-                                        colSpan={visibleColumnsCount}
+                        <div className="overflow-x-auto no-scrollbar">
+                          <table className="table-auto w-full border-collapse text-xs md:text-sm md:min-w-[800px]">
+                            <thead>
+                              <tr className="bg-gray-100 dark:bg-gray-700">
+                                {tableColumns
+                                  .filter(
+                                    (c) =>
+                                      !(c.key === "interpreter" && sel === 5) &&
+                                      !(c.key === "days_held" && sel === 8),
+                                  )
+                                  .map(({ label, key, widthClass }) => {
+                                    const colClass =
+                                      key === "champion" && sel === 5
+                                        ? "md:w-[20%]"
+                                        : (widthClass || "");
+                                    return (
+                                      <th
+                                        key={key}
+                                        onClick={() => handleSort(label)}
+                                        className={`cursor-pointer border px-2 py-1 text-center ${colClass}`}
                                       >
-                                        {eraName}
-                                      </td>
-                                    </tr>
-                                    {rows.map((r) => {
-                                      const displayIndex = r.isVacant ? "—" : ++globalCounter;
-                                      return renderReignRow(r, displayIndex);
-                                    })}
-                                  </React.Fragment>
-                                ));
-                              })()
-                            ) : (
-                              (() => {
-                                let globalCounter = 0;
-                                return sortedReigns.map((r) => {
-                                  const displayIndex = r.isVacant ? "—" : ++globalCounter;
-                                  return renderReignRow(r, displayIndex);
-                                });
-                              })()
-                            )}
-                          </tbody>
-                        </table>
+                                        {label}
+                                        {renderSortIcon(label)}
+                                      </th>
+                                    );
+                                  })}
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                              {sortKey === null ? (
+                                (() => {
+                                  let globalCounter = 0;
+                                  const erasWithReigns = orderedEraNames
+                                    .map((eraName) => ({
+                                      name: eraName,
+                                      rows: sortedReigns.filter((r) => r.era_name === eraName),
+                                    }))
+                                    .filter((era) => era.rows.length > 0);
+
+                                  return erasWithReigns.map(({ name: eraName, rows }) => (
+                                    <React.Fragment key={eraName}>
+                                      <tr className="bg-gray-200 dark:bg-gray-800">
+                                        <td
+                                          className="border px-2 py-1 font-semibold text-center"
+                                          colSpan={visibleColumnsCount}
+                                        >
+                                          {eraName}
+                                        </td>
+                                      </tr>
+                                      {rows.map((r) => {
+                                        const displayIndex = r.isVacant ? "—" : ++globalCounter;
+                                        return renderReignRow(r, displayIndex);
+                                      })}
+                                    </React.Fragment>
+                                  ));
+                                })()
+                              ) : (
+                                (() => {
+                                  let globalCounter = 0;
+                                  return sortedReigns.map((r) => {
+                                    const displayIndex = r.isVacant ? "—" : ++globalCounter;
+                                    return renderReignRow(r, displayIndex);
+                                  });
+                                })()
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
 
-                      <div className="mt-8 mb-6">
-                        <h3 className="text-xl font-semibold mb-2">Total days with the title</h3>
-                        <p className="mb-4 text-sm">Updated as of {todayString}.</p>
+                      <div
+                        data-screenshot-target={!hasMultipleWrestlersPerInterpreter && sel !== 5 ? "true" : undefined}
+                        className="mt-8 mb-6"
+                      >
+                        {!hasMultipleWrestlersPerInterpreter &&
+                          sel !== 5 &&
+                          renderScreenshotCover(
+                            "Total days with the title",
+                            `Updated as of ${todayString}.`,
+                          )}
+                        <div
+                          className={`flex items-center justify-between mb-4 ${
+                            !hasMultipleWrestlersPerInterpreter && sel !== 5 ? "no-screenshot" : ""
+                          }`}
+                        >
+                          <div>
+                            <h3 className="text-xl font-semibold mb-1">Total days with the title</h3>
+                            <p className="text-sm">Updated as of {todayString}.</p>
+                          </div>
+                          {!hasMultipleWrestlersPerInterpreter && sel !== 5 && (
+                            <TableScreenshotButton
+                              title={`${champTitle} - Total Days`}
+                            />
+                          )}
+                        </div>
 
                         {sel === 5 && teamStats.length > 0 && (
-                          <div className="mb-8">
-                            <h4 className="text-lg font-semibold mb-2">By Tag Team</h4>
+                          <div data-screenshot-target="true" className="mb-8">
+                            {renderScreenshotCover(
+                              "Total days with the title — By Tag Team",
+                              `Updated as of ${todayString}.`,
+                            )}
+                            <div className="no-screenshot flex items-center justify-between mb-2">
+                              <h4 className="text-lg font-semibold">By Tag Team</h4>
+                              <TableScreenshotButton
+                                title={`${champTitle} - By Tag Team`}
+                              />
+                            </div>
                             <div className="overflow-x-auto no-scrollbar">
                               <table className="table-auto w-full border-collapse text-xs md:text-sm md:min-w-[600px]">
                                 <thead>
@@ -797,8 +875,17 @@ export default function ChampionshipsPage() {
                         )}
 
                         {sel === 5 && tagIndividualStats.length > 0 && (
-                          <div className="mb-8">
-                            <h4 className="text-lg font-semibold mb-2">By Individual Wrestler</h4>
+                          <div data-screenshot-target="true" className="mb-8">
+                            {renderScreenshotCover(
+                              "Total days with the title — By Individual Wrestler",
+                              `Updated as of ${todayString}.`,
+                            )}
+                            <div className="no-screenshot flex items-center justify-between mb-2">
+                              <h4 className="text-lg font-semibold">By Individual Wrestler</h4>
+                              <TableScreenshotButton
+                                title={`${champTitle} - By Individual Wrestler`}
+                              />
+                            </div>
                             <div className="overflow-x-auto no-scrollbar">
                               <table className="table-auto w-full border-collapse text-xs md:text-sm md:min-w-[600px]">
                                 <thead>
@@ -866,8 +953,17 @@ export default function ChampionshipsPage() {
                           <>
                             {hasMultipleWrestlersPerInterpreter ? (
                               <>
-                                <div className="mb-8">
-                                  <h4 className="text-lg font-semibold mb-2">Per wrestler</h4>
+                                <div data-screenshot-target="true" className="mb-8">
+                                  {renderScreenshotCover(
+                                    "Total days with the title — Per wrestler",
+                                    `Updated as of ${todayString}.`,
+                                  )}
+                                  <div className="no-screenshot flex items-center justify-between mb-2">
+                                    <h4 className="text-lg font-semibold">Per wrestler</h4>
+                                    <TableScreenshotButton
+                                      title={`${champTitle} - Per Wrestler`}
+                                    />
+                                  </div>
                                   <div className="overflow-x-auto no-scrollbar">
                                     <table className="table-auto w-full border-collapse text-xs md:text-sm md:min-w-[600px]">
                                       <thead>
@@ -941,8 +1037,17 @@ export default function ChampionshipsPage() {
                                   </div>
                                 </div>
 
-                                <div className="mb-8">
-                                  <h4 className="text-lg font-semibold mb-2">Per interpreter</h4>
+                                <div data-screenshot-target="true" className="mb-8">
+                                  {renderScreenshotCover(
+                                    "Total days with the title — Per interpreter",
+                                    `Updated as of ${todayString}.`,
+                                  )}
+                                  <div className="no-screenshot flex items-center justify-between mb-2">
+                                    <h4 className="text-lg font-semibold">Per interpreter</h4>
+                                    <TableScreenshotButton
+                                      title={`${champTitle} - Per Interpreter`}
+                                    />
+                                  </div>
                                   <div className="overflow-x-auto no-scrollbar">
                                     <table className="table-auto w-full border-collapse text-xs md:text-sm md:min-w-[600px]">
                                       <thead>

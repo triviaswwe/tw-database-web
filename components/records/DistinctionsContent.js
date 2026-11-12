@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import FlagWithName from "../FlagWithName";
+import TableScreenshotButton from "../TableScreenshotButton";
 import { formatEnglishDate } from "../../hooks/useChampionshipHelpers";
 
 function DistinctionSideCell({ side, isWrestler }) {
@@ -299,14 +300,17 @@ export default function DistinctionsContent({ data, type }) {
       </div>
 
       {/* Main Chronological Distinctions Table */}
-      <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
+      <div data-screenshot-target="true" className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
         <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">
             Other Distinctions & Tournaments
           </h2>
-          <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-            {rowsWithSpans.length} {rowsWithSpans.length === 1 ? "entry" : "entries"}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+              {rowsWithSpans.length} {rowsWithSpans.length === 1 ? "entry" : "entries"}
+            </span>
+            <TableScreenshotButton title="Other Distinctions & Tournaments" />
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -403,11 +407,12 @@ export default function DistinctionsContent({ data, type }) {
       </div>
 
       {/* Ranking Table: Total Distinctions Won per Category */}
-      <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
-        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+      <div data-screenshot-target="true" className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
+        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">
             Total Distinctions Won per Category
           </h2>
+          <TableScreenshotButton title="Total Distinctions Won per Category" />
         </div>
 
         <div className="overflow-x-auto">

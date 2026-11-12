@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import FlagWithName from "../FlagWithName";
+import TableScreenshotButton from "../TableScreenshotButton";
 
 const CATEGORIES = [
   { type: "main", label: "Maincard championships" },
@@ -231,11 +232,12 @@ export default function GeneralRecordsContent({ data, type }) {
     isRowExpandable = () => true,
     onRowClick = null,
   ) => (
-    <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden h-fit">
-      <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+    <div data-screenshot-target="true" className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden h-fit">
+      <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
         <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">
           {title}
         </h2>
+        <TableScreenshotButton title={title} />
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
@@ -765,11 +767,12 @@ export default function GeneralRecordsContent({ data, type }) {
       </div>
 
       {/* Total Championships Table (Full Width) */}
-      <div className="mt-8 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
+      <div data-screenshot-target="true" className="mt-8 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
         <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">
             Total Championships
           </h2>
+          <TableScreenshotButton title="Total Championships" />
         </div>
 
         <div className="overflow-x-auto">
@@ -962,11 +965,12 @@ export default function GeneralRecordsContent({ data, type }) {
       </div>
 
       {/* Most Appearances at PLEs Table (Full Width) */}
-      <div className="mt-8 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
+      <div data-screenshot-target="true" className="mt-8 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
         <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">
             Most Appearances at PLEs
           </h2>
+          <TableScreenshotButton title="Most Appearances at PLEs" />
         </div>
 
         <div className="overflow-x-auto">

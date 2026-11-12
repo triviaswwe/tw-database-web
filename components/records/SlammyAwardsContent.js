@@ -2,6 +2,7 @@
 import React from "react";
 import Link from "next/link";
 import FlagWithName from "../FlagWithName";
+import TableScreenshotButton from "../TableScreenshotButton";
 
 function normalizeText(str) {
   if (!str) return "";
@@ -462,11 +463,12 @@ export default function SlammyAwardsContent({ data, type }) {
   return (
     <div className="space-y-8">
       {/* Matrix Table: Trivias WWE Slammy Awards */}
-      <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
-        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+      <div data-screenshot-target="true" className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
+        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">
             Trivias WWE Slammy Awards
           </h2>
+          <TableScreenshotButton title="Trivias WWE Slammy Awards" />
         </div>
 
         <div className="overflow-x-auto">
@@ -532,11 +534,12 @@ export default function SlammyAwardsContent({ data, type }) {
       </div>
 
       {/* Ranking Table: Total Slammy Awards per Year */}
-      <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
-        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+      <div data-screenshot-target="true" className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
+        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">
             Total Slammy Awards per Year
           </h2>
+          <TableScreenshotButton title="Total Slammy Awards per Year" />
         </div>
 
         <div className="overflow-x-auto">
@@ -738,11 +741,12 @@ export default function SlammyAwardsContent({ data, type }) {
       </div>
 
       {/* Ranking Table: Total Slammy Awards per Category */}
-      <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
-        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+      <div data-screenshot-target="true" className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
+        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">
             Total Slammy Awards per Category
           </h2>
+          <TableScreenshotButton title="Total Slammy Awards per Category" />
         </div>
 
         <div className="overflow-x-auto">
