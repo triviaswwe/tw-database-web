@@ -337,10 +337,12 @@ export default function EventsPage({ isDark }) {
         isDark ??
         (typeof document !== "undefined" &&
           document.documentElement.classList.contains("dark"));
+      const isMobile =
+        typeof window !== "undefined" && window.innerWidth < 640;
 
       return await toPng(calendarRef.current, {
         backgroundColor: isDarkMode ? "#09090b" : "#ffffff",
-        pixelRatio: 2,
+        pixelRatio: isMobile ? 3.5 : 2,
         cacheBust: false,
         includeQueryParams: true,
       });
@@ -757,7 +759,7 @@ export default function EventsPage({ isDark }) {
                                           src={logo}
                                           alt={ev.name}
                                           fill
-                                          sizes="(max-width: 640px) 14vw, 120px"
+                                          sizes="(max-width: 640px) 256px, 120px"
                                           className="object-contain"
                                         />
                                       </div>
