@@ -54,8 +54,8 @@ export default function TableScreenshotButton({
         ? Math.max(liveTableEl.scrollWidth, liveTableEl.offsetWidth)
         : target.scrollWidth;
 
-      const extraPad = hasCardBorder ? 2 : 32;
-      const totalWidth = Math.ceil(Math.max(origWidth, liveTableWidth + extraPad));
+      const padAndBorder = hasCardBorder ? 2 : 32;
+      let totalWidth = Math.ceil(Math.max(origWidth, liveTableWidth + padAndBorder) + 4);
 
       // Clonamos fuera de pantalla con el ancho ya fijado para que position:fixed no estire la tabla a max-content
       offscreen = document.createElement("div");
@@ -84,6 +84,28 @@ export default function TableScreenshotButton({
           });
         })
       );
+
+      // En mobile, las reglas de captura (como nowrap en celdas) pueden ensanchar la tabla clonada respecto al DOM vivo
+      const cloneTableEl = clone.querySelector("table");
+      for (let pass = 0; pass < 2 && cloneTableEl; pass++) {
+        const cloneTableWidth = Math.ceil(
+          Math.max(
+            cloneTableEl.scrollWidth,
+            cloneTableEl.offsetWidth,
+            cloneTableEl.getBoundingClientRect().width
+          )
+        );
+        if (cloneTableWidth + padAndBorder > totalWidth) {
+          totalWidth = cloneTableWidth + padAndBorder + 4;
+          offscreen.style.width = `${totalWidth}px`;
+          clone.style.width = `${totalWidth}px`;
+          clone.style.minWidth = `${totalWidth}px`;
+          clone.style.maxWidth = `${totalWidth}px`;
+          clone.style.inlineSize = `${totalWidth}px`;
+        } else {
+          break;
+        }
+      }
 
       const rect = clone.getBoundingClientRect();
       const finalWidth = totalWidth;
