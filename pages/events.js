@@ -315,7 +315,7 @@ export default function EventsPage({ isDark }) {
   };
 
   const getDropdownButtonClass = (isOpen) =>
-    `px-3.5 py-2 rounded font-semibold text-sm transition-colors flex items-center justify-between gap-2 select-none bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-800 ${
+    `px-2.5 sm:px-3.5 py-2 rounded font-semibold text-xs sm:text-sm transition-colors flex items-center justify-between gap-1.5 sm:gap-2 select-none bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-800 ${
       isOpen ? "ring-2 ring-blue-500/50" : ""
     }`;
 
@@ -558,19 +558,19 @@ export default function EventsPage({ isDark }) {
             {/* Cabecera de navegación Mes / Año con desplegables estilo MatchFilters */}
             <div
               ref={dropdownRef}
-              className="mb-6 relative flex flex-wrap items-center justify-center gap-2"
+              className="mb-6 relative flex items-center justify-center gap-1 sm:gap-2"
             >
               <button
                 type="button"
                 onClick={() => stepMonth(-1)}
                 aria-label="Previous month"
-                className="px-3 py-2 rounded font-semibold text-sm bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-800 transition-colors select-none"
+                className="p-2 sm:px-3 sm:py-2 rounded font-semibold text-xs sm:text-sm bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-800 transition-colors select-none shrink-0"
               >
                 &lt;
               </button>
 
               {calYear && calMonth && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                   {/* Dropdown Mes */}
                   <div className="relative">
                     <button
@@ -580,7 +580,7 @@ export default function EventsPage({ isDark }) {
                           openDropdown === "month" ? null : "month",
                         )
                       }
-                      className={`${getDropdownButtonClass(openDropdown === "month")} min-w-[135px]`}
+                      className={`${getDropdownButtonClass(openDropdown === "month")} min-w-[100px] sm:min-w-[135px]`}
                     >
                       <span className="truncate">
                         {MONTH_NAMES[calMonth - 1]}
@@ -594,7 +594,7 @@ export default function EventsPage({ isDark }) {
                     </button>
 
                     {openDropdown === "month" && (
-                      <div className="absolute left-0 top-full mt-1.5 w-full min-w-[150px] max-h-64 overflow-y-auto bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg shadow-xl z-50 p-1.5 text-xs space-y-0.5">
+                      <div className="absolute left-0 top-full mt-1.5 w-full min-w-[140px] max-h-64 overflow-y-auto bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg shadow-xl z-50 p-1.5 text-xs space-y-0.5">
                         {MONTH_NAMES.map((name, idx) => {
                           const mVal = idx + 1;
                           const isSelected = calMonth === mVal;
@@ -624,7 +624,7 @@ export default function EventsPage({ isDark }) {
                       onClick={() =>
                         setOpenDropdown(openDropdown === "year" ? null : "year")
                       }
-                      className={`${getDropdownButtonClass(openDropdown === "year")} min-w-[85px]`}
+                      className={`${getDropdownButtonClass(openDropdown === "year")} min-w-[65px] sm:min-w-[85px]`}
                     >
                       <span className="truncate">{calYear}</span>
                       <ChevronDown
@@ -636,7 +636,7 @@ export default function EventsPage({ isDark }) {
                     </button>
 
                     {openDropdown === "year" && (
-                      <div className="absolute left-0 top-full mt-1.5 w-full min-w-[100px] max-h-64 overflow-y-auto bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg shadow-xl z-50 p-1.5 text-xs space-y-0.5">
+                      <div className="absolute left-0 top-full mt-1.5 w-full min-w-[90px] max-h-64 overflow-y-auto bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg shadow-xl z-50 p-1.5 text-xs space-y-0.5">
                         {yearsList.map((y) => {
                           const isSelected = calYear === y;
                           return (
@@ -664,24 +664,25 @@ export default function EventsPage({ isDark }) {
                 type="button"
                 onClick={() => stepMonth(1)}
                 aria-label="Next month"
-                className="px-3 py-2 rounded font-semibold text-sm bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-800 transition-colors select-none"
+                className="p-2 sm:px-3 sm:py-2 rounded font-semibold text-xs sm:text-sm bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-800 transition-colors select-none shrink-0"
               >
                 &gt;
               </button>
 
-              <div className="w-full sm:w-auto flex justify-center sm:justify-end sm:absolute sm:right-0">
+              <div className="sm:absolute sm:right-0 shrink-0">
                 <button
                   type="button"
                   onClick={handleTakeScreenshot}
                   disabled={calLoading || isCapturing || !calYear || !calMonth}
-                  className="px-3.5 py-2 rounded font-semibold text-sm bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 select-none disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                  className="p-2 sm:px-3.5 sm:py-2 rounded font-semibold text-xs sm:text-sm bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 select-none disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shrink-0"
                   title="Descargar screenshot del calendario"
+                  aria-label="Screenshot"
                 >
                   <Camera
                     size={16}
                     className={`shrink-0 ${isCapturing ? "animate-pulse" : ""}`}
                   />
-                  <span>Screenshot</span>
+                  <span className="hidden sm:inline">Screenshot</span>
                 </button>
               </div>
             </div>
@@ -811,14 +812,14 @@ export default function EventsPage({ isDark }) {
                 />
               </div>
 
-              <div className="px-4 py-3 border-t border-gray-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-3">
-                <label className="flex items-center gap-2 cursor-pointer select-none px-3 py-1.5 rounded bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 border border-gray-300 dark:border-zinc-700 transition-colors text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200">
+              <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-t border-gray-200 dark:border-zinc-800 flex items-center justify-between gap-2">
+                <label className="flex items-center gap-1.5 sm:gap-2 cursor-pointer select-none px-2.5 sm:px-3 py-1.5 rounded bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 border border-gray-300 dark:border-zinc-700 transition-colors text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200 shrink-0">
                   <input
                     type="checkbox"
                     checked={enableCurrentDay}
                     onChange={handleToggleCurrentDay}
                     disabled={isCapturing}
-                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
                   />
                   <span>
                     {enableCurrentDay
@@ -827,20 +828,20 @@ export default function EventsPage({ isDark }) {
                   </span>
                 </label>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     type="button"
                     onClick={closePreview}
-                    className="px-4 py-2 rounded font-semibold text-sm bg-gray-200 text-gray-800 dark:bg-gray-800 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+                    className="hidden sm:inline-flex px-4 py-2 rounded font-semibold text-sm bg-gray-200 text-gray-800 dark:bg-gray-800 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={handleConfirmDownload}
-                    className="px-4 py-2 rounded font-semibold text-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center gap-2 shadow"
+                    className="px-3 sm:px-4 py-1.5 sm:py-2 rounded font-semibold text-xs sm:text-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center gap-1.5 sm:gap-2 shadow whitespace-nowrap"
                   >
-                    <Download size={16} />
+                    <Download size={15} />
                     <span>Confirm download</span>
                   </button>
                 </div>
