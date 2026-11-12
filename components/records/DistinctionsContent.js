@@ -116,10 +116,21 @@ export default function DistinctionsContent({ data, type }) {
     rankingList = [],
   } = data || {};
 
-  const [selectedYear, setSelectedYear] = useState("all");
+  // Default to current calendar year if it has recorded distinctions, otherwise the latest available year
+  const initialYear = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    if (years.includes(currentYear)) return String(currentYear);
+    return years.length > 0 ? String(Math.max(...years)) : "all";
+  }, [years]);
+
+  const [selectedYear, setSelectedYear] = useState(initialYear);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [expandedRow, setExpandedRow] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: "rank", dir: "asc" });
+
+  useEffect(() => {
+    setSelectedYear(initialYear);
+  }, [initialYear]);
 
   useEffect(() => {
     setSortConfig({ key: "rank", dir: "asc" });
