@@ -9,6 +9,7 @@ import FlagWithName from "../../components/FlagWithName";
 import MatchCard from "../../components/MatchCard";
 import MatchFilters from "../../components/MatchFilters";
 import { formatDateDDMMYYYY, buildH2hMatches, computeH2hRecords, WRESTLER_ALIASES, wrestlerNameSql, wrestlerSearchSql } from "../../lib/matchUtils";
+import { getEntityDistinctions } from "../../lib/records/getDistinctionsData";
 import React, { useState, useMemo } from "react";
 import {
   useQueryToggle,
@@ -462,6 +463,7 @@ export async function getServerSideProps({ params, query, res }) {
     });
 
     const h2hMatches = buildH2hMatches(h2hRawMatches, wrestlerId, false);
+    const distinctions = await getEntityDistinctions(pool, wrestlerId, false);
 
     return {
       props: {
@@ -481,6 +483,7 @@ export async function getServerSideProps({ params, query, res }) {
         wrestlersList: wrestlerListRows.map((r) => ({ id: r.id, name: r.name })),
         showsList: showListRows.map((r) => ({ id: r.name, name: r.name })),
         championships: JSON.parse(JSON.stringify(processedReigns)),
+        distinctions: JSON.parse(JSON.stringify(distinctions)),
         h2hMatches,
         matches: {
           stats,
@@ -519,6 +522,7 @@ export default function WrestlerDetail({
   showsList = [],
   matches,
   championships = [],
+  distinctions = [],
   h2hMatches = [],
 }) {
   const router = useRouter();
@@ -671,6 +675,18 @@ export default function WrestlerDetail({
               }`}
             >
               Championships
+            </button>
+          )}
+          {distinctions && distinctions.length > 0 && (
+            <button
+              onClick={() => setActiveTab("distinctions")}
+              className={`pb-2 px-1 border-b-2 font-medium text-lg transition-colors cursor-pointer ${
+                activeTab === "distinctions"
+                  ? "border-blue-600 text-blue-600 dark:text-sky-400 dark:border-sky-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              }`}
+            >
+              Distinctions
             </button>
           )}
           <button
@@ -918,6 +934,79 @@ export default function WrestlerDetail({
                           </tr>
                         )}
                       </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "distinctions" && (
+          <div className="mt-2">
+            {distinctions.length === 0 ? (
+              <p className="text-gray-500 dark:text-gray-400">No distinctions recorded.</p>
+            ) : (
+              <div className="overflow-x-auto shadow-sm rounded-lg border border-gray-200 dark:border-gray-800">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-800 select-none">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold text-center">#</th>
+                      <th className="px-4 py-3 font-semibold">Distinction / Tournament</th>
+                      <th className="px-4 py-3 font-semibold">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-zinc-950">
+                    {distinctions.map((d, idx) => (
+                      <tr key={d.id} className="hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
+                        <td className="px-4 py-3 text-center text-gray-500 font-mono">
+                          {idx + 1}
+                        </td>
+                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
+                          <div>{d.title}</div>
+                          {(d.stables?.length > 0 || d.teammates?.length > 0) && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                              {d.stables?.length > 0 && (
+                                <>
+                                  {d.stables.map((st, sIdx) => (
+                                    <React.Fragment key={st.id}>
+                                      {sIdx > 0 && " & "}
+                                      <Link href={`/stables/${st.id}`} className="text-blue-600 dark:text-sky-400 hover:underline">
+                                        {st.name}
+                                      </Link>
+                                    </React.Fragment>
+                                  ))}
+                                  {d.teammates?.length > 0 && " "}
+                                </>
+                              )}
+                              {d.teammates?.length > 0 && (
+                                <span>
+                                  (w/{" "}
+                                  {d.teammates.map((tm, tIdx) => (
+                                    <React.Fragment key={tm.id}>
+                                      {tIdx > 0 && ", "}
+                                      <Link href={`/wrestlers/${tm.id}`} className="text-blue-600 dark:text-sky-400 hover:underline">
+                                        {tm.name}
+                                      </Link>
+                                    </React.Fragment>
+                                  ))}
+                                  )
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                          <div className="flex flex-col">
+                            <span>{formatDateDDMMYYYY(d.date)}</span>
+                            <span className="text-[11px] text-gray-400">
+                              <Link href={`/events/${d.eventId}`} className="hover:underline">
+                                {d.showLabel}
+                              </Link>
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
                     ))}
                   </tbody>
                 </table>

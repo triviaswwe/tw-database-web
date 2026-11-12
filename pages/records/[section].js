@@ -21,8 +21,8 @@ export async function getServerSideProps(context) {
     };
   }
 
-  // If visiting /records/general or /records/slammy-awards -> redirect to /records/[section]/wrestler
-  if (section === "general" || section === "slammy-awards") {
+  // If visiting /records/general, /records/slammy-awards, or /records/distinctions -> redirect to /records/[section]/wrestler
+  if (section === "general" || section === "slammy-awards" || section === "distinctions") {
     return {
       redirect: {
         destination: `/records/${section}/wrestler`,

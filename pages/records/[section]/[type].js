@@ -7,10 +7,12 @@ import { RecordsContentSkeleton } from "../../../components/Skeletons";
 import RecordsNav from "../../../components/records/RecordsNav";
 import GeneralRecordsContent from "../../../components/records/GeneralRecordsContent";
 import SlammyAwardsContent from "../../../components/records/SlammyAwardsContent";
+import DistinctionsContent from "../../../components/records/DistinctionsContent";
 import { getGeneralRecordsData } from "../../../lib/records/getGeneralRecordsData";
 import { getSlammyData } from "../../../lib/records/getSlammyData";
+import { getDistinctionsData } from "../../../lib/records/getDistinctionsData";
 
-const VALID_SECTIONS = ["general", "slammy-awards"];
+const VALID_SECTIONS = ["general", "slammy-awards", "distinctions"];
 const VALID_TYPES = ["wrestler", "interpreter"];
 
 export async function getServerSideProps(context) {
@@ -34,6 +36,8 @@ export async function getServerSideProps(context) {
       data = await getGeneralRecordsData(pool, type);
     } else if (section === "slammy-awards") {
       data = await getSlammyData(pool, type);
+    } else if (section === "distinctions") {
+      data = await getDistinctionsData(pool, type);
     }
 
     return {
@@ -82,7 +86,9 @@ export default function RecordsSectionPage({ error, section, type, data }) {
         <title>
           {section === "slammy-awards"
             ? "Slammy Awards — Trivias WWE"
-            : "Hall of Records — Trivias WWE"}
+            : section === "distinctions"
+              ? "Other Distinctions — Trivias WWE"
+              : "Hall of Records — Trivias WWE"}
         </title>
         <meta
           name="description"
@@ -122,6 +128,9 @@ export default function RecordsSectionPage({ error, section, type, data }) {
               )}
               {section === "slammy-awards" && (
                 <SlammyAwardsContent data={data} type={type} />
+              )}
+              {section === "distinctions" && (
+                <DistinctionsContent data={data} type={type} />
               )}
             </>
           )}

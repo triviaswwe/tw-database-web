@@ -5,6 +5,7 @@ import Link from "next/link";
 const SECTIONS = [
   { id: "general", label: "General Records" },
   { id: "slammy-awards", label: "Slammy Awards" },
+  { id: "distinctions", label: "Other Distinctions" },
 ];
 
 export default function RecordsNav({ currentSection, currentType }) {
