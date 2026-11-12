@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import Head from "next/head";
 import Image from "next/image";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Camera, Download, X } from "lucide-react";
 import { EventGridSkeleton, CalendarSkeleton } from "../components/Skeletons";
 
 const EVENTS_PER_PAGE = 33;
@@ -98,7 +98,7 @@ export function buildCalendarCells(year, month) {
   });
 }
 
-export default function EventsPage() {
+export default function EventsPage({ isDark }) {
   const [activeTab, setActiveTab] = useState("classic");
 
   // Estado Classic view
@@ -122,7 +122,11 @@ export default function EventsPage() {
   const [calLoading, setCalLoading] = useState(false);
   const [calInitialized, setCalInitialized] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
+  const [enableCurrentDay, setEnableCurrentDay] = useState(false);
   const dropdownRef = useRef(null);
+  const calendarRef = useRef(null);
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -133,6 +137,28 @@ export default function EventsPage() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const closePreview = () => {
+    setPreviewData(null);
+    setEnableCurrentDay(false);
+  };
+
+  useEffect(() => {
+    if (!previewData) return;
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") closePreview();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [previewData]);
 
   // Debounce del nombre
   useEffect(() => {
@@ -292,6 +318,83 @@ export default function EventsPage() {
     `px-3.5 py-2 rounded font-semibold text-sm transition-colors flex items-center justify-between gap-2 select-none bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-800 ${
       isOpen ? "ring-2 ring-blue-500/50" : ""
     }`;
+
+  const captureCalendar = async (highlightToday) => {
+    if (!calendarRef.current) return null;
+    const todayCell = calendarRef.current.querySelector('[data-today="true"]');
+    const hadHighlight =
+      todayCell &&
+      (todayCell.classList.contains("bg-yellow-100") ||
+        todayCell.classList.contains("dark:bg-gray-900"));
+
+    if (todayCell && !highlightToday) {
+      todayCell.classList.remove("bg-yellow-100", "dark:bg-gray-900");
+    }
+
+    try {
+      const { toPng } = await import("html-to-image");
+      const isDarkMode =
+        isDark ??
+        (typeof document !== "undefined" &&
+          document.documentElement.classList.contains("dark"));
+
+      return await toPng(calendarRef.current, {
+        backgroundColor: isDarkMode ? "#09090b" : "#ffffff",
+        pixelRatio: 2,
+        cacheBust: false,
+        includeQueryParams: true,
+      });
+    } finally {
+      if (todayCell && hadHighlight) {
+        todayCell.classList.add("bg-yellow-100", "dark:bg-gray-900");
+      }
+    }
+  };
+
+  const handleTakeScreenshot = async () => {
+    if (!calendarRef.current || isCapturing || !calYear || !calMonth) return;
+    setIsCapturing(true);
+    try {
+      setEnableCurrentDay(false);
+      const dataUrl = await captureCalendar(false);
+      if (!dataUrl) return;
+
+      const monthName = MONTH_NAMES[calMonth - 1]?.toLowerCase() || "month";
+      setPreviewData({
+        url: dataUrl,
+        fileName: `tw_calendar-${monthName}-${calYear}.png`,
+      });
+    } catch (err) {
+      console.error("Error taking calendar screenshot:", err);
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  const handleToggleCurrentDay = async (e) => {
+    const nextVal = e.target.checked;
+    setEnableCurrentDay(nextVal);
+    setIsCapturing(true);
+    try {
+      const dataUrl = await captureCalendar(nextVal);
+      if (dataUrl) {
+        setPreviewData((prev) => (prev ? { ...prev, url: dataUrl } : null));
+      }
+    } catch (err) {
+      console.error("Error updating preview screenshot:", err);
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  const handleConfirmDownload = () => {
+    if (!previewData) return;
+    const link = document.createElement("a");
+    link.download = previewData.fileName;
+    link.href = previewData.url;
+    link.click();
+    closePreview();
+  };
 
   return (
     <>
@@ -455,7 +558,7 @@ export default function EventsPage() {
             {/* Cabecera de navegación Mes / Año con desplegables estilo MatchFilters */}
             <div
               ref={dropdownRef}
-              className="mb-6 flex items-center justify-center gap-2"
+              className="mb-6 relative flex flex-wrap items-center justify-center gap-2"
             >
               <button
                 type="button"
@@ -565,12 +668,36 @@ export default function EventsPage() {
               >
                 &gt;
               </button>
+
+              <div className="w-full sm:w-auto flex justify-center sm:justify-end sm:absolute sm:right-0">
+                <button
+                  type="button"
+                  onClick={handleTakeScreenshot}
+                  disabled={calLoading || isCapturing || !calYear || !calMonth}
+                  className="px-3.5 py-2 rounded font-semibold text-sm bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 select-none disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                  title="Descargar screenshot del calendario"
+                >
+                  <Camera
+                    size={16}
+                    className={`shrink-0 ${isCapturing ? "animate-pulse" : ""}`}
+                  />
+                  <span>Screenshot</span>
+                </button>
+              </div>
             </div>
 
             {calLoading || !calYear || !calMonth ? (
               <CalendarSkeleton />
             ) : (
-              <div className="border border-gray-300 dark:border-gray-800 rounded overflow-hidden shadow-sm">
+              <div
+                ref={calendarRef}
+                className="border border-gray-300 dark:border-gray-800 rounded overflow-hidden shadow-sm bg-white dark:bg-zinc-950"
+              >
+                {/* Encabezado con Mes y Año para identificar el calendario */}
+                <div className="py-2.5 px-4 text-center font-bold text-base sm:text-lg bg-gray-100 dark:bg-zinc-900 border-b border-gray-300 dark:border-gray-800 text-gray-800 dark:text-white">
+                  {MONTH_NAMES[calMonth - 1]} {calYear}
+                </div>
+
                 {/* Encabezado de días de la semana (Lunes a Domingo) */}
                 <div className="grid grid-cols-7 bg-gray-200 dark:bg-gray-900 border-b border-gray-300 dark:border-gray-800">
                   {WEEKDAYS.map((d) => (
@@ -597,6 +724,7 @@ export default function EventsPage() {
                     return (
                       <div
                         key={idx}
+                        data-today={isToday ? "true" : undefined}
                         className={`min-h-[80px] sm:min-h-[110px] md:min-h-[125px] p-1 sm:p-2 border-b border-r border-gray-300 dark:border-gray-800 flex flex-col ${
                           (idx + 1) % 7 === 0 ? "border-r-0" : ""
                         } ${
@@ -649,6 +777,75 @@ export default function EventsPage() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {previewData && (
+          <div
+            onClick={closePreview}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 overscroll-contain"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden overscroll-contain"
+            >
+              <div className="px-4 py-3 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
+                <span className="font-semibold text-sm text-gray-800 dark:text-white truncate">
+                  {previewData.fileName}
+                </span>
+                <button
+                  type="button"
+                  onClick={closePreview}
+                  aria-label="Close preview"
+                  className="p-1 rounded text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="p-4 overflow-y-auto flex-1 flex items-center justify-center bg-gray-100 dark:bg-zinc-950 overscroll-contain">
+                <img
+                  src={previewData.url}
+                  alt="Screenshot preview"
+                  className="max-h-[65vh] w-auto object-contain rounded shadow"
+                />
+              </div>
+
+              <div className="px-4 py-3 border-t border-gray-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-3">
+                <label className="flex items-center gap-2 cursor-pointer select-none px-3 py-1.5 rounded bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 border border-gray-300 dark:border-zinc-700 transition-colors text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200">
+                  <input
+                    type="checkbox"
+                    checked={enableCurrentDay}
+                    onChange={handleToggleCurrentDay}
+                    disabled={isCapturing}
+                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <span>
+                    {enableCurrentDay
+                      ? "Disable current day"
+                      : "Enable current day"}
+                  </span>
+                </label>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={closePreview}
+                    className="px-4 py-2 rounded font-semibold text-sm bg-gray-200 text-gray-800 dark:bg-gray-800 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmDownload}
+                    className="px-4 py-2 rounded font-semibold text-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center gap-2 shadow"
+                  >
+                    <Download size={16} />
+                    <span>Confirm download</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
