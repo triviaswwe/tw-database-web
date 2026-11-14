@@ -45,7 +45,11 @@ export default function FlagWithName({ code, name, breakOnSpace = false }) {
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5 text-left leading-tight align-top">
+    <span
+      className={`inline-flex items-center gap-1.5 leading-tight align-middle ${
+        breakOnSpace ? "text-left" : "whitespace-nowrap"
+      }`}
+    >
       {flagImg}
       <span className="inline-block">{displayName}</span>
     </span>

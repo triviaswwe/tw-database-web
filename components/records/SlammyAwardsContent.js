@@ -31,7 +31,7 @@ function renderEntityNode(entity, label, isWrestler, wrestlerToInterpreter) {
         <Link
           key={`interp_${interp.id}_${interp.name}`}
           href={`/interpreters/${interp.id}`}
-          className="text-blue-600 dark:text-sky-400 hover:underline font-medium inline-flex items-center gap-1 mx-0.5"
+          className="text-blue-600 dark:text-sky-400 hover:underline font-medium inline-flex items-center gap-1 mx-0.5 whitespace-nowrap"
         >
           <FlagWithName code={interp.country} name={interp.name} />
         </Link>
@@ -44,7 +44,7 @@ function renderEntityNode(entity, label, isWrestler, wrestlerToInterpreter) {
     <Link
       key={`${entity.type}_${entity.id}_${label}`}
       href={url}
-      className="text-blue-600 dark:text-sky-400 hover:underline font-medium inline-flex items-center gap-1 mx-0.5"
+      className="text-blue-600 dark:text-sky-400 hover:underline font-medium inline-flex items-center gap-1 mx-0.5 whitespace-nowrap"
     >
       <FlagWithName code={entity.country} name={label} />
     </Link>
@@ -232,13 +232,13 @@ function SlammyAwardCell({ award, isWrestler, lookupEntities = [], royalRumblesB
   // Pattern 4: Match of the Year
   if (categoryName.includes("match")) {
     const primaryContent = (
-      <div className="font-medium text-gray-900 dark:text-white">
+      <div className="font-medium text-gray-900 dark:text-white text-center">
         {renderRichText(award.winner_name, lookupEntities, isWrestler, wrestlerToInterpreter)}
       </div>
     );
 
     return (
-      <div className="text-sm leading-relaxed space-y-1">
+      <div className="text-sm leading-relaxed space-y-1 text-center">
         {primaryContent}
         {(award.event || award.subtext) && (
           <div className="text-xs text-gray-500 dark:text-gray-400">
