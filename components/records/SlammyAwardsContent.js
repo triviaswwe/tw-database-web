@@ -578,6 +578,22 @@ export default function SlammyAwardsContent({ data, type }) {
                   </div>
                 </th>
 
+                <th
+                  className="px-4 py-3 text-center border border-gray-200 dark:border-gray-800 w-24 cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors select-none"
+                  onClick={() => handleSort("total")}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    <span>Total</span>
+                    <span className="text-[10px] text-blue-500">
+                      {sortConfig.key === "total" ? (
+                        sortConfig.dir === "desc" ? "▼" : "▲"
+                      ) : (
+                        <span className="opacity-40 text-gray-400">⬍</span>
+                      )}
+                    </span>
+                  </div>
+                </th>
+
                 {years.map((year) => (
                   <th
                     key={year}
@@ -596,22 +612,6 @@ export default function SlammyAwardsContent({ data, type }) {
                     </div>
                   </th>
                 ))}
-
-                <th
-                  className="px-4 py-3 text-center border border-gray-200 dark:border-gray-800 w-24 cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors select-none"
-                  onClick={() => handleSort("total")}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    <span>Total</span>
-                    <span className="text-[10px] text-blue-500">
-                      {sortConfig.key === "total" ? (
-                        sortConfig.dir === "desc" ? "▼" : "▲"
-                      ) : (
-                        <span className="opacity-40 text-gray-400">⬍</span>
-                      )}
-                    </span>
-                  </div>
-                </th>
               </tr>
             </thead>
 
@@ -660,6 +660,10 @@ export default function SlammyAwardsContent({ data, type }) {
                         </Link>
                       </td>
 
+                      <td className="px-4 py-3 text-center border border-gray-200 dark:border-gray-800 text-sm font-mono font-bold text-gray-900 dark:text-white">
+                        {item.total}
+                      </td>
+
                       {years.map((year) => {
                         const count = item.yearCounts?.[year] ?? item.counts?.[year];
                         return (
@@ -679,10 +683,6 @@ export default function SlammyAwardsContent({ data, type }) {
                           </td>
                         );
                       })}
-
-                      <td className="px-4 py-3 text-center border border-gray-200 dark:border-gray-800 text-sm font-mono font-bold text-gray-900 dark:text-white">
-                        {item.total}
-                      </td>
                     </tr>
 
                     {isExpanded && isExpandable && (
@@ -785,6 +785,22 @@ export default function SlammyAwardsContent({ data, type }) {
                   </div>
                 </th>
 
+                <th
+                  className="px-4 py-3 text-center border border-gray-200 dark:border-gray-800 w-24 cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors select-none"
+                  onClick={() => handleCatSort("total")}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    <span>Total</span>
+                    <span className="text-[10px] text-blue-500">
+                      {catSortConfig.key === "total" ? (
+                        catSortConfig.dir === "desc" ? "▼" : "▲"
+                      ) : (
+                        <span className="opacity-40 text-gray-400">⬍</span>
+                      )}
+                    </span>
+                  </div>
+                </th>
+
                 {categories.map((cat) => (
                   <th
                     key={cat.id}
@@ -803,22 +819,6 @@ export default function SlammyAwardsContent({ data, type }) {
                     </div>
                   </th>
                 ))}
-
-                <th
-                  className="px-4 py-3 text-center border border-gray-200 dark:border-gray-800 w-24 cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors select-none"
-                  onClick={() => handleCatSort("total")}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    <span>Total</span>
-                    <span className="text-[10px] text-blue-500">
-                      {catSortConfig.key === "total" ? (
-                        catSortConfig.dir === "desc" ? "▼" : "▲"
-                      ) : (
-                        <span className="opacity-40 text-gray-400">⬍</span>
-                      )}
-                    </span>
-                  </div>
-                </th>
               </tr>
             </thead>
 
@@ -867,6 +867,10 @@ export default function SlammyAwardsContent({ data, type }) {
                         </Link>
                       </td>
 
+                      <td className="px-4 py-3 text-center border border-gray-200 dark:border-gray-800 text-sm font-mono font-bold text-gray-900 dark:text-white">
+                        {item.total}
+                      </td>
+
                       {categories.map((cat) => {
                         const count = item.categoryCounts?.[cat.id];
                         return (
@@ -886,10 +890,6 @@ export default function SlammyAwardsContent({ data, type }) {
                           </td>
                         );
                       })}
-
-                      <td className="px-4 py-3 text-center border border-gray-200 dark:border-gray-800 text-sm font-mono font-bold text-gray-900 dark:text-white">
-                        {item.total}
-                      </td>
                     </tr>
 
                     {isExpanded && isExpandable && (
