@@ -652,10 +652,10 @@ export default function InterpreterDetail({
 
       <div className="p-4 max-w-3xl mx-auto">
         {/* Pestañas de navegación */}
-        <div className="flex space-x-6 border-b border-gray-200 dark:border-gray-800 mb-6 mt-4">
+        <div className="flex space-x-6 border-b border-gray-200 dark:border-gray-800 mb-6 mt-4 overflow-x-auto hide-scrollbar">
           <button
             onClick={() => setActiveTab("matches")}
-            className={`pb-2 px-1 border-b-2 font-medium text-lg transition-colors cursor-pointer ${
+            className={`pb-2 px-1 border-b-2 font-medium text-lg transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === "matches"
                 ? "border-blue-600 text-blue-600 dark:text-sky-400 dark:border-sky-400"
                 : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -666,7 +666,7 @@ export default function InterpreterDetail({
           {championships && championships.length > 0 && (
             <button
               onClick={() => setActiveTab("championships")}
-              className={`pb-2 px-1 border-b-2 font-medium text-lg transition-colors cursor-pointer ${
+              className={`pb-2 px-1 border-b-2 font-medium text-lg transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === "championships"
                   ? "border-blue-600 text-blue-600 dark:text-sky-400 dark:border-sky-400"
                   : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -678,7 +678,7 @@ export default function InterpreterDetail({
           {distinctions && distinctions.length > 0 && (
             <button
               onClick={() => setActiveTab("distinctions")}
-              className={`pb-2 px-1 border-b-2 font-medium text-lg transition-colors cursor-pointer ${
+              className={`pb-2 px-1 border-b-2 font-medium text-lg transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === "distinctions"
                   ? "border-blue-600 text-blue-600 dark:text-sky-400 dark:border-sky-400"
                   : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -689,7 +689,7 @@ export default function InterpreterDetail({
           )}
           <button
             onClick={() => setActiveTab("h2h")}
-            className={`pb-2 px-1 border-b-2 font-medium text-lg transition-colors cursor-pointer ${
+            className={`pb-2 px-1 border-b-2 font-medium text-lg transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === "h2h"
                 ? "border-blue-600 text-blue-600 dark:text-sky-400 dark:border-sky-400"
                 : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
