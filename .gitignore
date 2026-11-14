@@ -10,7 +10,7 @@ node_modules/
 
 # Skills/Agents
 agents/
-AGENTS.md
+skills-lock.json
 
 # Packages
 package.json
