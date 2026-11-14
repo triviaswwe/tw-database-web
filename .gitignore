@@ -9,7 +9,8 @@ node_modules/
 .vscode
 
 # Skills/Agents
-agents/
+.agents/
+/skills/
 skills-lock.json
 
 # Packages
@@ -18,3 +19,8 @@ pnpm-lock.yaml
 
 # Docs
 docs/
+
+# Graphify
+CLAUDE.md
+.claude/
+graphify-out/
