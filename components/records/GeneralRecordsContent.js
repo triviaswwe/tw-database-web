@@ -6,6 +6,14 @@ import { useRouter } from "next/router";
 import FlagWithName from "../FlagWithName";
 import TableScreenshotButton from "../TableScreenshotButton";
 
+const BLOB_BASE_URL = "https://ljejfdquofuxccca.public.blob.vercel-storage.com";
+
+const SHOW_LOGOS = {
+  raw: `${BLOB_BASE_URL}/raw.png`,
+  smackdown: `${BLOB_BASE_URL}/sd.png`,
+  nxt: `${BLOB_BASE_URL}/nxt.png`,
+};
+
 const CATEGORIES = [
   { type: "main", label: "Maincard championships" },
   { type: "mid", label: "Midcard championships" },
@@ -20,6 +28,11 @@ export default function GeneralRecordsContent({ data, type }) {
 
   const [undefSort, setUndefSort] = useState({ key: "count", dir: "desc" });
   const [topSort, setTopSort] = useState({ key: "wins", dir: "desc" });
+  const [showSorts, setShowSorts] = useState({
+    raw: "wins",
+    sd: "wins",
+    nxt: "wins",
+  });
   const [lrSort, setLrSort] = useState({ key: "days_held", dir: "desc" });
   const [mdSort, setMdSort] = useState({ key: "defenses_count", dir: "desc" });
   const [tcSort, setTcSort] = useState({ key: "rank", dir: "asc" });
@@ -28,6 +41,11 @@ export default function GeneralRecordsContent({ data, type }) {
   // Reset expandedRow and sorts when changing type
   useEffect(() => {
     setExpandedRow(null);
+    setShowSorts({
+      raw: "wins",
+      sd: "wins",
+      nxt: "wins",
+    });
     setTcSort({ key: "rank", dir: "asc" });
     setPleSort({ key: "rank", dir: "asc" });
   }, [type]);
@@ -231,13 +249,14 @@ export default function GeneralRecordsContent({ data, type }) {
     expandTitle = "Match breakdown:",
     isRowExpandable = () => true,
     onRowClick = null,
+    screenshotTitle = null,
   ) => (
-    <div data-screenshot-target="true" className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden h-fit">
-      <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">
+    <div data-screenshot-target="true" className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden h-fit min-w-0">
+      <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between gap-2">
+        <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
           {title}
         </h2>
-        <TableScreenshotButton title={title} />
+        <TableScreenshotButton title={screenshotTitle || (typeof title === "string" ? title : "table")} />
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
@@ -247,7 +266,7 @@ export default function GeneralRecordsContent({ data, type }) {
               {columns.map((col, i) => (
                 <th
                   key={i}
-                  className={`px-4 py-2 ${col.onSort ? "cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors select-none" : ""}`}
+                  className={`px-4 py-2 whitespace-nowrap ${col.onSort ? "cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors select-none" : ""}`}
                   onClick={col.onSort ? col.onSort : undefined}
                 >
                   <div
@@ -413,6 +432,121 @@ export default function GeneralRecordsContent({ data, type }) {
     );
   };
 
+  const renderShowTitle = (logoSrc, alt) => (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+      <Image
+        src={logoSrc}
+        alt={alt}
+        width={64}
+        height={24}
+        className="h-5 w-auto object-contain inline-block"
+      />
+      <span>Records</span>
+    </span>
+  );
+
+  const renderShowMatchesTable = (showKey, logoSrc, showLabel, showData) => {
+    const sortKey = showSorts[showKey];
+    const baseRows = Array.isArray(showData)
+      ? showData
+      : sortKey === "total_matches"
+        ? showData?.byMatches || []
+        : showData?.byWins || [];
+
+    const sorted =
+      sortKey === "win_percentage"
+        ? [...baseRows].sort(
+            (a, b) =>
+              parseFloat(b.win_percentage) - parseFloat(a.win_percentage) ||
+              b.wins - a.wins ||
+              b.total_matches - a.total_matches ||
+              (a.name || "").localeCompare(b.name || "")
+          )
+        : baseRows;
+
+    return renderTable(
+      renderShowTitle(logoSrc, showLabel),
+      sorted,
+      [
+        { label: entityTitle },
+        {
+          label: "Matches",
+          align: "right",
+          onSort: () =>
+            setShowSorts((prev) => ({ ...prev, [showKey]: "total_matches" })),
+          sortDir: sortKey === "total_matches" ? "desc" : null,
+        },
+        {
+          label: "Wins",
+          align: "right",
+          onSort: () =>
+            setShowSorts((prev) => ({ ...prev, [showKey]: "wins" })),
+          sortDir: sortKey === "wins" ? "desc" : null,
+        },
+        {
+          label: "Win %",
+          align: "right",
+          onSort: () =>
+            setShowSorts((prev) => ({ ...prev, [showKey]: "win_percentage" })),
+          sortDir: sortKey === "win_percentage" ? "desc" : null,
+        },
+      ],
+      (item) => (
+        <>
+          <td className="px-4 py-3 whitespace-nowrap">
+            <Link
+              href={`${entityUrl}/${item.id}`}
+              className="text-blue-600 dark:text-sky-400 font-semibold flex items-center gap-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <FlagWithName code={item.country} name={item.name} />
+            </Link>
+          </td>
+          <td className="px-4 py-3 text-right font-bold whitespace-nowrap">
+            {item.total_matches}
+          </td>
+          <td className="px-4 py-3 text-right font-bold text-[#16a34a] dark:text-[#93c47d] whitespace-nowrap">
+            {item.wins}
+          </td>
+          <td className="px-4 py-3 text-right font-mono text-sm whitespace-nowrap">
+            {item.win_percentage}%
+          </td>
+        </>
+      ),
+      `show_${showKey}`,
+      (item) => (
+        <>
+          {[...(item.breakdown || [])]
+            .sort((a, b) => b.count - a.count)
+            .map((bd, idx) => (
+              <li key={idx} className="pl-1 flex items-start text-sm">
+                <span className="mr-2 inline-block min-w-[20px] text-gray-500 dark:text-gray-400 font-mono text-right font-bold">
+                  {bd.count}
+                </span>
+                {bd.id ? (
+                  <Link
+                    href={`${breakdownUrl}/${bd.id}`}
+                    className="text-blue-600 dark:text-sky-400"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {bd.name}
+                  </Link>
+                ) : (
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {bd.name}
+                  </span>
+                )}
+              </li>
+            ))}
+        </>
+      ),
+      breakdownTitle,
+      (item) => item.breakdown?.length > 1,
+      null,
+      `${showLabel} Records`,
+    );
+  };
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
@@ -509,6 +643,12 @@ export default function GeneralRecordsContent({ data, type }) {
             ),
           )}
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start mt-8">
+        {renderShowMatchesTable("raw", SHOW_LOGOS.raw, "RAW", data?.rawMatches)}
+        {renderShowMatchesTable("sd", SHOW_LOGOS.smackdown, "SmackDown", data?.smackdownMatches)}
+        {renderShowMatchesTable("nxt", SHOW_LOGOS.nxt, "NXT", data?.nxtMatches)}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start mt-8">
