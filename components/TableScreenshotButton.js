@@ -37,93 +37,116 @@ export default function TableScreenshotButton({
     let offscreen = null;
 
     try {
-      const { toPng } = await import("html-to-image");
+      const { toSvg } = await import("html-to-image");
       const isDarkMode =
         typeof document !== "undefined" &&
         document.documentElement.classList.contains("dark");
       const isMobile =
-        typeof window !== "undefined" && window.innerWidth < 640;
+        typeof window !== "undefined" &&
+        (window.innerWidth < 640 ||
+          (navigator.maxTouchPoints > 0 &&
+            /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)));
 
       const hasCardBorder =
         target.classList.contains("border") &&
         target.classList.contains("overflow-hidden");
 
-      const liveTableEl = target.querySelector("table");
       const origWidth = target.offsetWidth;
-      const liveTableWidth = liveTableEl
-        ? Math.max(liveTableEl.scrollWidth, liveTableEl.offsetWidth)
-        : target.scrollWidth;
-
       const padAndBorder = hasCardBorder ? 2 : 32;
-      let totalWidth = Math.ceil(Math.max(origWidth, liveTableWidth + padAndBorder) + 4);
 
-      // Clonamos fuera de pantalla con el ancho ya fijado para que position:fixed no estire la tabla a max-content
       offscreen = document.createElement("div");
-      offscreen.style.cssText = `position:fixed;left:-100000px;top:0;width:${totalWidth}px;pointer-events:none;z-index:-9999;`;
+      offscreen.style.cssText =
+        "position:absolute;left:-9999px;top:0;width:max-content;height:auto;overflow:visible;pointer-events:none;z-index:-9999;-webkit-text-size-adjust:100%;text-size-adjust:100%;";
+
       const clone = target.cloneNode(true);
       clone.setAttribute("data-capturing", "true");
+      clone.querySelectorAll(".no-screenshot").forEach((el) => el.remove());
+
       if (!hasCardBorder) {
         clone.style.padding = "16px";
       }
-      clone.style.width = `${totalWidth}px`;
-      clone.style.minWidth = `${totalWidth}px`;
-      clone.style.maxWidth = `${totalWidth}px`;
-      clone.style.inlineSize = `${totalWidth}px`;
+      clone.style.width = "max-content";
+      clone.style.minWidth = `${origWidth}px`;
+      clone.style.maxWidth = "none";
+      clone.style.height = "auto";
 
       offscreen.appendChild(clone);
       document.body.appendChild(offscreen);
 
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+
       const imgs = Array.from(clone.querySelectorAll("img"));
       await Promise.all(
-        imgs.map((img) => {
+        imgs.map(async (img) => {
           if (img.loading === "lazy") img.loading = "eager";
-          if (img.complete && img.naturalWidth > 0) return Promise.resolve();
-          return new Promise((resolve) => {
-            img.addEventListener("load", resolve, { once: true });
-            img.addEventListener("error", resolve, { once: true });
-          });
+          if (!img.complete || img.naturalWidth === 0) {
+            await new Promise((resolve) => {
+              img.addEventListener("load", resolve, { once: true });
+              img.addEventListener("error", resolve, { once: true });
+            });
+          }
+          if (img.decode) {
+            await img.decode().catch(() => {});
+          }
         })
       );
 
-      // En mobile, las reglas de captura (como nowrap en celdas) pueden ensanchar la tabla clonada respecto al DOM vivo
+      await new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve))
+      );
+
       const cloneTableEl = clone.querySelector("table");
-      for (let pass = 0; pass < 2 && cloneTableEl; pass++) {
-        const cloneTableWidth = Math.ceil(
-          Math.max(
+      const tableWidth = cloneTableEl
+        ? Math.max(
             cloneTableEl.scrollWidth,
             cloneTableEl.offsetWidth,
             cloneTableEl.getBoundingClientRect().width
           )
-        );
-        if (cloneTableWidth + padAndBorder > totalWidth) {
-          totalWidth = cloneTableWidth + padAndBorder + 4;
-          offscreen.style.width = `${totalWidth}px`;
-          clone.style.width = `${totalWidth}px`;
-          clone.style.minWidth = `${totalWidth}px`;
-          clone.style.maxWidth = `${totalWidth}px`;
-          clone.style.inlineSize = `${totalWidth}px`;
-        } else {
-          break;
-        }
-      }
+        : 0;
 
-      const rect = clone.getBoundingClientRect();
-      const finalWidth = totalWidth;
-      const finalHeight = Math.ceil(
-        Math.max(rect.height, clone.scrollHeight, clone.offsetHeight)
-      );
+      const finalWidth =
+        Math.ceil(
+          Math.max(
+            origWidth,
+            clone.scrollWidth,
+            clone.offsetWidth,
+            clone.getBoundingClientRect().width,
+            tableWidth ? tableWidth + padAndBorder : 0
+          )
+        ) + 2;
 
-      // Evita que tablas muy largas superen el límite de textura del canvas (8192px) y salgan cortadas abajo
-      const baseRatio = isMobile ? 3 : 2;
-      const maxDim = Math.max(finalWidth, finalHeight, 1);
-      const safePixelRatio = Math.max(
-        1,
-        Math.min(baseRatio, Math.floor((8192 / maxDim) * 100) / 100)
-      );
+      offscreen.style.width = `${finalWidth}px`;
+      clone.style.width = `${finalWidth}px`;
+      clone.style.minWidth = `${finalWidth}px`;
+      clone.style.maxWidth = `${finalWidth}px`;
+      clone.style.inlineSize = `${finalWidth}px`;
 
-      const dataUrl = await toPng(clone, {
-        backgroundColor: isDarkMode ? "#09090b" : "#ffffff",
-        pixelRatio: safePixelRatio,
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+
+      const cloneRect = clone.getBoundingClientRect();
+      const lastChild = clone.lastElementChild;
+      const lastChildBottom = lastChild
+        ? lastChild.getBoundingClientRect().bottom -
+          cloneRect.top +
+          (hasCardBorder ? 2 : 16)
+        : 0;
+
+      const finalHeight =
+        Math.ceil(
+          Math.max(
+            cloneRect.height,
+            clone.scrollHeight,
+            clone.offsetHeight,
+            lastChildBottom
+          )
+        ) + 4;
+
+      const bgColor = isDarkMode ? "#09090b" : "#ffffff";
+
+      const rawSvgDataUrl = await toSvg(clone, {
+        backgroundColor: bgColor,
         width: finalWidth,
         height: finalHeight,
         cacheBust: false,
@@ -132,11 +155,79 @@ export default function TableScreenshotButton({
         style: {
           width: `${finalWidth}px`,
           inlineSize: `${finalWidth}px`,
-          height: `${finalHeight}px`,
-          blockSize: `${finalHeight}px`,
+          height: "auto",
+          blockSize: "auto",
           margin: "0",
         },
       });
+      if (!rawSvgDataUrl) return;
+
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const maxTextureDim = isMobile ? 4096 : 8192;
+      const maxCanvasArea = isMobile ? 4096 * 4096 : 8192 * 8192;
+      const baseRatio = isMobile ? Math.min(3, Math.max(2, dpr)) : 2;
+      const dimScale = maxTextureDim / Math.max(finalWidth, finalHeight, 1);
+      const areaScale = Math.sqrt(
+        maxCanvasArea / Math.max(finalWidth * finalHeight, 1)
+      );
+      const safeScale = Math.min(baseRatio, dimScale, areaScale);
+
+      const canvasWidth = Math.max(
+        1,
+        Math.min(maxTextureDim, Math.floor(finalWidth * safeScale))
+      );
+      const canvasHeight = Math.max(
+        1,
+        Math.min(maxTextureDim, Math.floor(finalHeight * safeScale))
+      );
+
+      // Escala el SVG en unidades CSS por 1/dpr para que el rasterizador nativo del móvil nunca exceda maxTextureDim
+      let svgDataUrl = rawSvgDataUrl;
+      const utf8Prefix = "data:image/svg+xml;charset=utf-8,";
+      if (rawSvgDataUrl.startsWith(utf8Prefix)) {
+        const svgText = decodeURIComponent(rawSvgDataUrl.slice(utf8Prefix.length));
+        const doc = new DOMParser().parseFromString(svgText, "image/svg+xml");
+        const svgEl = doc.documentElement;
+        if (svgEl && svgEl.tagName.toLowerCase() === "svg") {
+          svgEl.setAttribute("width", String(canvasWidth / dpr));
+          svgEl.setAttribute("height", String(canvasHeight / dpr));
+          svgEl.setAttribute("viewBox", `0 0 ${finalWidth} ${finalHeight}`);
+          const fo = svgEl.querySelector("foreignObject");
+          if (fo) {
+            fo.setAttribute("width", String(finalWidth));
+            fo.setAttribute("height", String(finalHeight));
+          }
+          const serialized = new XMLSerializer().serializeToString(svgEl);
+          svgDataUrl = `${utf8Prefix}${encodeURIComponent(serialized)}`;
+        }
+      }
+
+      const img = await new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => {
+          if (image.decode) {
+            image
+              .decode()
+              .then(() => resolve(image))
+              .catch(() => resolve(image));
+          } else {
+            resolve(image);
+          }
+        };
+        image.onerror = reject;
+        image.crossOrigin = "anonymous";
+        image.src = svgDataUrl;
+      });
+
+      const canvas = document.createElement("canvas");
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      const dataUrl = canvas.toDataURL("image/png");
       if (!dataUrl) return;
 
       const safeSlug = title

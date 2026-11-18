@@ -129,8 +129,11 @@ html:not(.dark) .eapps-instagram-feed {
   max-width: none !important;
   max-height: none !important;
   height: auto !important;
+  block-size: auto !important;
   overflow: visible !important;
   box-sizing: border-box !important;
+  -webkit-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
 }
 
 [data-capturing="true"] .overflow-x-auto,
@@ -141,6 +144,7 @@ html:not(.dark) .eapps-instagram-feed {
   max-width: none !important;
   max-height: none !important;
   height: auto !important;
+  block-size: auto !important;
 }
 
 [data-capturing="true"] .no-screenshot {
