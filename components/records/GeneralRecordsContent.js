@@ -92,13 +92,19 @@ export default function GeneralRecordsContent({ data }) {
   }, [undefCtx.modeData?.undefStreaks, undefSort]);
 
   const sortedTopStats = useMemo(() => {
-    return [...(topCtx.modeData?.topStats || [])].sort((a, b) => {
-      const valA =
-        topSort.key === "wins" ? a.wins : parseFloat(a.win_percentage);
-      const valB =
-        topSort.key === "wins" ? b.wins : parseFloat(b.win_percentage);
-      return valB - valA;
-    });
+    const topData = topCtx.modeData?.topStats;
+    if (Array.isArray(topData)) {
+      return [...topData].sort((a, b) => {
+        const valA =
+          topSort.key === "wins" ? a.wins : parseFloat(a.win_percentage);
+        const valB =
+          topSort.key === "wins" ? b.wins : parseFloat(b.win_percentage);
+        return valB - valA;
+      });
+    }
+    return topSort.key === "win_percentage"
+      ? topData?.byWinPercentage || []
+      : topData?.byWins || [];
   }, [topCtx.modeData?.topStats, topSort]);
 
   const sortedLongestReigns = useMemo(() => {
@@ -278,11 +284,11 @@ export default function GeneralRecordsContent({ data }) {
     tableKey = null,
   ) => (
     <div data-screenshot-target="true" className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden h-fit min-w-0">
-      <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2">
+      <div className="bg-gray-100 dark:bg-zinc-950 px-3.5 py-3 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-1.5">
         <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
           {title}
         </h2>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           {tableKey && (
             <EntitySwitch
               viewMode={getMode(tableKey)}
@@ -484,22 +490,13 @@ export default function GeneralRecordsContent({ data }) {
     const ctx = getTableCtx(tableKey);
     const showData = ctx.modeData?.[dataField];
     const sortKey = showSorts[showKey];
-    const baseRows = Array.isArray(showData)
+    const sorted = Array.isArray(showData)
       ? showData
       : sortKey === "total_matches"
         ? showData?.byMatches || []
-        : showData?.byWins || [];
-
-    const sorted =
-      sortKey === "win_percentage"
-        ? [...baseRows].sort(
-            (a, b) =>
-              parseFloat(b.win_percentage) - parseFloat(a.win_percentage) ||
-              b.wins - a.wins ||
-              b.total_matches - a.total_matches ||
-              (a.name || "").localeCompare(b.name || "")
-          )
-        : baseRows;
+        : sortKey === "win_percentage"
+          ? showData?.byWinPercentage || []
+          : showData?.byWins || [];
 
     return renderTable(
       renderShowTitle(logoSrc, showLabel),

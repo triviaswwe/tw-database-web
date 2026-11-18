@@ -9,8 +9,94 @@ export default function TableScreenshotButton({
   className = "",
 }) {
   const buttonRef = useRef(null);
+  const labelRef = useRef(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [previewData, setPreviewData] = useState(null);
+  const [isCompact, setIsCompact] = useState(false);
+  const isCompactRef = useRef(false);
+
+  useEffect(() => {
+    const checkFit = () => {
+      const btn = buttonRef.current;
+      const label = labelRef.current;
+      if (!btn || !label) return;
+      const headerEl = btn.closest(".justify-between") || btn.parentElement;
+      if (!headerEl) return;
+
+      const style = window.getComputedStyle(headerEl);
+      const availableWidth =
+        headerEl.clientWidth -
+        (parseFloat(style.paddingLeft) || 0) -
+        (parseFloat(style.paddingRight) || 0);
+      const gap = parseFloat(style.columnGap || style.gap) || 8;
+      const children = Array.from(headerEl.children);
+      const fullSpans = Array.from(headerEl.querySelectorAll("[data-switch-full]"));
+      const shortSpans = Array.from(headerEl.querySelectorAll("[data-switch-short]"));
+
+      const prevDisplay = label.style.display;
+      const prevFullDisplays = fullSpans.map((el) => el.style.display);
+      const prevShortDisplays = shortSpans.map((el) => el.style.display);
+      const prevWhiteSpaces = children.map((ch) => ch.style.whiteSpace);
+      let requiredWidth = 0;
+
+      try {
+        label.style.display = "inline";
+        fullSpans.forEach((el) => {
+          el.style.display = "inline";
+        });
+        shortSpans.forEach((el) => {
+          el.style.display = "none";
+        });
+        children.forEach((ch) => {
+          ch.style.whiteSpace = "nowrap";
+        });
+
+        const childrenWidth = children.reduce(
+          (sum, ch) =>
+            sum + Math.max(ch.scrollWidth, ch.getBoundingClientRect().width),
+          0
+        );
+        requiredWidth =
+          childrenWidth +
+          gap * Math.max(0, children.length - 1) +
+          (isCompactRef.current ? 4 : 0) +
+          4;
+      } finally {
+        children.forEach((ch, idx) => {
+          ch.style.whiteSpace = prevWhiteSpaces[idx];
+        });
+        fullSpans.forEach((el, idx) => {
+          el.style.display = prevFullDisplays[idx];
+        });
+        shortSpans.forEach((el, idx) => {
+          el.style.display = prevShortDisplays[idx];
+        });
+        label.style.display = prevDisplay;
+      }
+
+      const nextCompact = requiredWidth > availableWidth;
+      if (nextCompact !== isCompactRef.current) {
+        isCompactRef.current = nextCompact;
+        setIsCompact(nextCompact);
+      }
+    };
+
+    checkFit();
+
+    const btn = buttonRef.current;
+    const headerEl = btn?.closest(".justify-between") || btn?.parentElement;
+    let observer = null;
+    if (headerEl && typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(checkFit);
+      observer.observe(headerEl);
+    }
+    window.addEventListener("resize", checkFit);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", checkFit);
+    };
+  }, [title]);
 
   useEffect(() => {
     if (!previewData) return;
@@ -270,13 +356,19 @@ export default function TableScreenshotButton({
         disabled={isCapturing}
         title="Descargar screenshot de la tabla"
         aria-label="Screenshot"
-        className={`no-screenshot px-2.5 py-1 sm:px-3 sm:py-1.5 rounded font-medium text-xs bg-gray-200 text-gray-800 dark:bg-zinc-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-zinc-700 transition-colors flex items-center gap-1.5 select-none disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shrink-0 ${className}`}
+        className={`no-screenshot px-2.5 py-1 ${isCompact ? "sm:px-2.5" : "sm:px-3"} sm:py-1.5 rounded font-medium text-xs bg-gray-200 text-gray-800 dark:bg-zinc-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-zinc-700 transition-colors flex items-center gap-1.5 select-none disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shrink-0 ${className}`}
       >
         <Camera
           size={14}
           className={`shrink-0 ${isCapturing ? "animate-pulse" : ""}`}
         />
-        <span className="hidden sm:inline">Screenshot</span>
+        <span
+          ref={labelRef}
+          data-screenshot-label="true"
+          className={isCompact ? "hidden" : "hidden sm:inline"}
+        >
+          Screenshot
+        </span>
       </button>
 
       {previewData && (
