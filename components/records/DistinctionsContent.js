@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import FlagWithName from "../FlagWithName";
 import TableScreenshotButton from "../TableScreenshotButton";
+import EntitySwitch from "./EntitySwitch";
 import { formatEnglishDate } from "../../hooks/useChampionshipHelpers";
 
 function DistinctionSideCell({ side, isWrestler }) {
@@ -102,20 +103,39 @@ function DistinctionSideCell({ side, isWrestler }) {
   );
 }
 
-export default function DistinctionsContent({ data, type }) {
-  const isWrestler = type === "wrestler";
-  const entityUrl = isWrestler ? "/wrestlers" : "/interpreters";
-  const breakdownTitle = isWrestler
-    ? "Interpreters breakdown:"
-    : "Wrestlers breakdown:";
-  const breakdownUrl = isWrestler ? "/interpreters" : "/wrestlers";
+export default function DistinctionsContent({ data }) {
+  const wrestlerData = data?.wrestler || data || {};
+  const interpreterData = data?.interpreter || data || {};
 
   const {
     items = [],
     years = [],
     categories = [],
-    rankingList = [],
-  } = data || {};
+  } = wrestlerData;
+
+  const [globalMode, setGlobalMode] = useState("wrestler");
+  const [tableModes, setTableModes] = useState({});
+
+  const getMode = (tableKey) => tableModes[tableKey] || globalMode;
+  const setTableMode = (tableKey, mode) =>
+    setTableModes((prev) => ({ ...prev, [tableKey]: mode }));
+  const handleGlobalModeChange = (mode) => {
+    setGlobalMode(mode);
+    setTableModes({});
+  };
+
+  const chronologicalMode = getMode("chronological");
+  const chronologicalIsWrestler = chronologicalMode === "wrestler";
+
+  const rankingMode = getMode("ranking");
+  const rankingIsWrestler = rankingMode === "wrestler";
+  const rankingList =
+    (rankingIsWrestler ? wrestlerData : interpreterData)?.rankingList || [];
+  const entityUrl = rankingIsWrestler ? "/wrestlers" : "/interpreters";
+  const breakdownTitle = rankingIsWrestler
+    ? "Interpreters breakdown:"
+    : "Wrestlers breakdown:";
+  const breakdownUrl = rankingIsWrestler ? "/interpreters" : "/wrestlers";
 
   // Default to current calendar year if it has recorded distinctions, otherwise the latest available year
   const initialYear = useMemo(() => {
@@ -136,7 +156,7 @@ export default function DistinctionsContent({ data, type }) {
   useEffect(() => {
     setSortConfig({ key: "rank", dir: "asc" });
     setExpandedRow(null);
-  }, [type]);
+  }, [rankingMode]);
 
   const toggleExpand = (key) =>
     setExpandedRow((prev) => (prev === key ? null : key));
@@ -236,35 +256,47 @@ export default function DistinctionsContent({ data, type }) {
     <div className="space-y-8">
       {/* Filters Bar */}
       <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded p-4 shadow-sm space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mr-1">
-            Year:
-          </span>
-          <button
-            type="button"
-            onClick={() => setSelectedYear("all")}
-            className={`px-3 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
-              selectedYear === "all"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-gray-300 dark:hover:bg-zinc-700"
-            }`}
-          >
-            All
-          </button>
-          {years.map((yr) => (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mr-1">
+              Year:
+            </span>
             <button
-              key={yr}
               type="button"
-              onClick={() => setSelectedYear(String(yr))}
+              onClick={() => setSelectedYear("all")}
               className={`px-3 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
-                selectedYear === String(yr)
+                selectedYear === "all"
                   ? "bg-blue-600 text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-gray-300 dark:hover:bg-zinc-700"
               }`}
             >
-              {yr}
+              All
             </button>
-          ))}
+            {years.map((yr) => (
+              <button
+                key={yr}
+                type="button"
+                onClick={() => setSelectedYear(String(yr))}
+                className={`px-3 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
+                  selectedYear === String(yr)
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-gray-300 dark:hover:bg-zinc-700"
+                }`}
+              >
+                {yr}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              View:
+            </span>
+            <EntitySwitch
+              viewMode={globalMode}
+              onChange={handleGlobalModeChange}
+            />
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -301,14 +333,18 @@ export default function DistinctionsContent({ data, type }) {
 
       {/* Main Chronological Distinctions Table */}
       <div data-screenshot-target="true" className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
-        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">
             Other Distinctions & Tournaments
           </h2>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
               {rowsWithSpans.length} {rowsWithSpans.length === 1 ? "entry" : "entries"}
             </span>
+            <EntitySwitch
+              viewMode={chronologicalMode}
+              onChange={(m) => setTableMode("chronological", m)}
+            />
             <TableScreenshotButton title="Other Distinctions & Tournaments" />
           </div>
         </div>
@@ -362,7 +398,7 @@ export default function DistinctionsContent({ data, type }) {
                   <td className="px-4 py-3 border border-gray-200 dark:border-gray-800 align-middle">
                     <DistinctionSideCell
                       side={row.winner}
-                      isWrestler={isWrestler}
+                      isWrestler={chronologicalIsWrestler}
                     />
                   </td>
 
@@ -408,11 +444,17 @@ export default function DistinctionsContent({ data, type }) {
 
       {/* Ranking Table: Total Distinctions Won per Category */}
       <div data-screenshot-target="true" className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
-        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">
             Total Distinctions Won per Category
           </h2>
-          <TableScreenshotButton title="Total Distinctions Won per Category" />
+          <div className="flex items-center gap-2 shrink-0">
+            <EntitySwitch
+              viewMode={rankingMode}
+              onChange={(m) => setTableMode("ranking", m)}
+            />
+            <TableScreenshotButton title="Total Distinctions Won per Category" />
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -440,7 +482,7 @@ export default function DistinctionsContent({ data, type }) {
                   onClick={() => handleSort("name")}
                 >
                   <div className="flex items-center gap-1">
-                    <span>{isWrestler ? "Wrestler" : "Interpreter"}</span>
+                    <span>{rankingIsWrestler ? "Wrestler" : "Interpreter"}</span>
                     <span className="text-[10px] text-blue-500">
                       {sortConfig.key === "name" ? (
                         sortConfig.dir === "asc" ? "▲" : "▼"

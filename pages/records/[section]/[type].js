@@ -5,15 +5,11 @@ import { useRouter } from "next/router";
 import pool from "../../../lib/db";
 import { RecordsContentSkeleton } from "../../../components/Skeletons";
 import RecordsNav from "../../../components/records/RecordsNav";
-import GeneralRecordsContent from "../../../components/records/GeneralRecordsContent";
-import SlammyAwardsContent from "../../../components/records/SlammyAwardsContent";
-import DistinctionsContent from "../../../components/records/DistinctionsContent";
-import { getGeneralRecordsData } from "../../../lib/records/getGeneralRecordsData";
-import { getSlammyData } from "../../../lib/records/getSlammyData";
-import { getDistinctionsData } from "../../../lib/records/getDistinctionsData";
+import SpecialMatchesContent from "../../../components/records/SpecialMatchesContent";
+import { getSpecialMatchesData } from "../../../lib/records/getSpecialMatchesData";
 
-const VALID_SECTIONS = ["general", "slammy-awards", "distinctions"];
-const VALID_TYPES = ["wrestler", "interpreter"];
+const LEGACY_TYPE_SECTIONS = ["general", "slammy-awards", "distinctions"];
+const VALID_SPECIAL_TYPES = ["royal-rumble", "elimination-chamber"];
 
 export async function getServerSideProps(context) {
   const { res, params } = context;
@@ -26,19 +22,22 @@ export async function getServerSideProps(context) {
 
   const { section, type } = params || {};
 
-  if (!VALID_SECTIONS.includes(section) || !VALID_TYPES.includes(type)) {
+  // Redirect legacy /records/[section]/wrestler|interpreter URLs to /records/[section]
+  if (LEGACY_TYPE_SECTIONS.includes(section)) {
+    return {
+      redirect: {
+        destination: `/records/${section}`,
+        permanent: false,
+      },
+    };
+  }
+
+  if (section !== "special-matches" || !VALID_SPECIAL_TYPES.includes(type)) {
     return { notFound: true };
   }
 
   try {
-    let data = null;
-    if (section === "general") {
-      data = await getGeneralRecordsData(pool, type);
-    } else if (section === "slammy-awards") {
-      data = await getSlammyData(pool, type);
-    } else if (section === "distinctions") {
-      data = await getDistinctionsData(pool, type);
-    }
+    const data = await getSpecialMatchesData(pool, type);
 
     return {
       props: {
@@ -59,7 +58,7 @@ export async function getServerSideProps(context) {
   }
 }
 
-export default function RecordsSectionPage({ error, section, type, data }) {
+export default function RecordsSectionSubPage({ error, section, type, data }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -84,11 +83,9 @@ export default function RecordsSectionPage({ error, section, type, data }) {
     <>
       <Head>
         <title>
-          {section === "slammy-awards"
-            ? "Slammy Awards — Trivias WWE"
-            : section === "distinctions"
-              ? "Other Distinctions — Trivias WWE"
-              : "Hall of Records — Trivias WWE"}
+          {type === "elimination-chamber"
+            ? "Elimination Chamber — Special Matches — Trivias WWE"
+            : "Royal Rumble — Special Matches — Trivias WWE"}
         </title>
         <meta
           name="description"
@@ -107,7 +104,6 @@ export default function RecordsSectionPage({ error, section, type, data }) {
             </p>
           </div>
 
-          {/* 2-Level Navigation Header */}
           <RecordsNav currentSection={section} currentType={type} />
 
           {error ? (
@@ -122,21 +118,10 @@ export default function RecordsSectionPage({ error, section, type, data }) {
           ) : loading ? (
             <RecordsContentSkeleton />
           ) : (
-            <>
-              {section === "general" && (
-                <GeneralRecordsContent data={data} type={type} />
-              )}
-              {section === "slammy-awards" && (
-                <SlammyAwardsContent data={data} type={type} />
-              )}
-              {section === "distinctions" && (
-                <DistinctionsContent data={data} type={type} />
-              )}
-            </>
+            <SpecialMatchesContent data={data} subType={type} />
           )}
         </div>
       </div>
     </>
   );
 }
-

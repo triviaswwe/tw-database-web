@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/router";
 import FlagWithName from "../FlagWithName";
 import TableScreenshotButton from "../TableScreenshotButton";
+import EntitySwitch from "./EntitySwitch";
 
 const BLOB_BASE_URL = "https://ljejfdquofuxccca.public.blob.vercel-storage.com";
 
@@ -22,9 +23,36 @@ const CATEGORIES = [
   { type: "special", label: "Special championships" },
 ];
 
-export default function GeneralRecordsContent({ data, type }) {
+export default function GeneralRecordsContent({ data }) {
   const router = useRouter();
+  const wrestlerData = data?.wrestler || data || {};
+  const interpreterData = data?.interpreter || data || {};
+
+  const [globalMode, setGlobalMode] = useState("wrestler");
+  const [tableModes, setTableModes] = useState({});
   const [expandedRow, setExpandedRow] = useState(null);
+
+  const getMode = (tableKey) => tableModes[tableKey] || globalMode;
+  const setTableMode = (tableKey, mode) =>
+    setTableModes((prev) => ({ ...prev, [tableKey]: mode }));
+  const handleGlobalModeChange = (mode) => {
+    setGlobalMode(mode);
+    setTableModes({});
+  };
+
+  const getTableCtx = (tableKey) => {
+    const mode = getMode(tableKey);
+    const isW = mode === "wrestler";
+    return {
+      mode,
+      isWrestler: isW,
+      modeData: isW ? wrestlerData : interpreterData,
+      entityTitle: isW ? "Wrestler" : "Interpreter",
+      entityUrl: isW ? "/wrestlers" : "/interpreters",
+      breakdownTitle: isW ? "Interpreters breakdown:" : "Wrestlers breakdown:",
+      breakdownUrl: isW ? "/interpreters" : "/wrestlers",
+    };
+  };
 
   const [undefSort, setUndefSort] = useState({ key: "count", dir: "desc" });
   const [topSort, setTopSort] = useState({ key: "wins", dir: "desc" });
@@ -38,59 +66,56 @@ export default function GeneralRecordsContent({ data, type }) {
   const [tcSort, setTcSort] = useState({ key: "rank", dir: "asc" });
   const [pleSort, setPleSort] = useState({ key: "rank", dir: "asc" });
 
-  // Reset expandedRow and sorts when changing type
-  useEffect(() => {
-    setExpandedRow(null);
-    setShowSorts({
-      raw: "wins",
-      sd: "wins",
-      nxt: "wins",
-    });
-    setTcSort({ key: "rank", dir: "asc" });
-    setPleSort({ key: "rank", dir: "asc" });
-  }, [type]);
+  const matchesCtx = getTableCtx("matches");
+  const topCtx = getTableCtx("topStats");
+  const undefCtx = getTableCtx("undef");
+  const winCtx = getTableCtx("win");
+  const lrCtx = getTableCtx("longestReigns");
+  const mdCtx = getTableCtx("mostDefenses");
+  const tcCtx = getTableCtx("totalChampionships");
+  const pleCtx = getTableCtx("pleAppearances");
 
-  const isWrestler = type === "wrestler";
-  const entityTitle = isWrestler ? "Wrestler" : "Interpreter";
-  const breakdownTitle = isWrestler
-    ? "Interpreters breakdown:"
-    : "Wrestlers breakdown:";
-  const entityUrl = isWrestler ? "/wrestlers" : "/interpreters";
-  const breakdownUrl = isWrestler ? "/interpreters" : "/wrestlers";
+  useEffect(() => {
+    setTcSort({ key: "rank", dir: "asc" });
+  }, [tcCtx.mode]);
+
+  useEffect(() => {
+    setPleSort({ key: "rank", dir: "asc" });
+  }, [pleCtx.mode]);
 
   const sortedUndefeated = useMemo(() => {
-    return [...(data?.undefStreaks || [])].sort((a, b) => {
+    return [...(undefCtx.modeData?.undefStreaks || [])].sort((a, b) => {
       const valA = undefSort.key === "count" ? a.count : a.days;
       const valB = undefSort.key === "count" ? b.count : b.days;
       return valB - valA;
     });
-  }, [data?.undefStreaks, undefSort]);
+  }, [undefCtx.modeData?.undefStreaks, undefSort]);
 
   const sortedTopStats = useMemo(() => {
-    return [...(data?.topStats || [])].sort((a, b) => {
+    return [...(topCtx.modeData?.topStats || [])].sort((a, b) => {
       const valA =
         topSort.key === "wins" ? a.wins : parseFloat(a.win_percentage);
       const valB =
         topSort.key === "wins" ? b.wins : parseFloat(b.win_percentage);
       return valB - valA;
     });
-  }, [data?.topStats, topSort]);
+  }, [topCtx.modeData?.topStats, topSort]);
 
   const sortedLongestReigns = useMemo(() => {
-    return [...(data?.longestReigns || [])].sort(
+    return [...(lrCtx.modeData?.longestReigns || [])].sort(
       (a, b) => b.days_held - a.days_held,
     );
-  }, [data?.longestReigns]);
+  }, [lrCtx.modeData?.longestReigns]);
 
   const sortedMostDefenses = useMemo(() => {
-    return [...(data?.mostDefenses || [])].sort(
+    return [...(mdCtx.modeData?.mostDefenses || [])].sort(
       (a, b) => b.defenses_count - a.defenses_count,
     );
-  }, [data?.mostDefenses]);
+  }, [mdCtx.modeData?.mostDefenses]);
 
   const sortedTotalChampionships = useMemo(() => {
-    if (!data?.totalChampionships) return [];
-    const list = [...data.totalChampionships];
+    if (!tcCtx.modeData?.totalChampionships) return [];
+    const list = [...tcCtx.modeData.totalChampionships];
 
     list.sort((a, b) => {
       let comparison = 0;
@@ -125,7 +150,7 @@ export default function GeneralRecordsContent({ data, type }) {
     });
 
     return list;
-  }, [data?.totalChampionships, tcSort]);
+  }, [tcCtx.modeData?.totalChampionships, tcSort]);
 
   const handleTcSort = (key) => {
     setTcSort((prev) => {
@@ -137,8 +162,8 @@ export default function GeneralRecordsContent({ data, type }) {
   };
 
   const sortedPleAppearances = useMemo(() => {
-    if (!data?.pleAppearances) return [];
-    const list = [...data.pleAppearances];
+    if (!pleCtx.modeData?.pleAppearances) return [];
+    const list = [...pleCtx.modeData.pleAppearances];
 
     list.sort((a, b) => {
       let comparison = 0;
@@ -194,7 +219,7 @@ export default function GeneralRecordsContent({ data, type }) {
     });
 
     return list;
-  }, [data?.pleAppearances, pleSort]);
+  }, [pleCtx.modeData?.pleAppearances, pleSort]);
 
   const handlePleSort = (key) => {
     setPleSort((prev) => {
@@ -215,7 +240,7 @@ export default function GeneralRecordsContent({ data, type }) {
     });
   };
 
-  const championships = data?.championships || [];
+  const championships = tcCtx.modeData?.championships || wrestlerData?.championships || [];
 
   const presentCategories = useMemo(() => {
     const knownTypes = new Set(CATEGORIES.map((c) => c.type));
@@ -250,13 +275,22 @@ export default function GeneralRecordsContent({ data, type }) {
     isRowExpandable = () => true,
     onRowClick = null,
     screenshotTitle = null,
+    tableKey = null,
   ) => (
     <div data-screenshot-target="true" className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden h-fit min-w-0">
-      <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between gap-2">
+      <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
           {title}
         </h2>
-        <TableScreenshotButton title={screenshotTitle || (typeof title === "string" ? title : "table")} />
+        <div className="flex items-center gap-2 shrink-0">
+          {tableKey && (
+            <EntitySwitch
+              viewMode={getMode(tableKey)}
+              onChange={(m) => setTableMode(tableKey, m)}
+            />
+          )}
+          <TableScreenshotButton title={screenshotTitle || (typeof title === "string" ? title : "table")} />
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
@@ -283,7 +317,7 @@ export default function GeneralRecordsContent({ data, type }) {
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
             {dataArr.map((item, idx) => {
-              const uniqueId = `${expandPrefix}_${item.id || item.entityId}`;
+              const uniqueId = `${expandPrefix}_${tableKey ? getMode(tableKey) : ""}_${item.id || item.entityId}`;
               const isExpanded = expandPrefix && expandedRow === uniqueId;
               const isExpandable = !!expandPrefix && isRowExpandable(item);
 
@@ -445,7 +479,10 @@ export default function GeneralRecordsContent({ data, type }) {
     </span>
   );
 
-  const renderShowMatchesTable = (showKey, logoSrc, showLabel, showData) => {
+  const renderShowMatchesTable = (showKey, logoSrc, showLabel, dataField) => {
+    const tableKey = `show_${showKey}`;
+    const ctx = getTableCtx(tableKey);
+    const showData = ctx.modeData?.[dataField];
     const sortKey = showSorts[showKey];
     const baseRows = Array.isArray(showData)
       ? showData
@@ -468,7 +505,7 @@ export default function GeneralRecordsContent({ data, type }) {
       renderShowTitle(logoSrc, showLabel),
       sorted,
       [
-        { label: entityTitle },
+        { label: ctx.entityTitle },
         {
           label: "Matches",
           align: "right",
@@ -495,7 +532,7 @@ export default function GeneralRecordsContent({ data, type }) {
         <>
           <td className="px-4 py-3 whitespace-nowrap">
             <Link
-              href={`${entityUrl}/${item.id}`}
+              href={`${ctx.entityUrl}/${item.id}`}
               className="text-blue-600 dark:text-sky-400 font-semibold flex items-center gap-2"
               onClick={(e) => e.stopPropagation()}
             >
@@ -525,7 +562,7 @@ export default function GeneralRecordsContent({ data, type }) {
                 </span>
                 {bd.id ? (
                   <Link
-                    href={`${breakdownUrl}/${bd.id}`}
+                    href={`${ctx.breakdownUrl}/${bd.id}`}
                     className="text-blue-600 dark:text-sky-400"
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -540,25 +577,39 @@ export default function GeneralRecordsContent({ data, type }) {
             ))}
         </>
       ),
-      breakdownTitle,
+      ctx.breakdownTitle,
       (item) => item.breakdown?.length > 1,
       null,
       `${showLabel} Records`,
+      tableKey,
     );
   };
 
   return (
     <>
+      {/* Global View Switch Bar */}
+      <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded p-4 shadow-sm flex flex-wrap items-center justify-end gap-3 mb-6">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            View:
+          </span>
+          <EntitySwitch
+            viewMode={globalMode}
+            onChange={handleGlobalModeChange}
+          />
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
         {renderTable(
           "Most Matches",
-          data?.matches || [],
-          [{ label: entityTitle }, { label: "Matches", align: "right" }],
+          matchesCtx.modeData?.matches || [],
+          [{ label: matchesCtx.entityTitle }, { label: "Matches", align: "right" }],
           (item) => (
             <>
               <td className="px-4 py-3">
                 <Link
-                  href={`${entityUrl}/${item.id}`}
+                  href={`${matchesCtx.entityUrl}/${item.id}`}
                   className="text-blue-600 dark:text-sky-400 font-semibold flex items-center gap-2"
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -580,7 +631,7 @@ export default function GeneralRecordsContent({ data, type }) {
                     </span>
                     {bd.id ? (
                       <Link
-                        href={`${breakdownUrl}/${bd.id}`}
+                        href={`${matchesCtx.breakdownUrl}/${bd.id}`}
                         className="text-blue-600 dark:text-sky-400"
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -595,16 +646,19 @@ export default function GeneralRecordsContent({ data, type }) {
                 ))}
             </>
           ),
-          breakdownTitle,
+          matchesCtx.breakdownTitle,
           (item) => item.breakdown?.length > 1,
+          null,
+          null,
+          "matches",
         )}
 
         <div className="md:col-span-2 lg:col-span-2">
           {renderTable(
-            `Top ${isWrestler ? "Wrestlers" : "Interpreters"} (Most Wins & Winrate)`,
+            `Top ${topCtx.isWrestler ? "Wrestlers" : "Interpreters"} (Most Wins & Winrate)`,
             sortedTopStats,
             [
-              { label: entityTitle },
+              { label: topCtx.entityTitle },
               { label: "Matches", align: "right" },
               {
                 label: "Wins",
@@ -624,7 +678,7 @@ export default function GeneralRecordsContent({ data, type }) {
               <>
                 <td className="px-4 py-3">
                   <Link
-                    href={`${entityUrl}/${i.id}`}
+                    href={`${topCtx.entityUrl}/${i.id}`}
                     className="text-blue-600 dark:text-sky-400 font-semibold flex items-center gap-2"
                   >
                     <FlagWithName code={i.country} name={i.name} />
@@ -641,14 +695,21 @@ export default function GeneralRecordsContent({ data, type }) {
                 </td>
               </>
             ),
+            null,
+            null,
+            "Match breakdown:",
+            () => true,
+            null,
+            null,
+            "topStats",
           )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start mt-8">
-        {renderShowMatchesTable("raw", SHOW_LOGOS.raw, "RAW", data?.rawMatches)}
-        {renderShowMatchesTable("sd", SHOW_LOGOS.smackdown, "SmackDown", data?.smackdownMatches)}
-        {renderShowMatchesTable("nxt", SHOW_LOGOS.nxt, "NXT", data?.nxtMatches)}
+        {renderShowMatchesTable("raw", SHOW_LOGOS.raw, "RAW", "rawMatches")}
+        {renderShowMatchesTable("sd", SHOW_LOGOS.smackdown, "SmackDown", "smackdownMatches")}
+        {renderShowMatchesTable("nxt", SHOW_LOGOS.nxt, "NXT", "nxtMatches")}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start mt-8">
@@ -656,7 +717,7 @@ export default function GeneralRecordsContent({ data, type }) {
           "Longest Undefeated Streak",
           sortedUndefeated,
           [
-            { label: entityTitle },
+            { label: undefCtx.entityTitle },
             {
               label: "Matches",
               align: "right",
@@ -692,12 +753,17 @@ export default function GeneralRecordsContent({ data, type }) {
                 renderMatchDetail(s.streakBreaker, s.matches.length + 1, true)}
             </>
           ),
+          "Match breakdown:",
+          () => true,
+          null,
+          null,
+          "undef",
         )}
 
         {renderTable(
           "Longest Win Streak",
-          data?.winStreaks || [],
-          [{ label: entityTitle }, { label: "Wins", align: "right" }],
+          winCtx.modeData?.winStreaks || [],
+          [{ label: winCtx.entityTitle }, { label: "Wins", align: "right" }],
           (s) => (
             <>
               <td className="px-4 py-3">
@@ -718,6 +784,11 @@ export default function GeneralRecordsContent({ data, type }) {
                 renderMatchDetail(s.streakBreaker, s.matches.length + 1, true)}
             </>
           ),
+          "Match breakdown:",
+          () => true,
+          null,
+          null,
+          "win",
         )}
       </div>
 
@@ -794,7 +865,7 @@ export default function GeneralRecordsContent({ data, type }) {
           (r) => (
             <>
               <td className="px-4 py-3 font-semibold text-blue-600 dark:text-sky-400">
-                {r.tag_team_id && isWrestler ? (
+                {r.tag_team_id && lrCtx.isWrestler ? (
                   r.tag_team_name
                 ) : (
                   <div className="flex items-center gap-2">
@@ -831,12 +902,14 @@ export default function GeneralRecordsContent({ data, type }) {
           "Match breakdown:",
           () => false,
           (r) => {
-            if (r.tag_team_id && isWrestler)
+            if (r.tag_team_id && lrCtx.isWrestler)
               router.push(`/stables/${r.tag_team_id}`);
             else if (r.wrestler_id) router.push(`/wrestlers/${r.wrestler_id}`);
             else if (r.interpreter_id)
               router.push(`/interpreters/${r.interpreter_id}`);
           },
+          null,
+          "longestReigns",
         )}
 
         {renderTable(
@@ -855,7 +928,7 @@ export default function GeneralRecordsContent({ data, type }) {
           (r) => (
             <>
               <td className="px-4 py-3">
-                {r.tag_team_id && isWrestler ? (
+                {r.tag_team_id && mdCtx.isWrestler ? (
                   <span className="font-semibold text-gray-800 dark:text-white">
                     {r.tag_team_name}
                   </span>
@@ -903,16 +976,27 @@ export default function GeneralRecordsContent({ data, type }) {
                 renderMatchDetail(r.streakBreaker, r.defenses.length + 1, true)}
             </>
           ),
+          "Match breakdown:",
+          () => true,
+          null,
+          null,
+          "mostDefenses",
         )}
       </div>
 
       {/* Total Championships Table (Full Width) */}
       <div data-screenshot-target="true" className="mt-8 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
-        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">
             Total Championships
           </h2>
-          <TableScreenshotButton title="Total Championships" />
+          <div className="flex items-center gap-2 shrink-0">
+            <EntitySwitch
+              viewMode={tcCtx.mode}
+              onChange={(m) => setTableMode("totalChampionships", m)}
+            />
+            <TableScreenshotButton title="Total Championships" />
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -946,7 +1030,7 @@ export default function GeneralRecordsContent({ data, type }) {
                   onClick={() => handleTcSort("name")}
                 >
                   <div className="flex items-center gap-1">
-                    <span>{isWrestler ? "Wrestler" : "Interpreter"}</span>
+                    <span>{tcCtx.entityTitle}</span>
                     <span className="text-[10px] text-blue-500">
                       {tcSort.key === "name" ? (
                         tcSort.dir === "asc" ? (
@@ -1054,7 +1138,7 @@ export default function GeneralRecordsContent({ data, type }) {
 
                   <td className="px-4 py-2.5 font-semibold text-blue-600 dark:text-sky-400 border border-gray-200 dark:border-gray-800 text-sm">
                     <Link
-                      href={`${entityUrl}/${item.id}`}
+                      href={`${tcCtx.entityUrl}/${item.id}`}
                       className="flex items-center gap-2 hover:underline"
                     >
                       <FlagWithName code={item.country} name={item.name} />
@@ -1106,11 +1190,17 @@ export default function GeneralRecordsContent({ data, type }) {
 
       {/* Most Appearances at PLEs Table (Full Width) */}
       <div data-screenshot-target="true" className="mt-8 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
-        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">
             Most Appearances at PLEs
           </h2>
-          <TableScreenshotButton title="Most Appearances at PLEs" />
+          <div className="flex items-center gap-2 shrink-0">
+            <EntitySwitch
+              viewMode={pleCtx.mode}
+              onChange={(m) => setTableMode("pleAppearances", m)}
+            />
+            <TableScreenshotButton title="Most Appearances at PLEs" />
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -1142,7 +1232,7 @@ export default function GeneralRecordsContent({ data, type }) {
                   onClick={() => handlePleSort("name")}
                 >
                   <div className="flex items-center gap-1">
-                    <span>{isWrestler ? "Wrestler" : "Interpreter"}</span>
+                    <span>{pleCtx.entityTitle}</span>
                     <span className="text-[10px] text-blue-500">
                       {pleSort.key === "name" ? (
                         pleSort.dir === "asc" ? (
@@ -1261,7 +1351,7 @@ export default function GeneralRecordsContent({ data, type }) {
 
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
               {sortedPleAppearances.map((item) => {
-                const uniqueId = `ple_${item.id}`;
+                const uniqueId = `ple_${pleCtx.mode}_${item.id}`;
                 const isExpanded = expandedRow === uniqueId;
                 const isExpandable =
                   item.breakdown && item.breakdown.length > 1;
@@ -1298,7 +1388,7 @@ export default function GeneralRecordsContent({ data, type }) {
 
                       <td className="px-4 py-2.5 font-semibold text-blue-600 dark:text-sky-400 border border-gray-200 dark:border-gray-800 text-sm">
                         <Link
-                          href={`${entityUrl}/${item.id}`}
+                          href={`${pleCtx.entityUrl}/${item.id}`}
                           className="flex items-center gap-2 hover:underline"
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -1381,7 +1471,7 @@ export default function GeneralRecordsContent({ data, type }) {
                         >
                           <div className="text-sm space-y-2 text-gray-700 dark:text-gray-300">
                             <p className="font-semibold mb-2 text-blue-600 dark:text-sky-400">
-                              {breakdownTitle}
+                              {pleCtx.breakdownTitle}
                             </p>
                             <ul className="space-y-1.5">
                               {item.breakdown?.map((bd, idx) => (
@@ -1394,7 +1484,7 @@ export default function GeneralRecordsContent({ data, type }) {
                                   </span>
                                   {bd.id ? (
                                     <Link
-                                      href={`${breakdownUrl}/${bd.id}`}
+                                      href={`${pleCtx.breakdownUrl}/${bd.id}`}
                                       className="text-blue-600 dark:text-sky-400 hover:underline"
                                       onClick={(e) => e.stopPropagation()}
                                     >

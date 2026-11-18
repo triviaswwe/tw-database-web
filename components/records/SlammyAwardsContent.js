@@ -3,6 +3,7 @@ import React from "react";
 import Link from "next/link";
 import FlagWithName from "../FlagWithName";
 import TableScreenshotButton from "../TableScreenshotButton";
+import EntitySwitch from "./EntitySwitch";
 
 function normalizeText(str) {
   if (!str) return "";
@@ -324,22 +325,54 @@ function SlammyAwardCell({ award, isWrestler, lookupEntities = [], royalRumblesB
   );
 }
 
-export default function SlammyAwardsContent({ data, type }) {
-  const isWrestler = type === "wrestler";
-  const entityUrl = isWrestler ? "/wrestlers" : "/interpreters";
-  const breakdownTitle = isWrestler ? "Interpreters breakdown:" : "Wrestlers breakdown:";
-  const breakdownUrl = isWrestler ? "/interpreters" : "/wrestlers";
+export default function SlammyAwardsContent({ data }) {
+  const wrestlerData = data?.wrestler || data || {};
+  const interpreterData = data?.interpreter || data || {};
 
   const {
     categories = [],
     years = [],
-    awardsMatrix = {},
-    rankingList = [],
     allStables = [],
     allWrestlers = [],
     allInterpreters = [],
     royalRumblesByYear = {},
-  } = data || {};
+  } = wrestlerData;
+
+  const [globalMode, setGlobalMode] = React.useState("wrestler");
+  const [tableModes, setTableModes] = React.useState({});
+
+  const getMode = (tableKey) => tableModes[tableKey] || globalMode;
+  const setTableMode = (tableKey, mode) =>
+    setTableModes((prev) => ({ ...prev, [tableKey]: mode }));
+  const handleGlobalModeChange = (mode) => {
+    setGlobalMode(mode);
+    setTableModes({});
+  };
+
+  const matrixMode = getMode("matrix");
+  const matrixIsWrestler = matrixMode === "wrestler";
+  const awardsMatrix =
+    (matrixIsWrestler ? wrestlerData : interpreterData).awardsMatrix || {};
+
+  const yearMode = getMode("ranking_year");
+  const yearIsWrestler = yearMode === "wrestler";
+  const yearRankingList =
+    (yearIsWrestler ? wrestlerData : interpreterData).rankingList || [];
+  const yearEntityUrl = yearIsWrestler ? "/wrestlers" : "/interpreters";
+  const yearBreakdownTitle = yearIsWrestler
+    ? "Interpreters breakdown:"
+    : "Wrestlers breakdown:";
+  const yearBreakdownUrl = yearIsWrestler ? "/interpreters" : "/wrestlers";
+
+  const catMode = getMode("ranking_cat");
+  const catIsWrestler = catMode === "wrestler";
+  const catRankingList =
+    (catIsWrestler ? wrestlerData : interpreterData).rankingList || [];
+  const catEntityUrl = catIsWrestler ? "/wrestlers" : "/interpreters";
+  const catBreakdownTitle = catIsWrestler
+    ? "Interpreters breakdown:"
+    : "Wrestlers breakdown:";
+  const catBreakdownUrl = catIsWrestler ? "/interpreters" : "/wrestlers";
 
   const [expandedRow, setExpandedRow] = React.useState(null);
   const toggleExpand = (key) => setExpandedRow((prev) => (prev === key ? null : key));
@@ -349,9 +382,11 @@ export default function SlammyAwardsContent({ data, type }) {
 
   React.useEffect(() => {
     setSortConfig({ key: "rank", dir: "asc" });
+  }, [yearMode]);
+
+  React.useEffect(() => {
     setCatSortConfig({ key: "rank", dir: "asc" });
-    setExpandedRow(null);
-  }, [type]);
+  }, [catMode]);
 
   const handleSort = (key) => {
     setSortConfig((prev) => {
@@ -374,7 +409,7 @@ export default function SlammyAwardsContent({ data, type }) {
   };
 
   const sortedRanking = React.useMemo(() => {
-    return [...rankingList].sort((a, b) => {
+    return [...yearRankingList].sort((a, b) => {
       let comparison = 0;
       if (sortConfig.key === "rank") {
         comparison = a.rank - b.rank;
@@ -401,10 +436,10 @@ export default function SlammyAwardsContent({ data, type }) {
 
       return sortConfig.dir === "asc" ? comparison : -comparison;
     });
-  }, [rankingList, sortConfig, years]);
+  }, [yearRankingList, sortConfig, years]);
 
   const sortedRankingCategory = React.useMemo(() => {
-    return [...rankingList].sort((a, b) => {
+    return [...catRankingList].sort((a, b) => {
       let comparison = 0;
       if (catSortConfig.key === "rank") {
         comparison = a.rank - b.rank;
@@ -426,7 +461,7 @@ export default function SlammyAwardsContent({ data, type }) {
 
       return catSortConfig.dir === "asc" ? comparison : -comparison;
     });
-  }, [rankingList, catSortConfig]);
+  }, [catRankingList, catSortConfig]);
 
   // Build entity lookup list sorted by length descending
   const lookupEntities = React.useMemo(() => {
@@ -462,13 +497,32 @@ export default function SlammyAwardsContent({ data, type }) {
 
   return (
     <div className="space-y-8">
+      {/* Global View Switch Bar */}
+      <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded p-4 shadow-sm flex flex-wrap items-center justify-end gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            View:
+          </span>
+          <EntitySwitch
+            viewMode={globalMode}
+            onChange={handleGlobalModeChange}
+          />
+        </div>
+      </div>
+
       {/* Matrix Table: Trivias WWE Slammy Awards */}
       <div data-screenshot-target="true" className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
-        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">
             Trivias WWE Slammy Awards
           </h2>
-          <TableScreenshotButton title="Trivias WWE Slammy Awards" />
+          <div className="flex items-center gap-2 shrink-0">
+            <EntitySwitch
+              viewMode={matrixMode}
+              onChange={(m) => setTableMode("matrix", m)}
+            />
+            <TableScreenshotButton title="Trivias WWE Slammy Awards" />
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -508,7 +562,7 @@ export default function SlammyAwardsContent({ data, type }) {
                       >
                         <SlammyAwardCell
                           award={award}
-                          isWrestler={isWrestler}
+                          isWrestler={matrixIsWrestler}
                           lookupEntities={lookupEntities}
                           royalRumblesByYear={royalRumblesByYear}
                         />
@@ -535,11 +589,17 @@ export default function SlammyAwardsContent({ data, type }) {
 
       {/* Ranking Table: Total Slammy Awards per Year */}
       <div data-screenshot-target="true" className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
-        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">
             Total Slammy Awards per Year
           </h2>
-          <TableScreenshotButton title="Total Slammy Awards per Year" />
+          <div className="flex items-center gap-2 shrink-0">
+            <EntitySwitch
+              viewMode={yearMode}
+              onChange={(m) => setTableMode("ranking_year", m)}
+            />
+            <TableScreenshotButton title="Total Slammy Awards per Year" />
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -567,7 +627,7 @@ export default function SlammyAwardsContent({ data, type }) {
                   onClick={() => handleSort("name")}
                 >
                   <div className="flex items-center gap-1">
-                    <span>{isWrestler ? "Wrestler" : "Interpreter"}</span>
+                    <span>{yearIsWrestler ? "Wrestler" : "Interpreter"}</span>
                     <span className="text-[10px] text-blue-500">
                       {sortConfig.key === "name" ? (
                         sortConfig.dir === "asc" ? "▲" : "▼"
@@ -617,7 +677,7 @@ export default function SlammyAwardsContent({ data, type }) {
 
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
               {sortedRanking.map((item) => {
-                const uniqueId = `year_${item.id}`;
+                const uniqueId = `year_${yearMode}_${item.id}`;
                 const isExpanded = expandedRow === uniqueId;
                 const isExpandable = item.breakdown && item.breakdown.length > 1;
                 const handleRowClick = () => {
@@ -652,7 +712,7 @@ export default function SlammyAwardsContent({ data, type }) {
 
                       <td className="px-4 py-3 font-semibold text-blue-600 dark:text-sky-400 border border-gray-200 dark:border-gray-800 text-sm text-left">
                         <Link
-                          href={`${entityUrl}/${item.id}`}
+                          href={`${yearEntityUrl}/${item.id}`}
                           className="inline-flex items-center gap-2 hover:underline"
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -693,7 +753,7 @@ export default function SlammyAwardsContent({ data, type }) {
                         >
                           <div className="text-sm space-y-2 text-gray-700 dark:text-gray-300">
                             <p className="font-semibold mb-2 text-blue-600 dark:text-sky-400">
-                              {breakdownTitle}
+                              {yearBreakdownTitle}
                             </p>
                             <ul className="space-y-1.5">
                               {item.breakdown?.map((bd, idx) => (
@@ -703,7 +763,7 @@ export default function SlammyAwardsContent({ data, type }) {
                                   </span>
                                   {bd.id ? (
                                     <Link
-                                      href={`${breakdownUrl}/${bd.id}`}
+                                      href={`${yearBreakdownUrl}/${bd.id}`}
                                       className="text-blue-600 dark:text-sky-400 hover:underline"
                                       onClick={(e) => e.stopPropagation()}
                                     >
@@ -742,11 +802,17 @@ export default function SlammyAwardsContent({ data, type }) {
 
       {/* Ranking Table: Total Slammy Awards per Category */}
       <div data-screenshot-target="true" className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden">
-        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+        <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">
             Total Slammy Awards per Category
           </h2>
-          <TableScreenshotButton title="Total Slammy Awards per Category" />
+          <div className="flex items-center gap-2 shrink-0">
+            <EntitySwitch
+              viewMode={catMode}
+              onChange={(m) => setTableMode("ranking_cat", m)}
+            />
+            <TableScreenshotButton title="Total Slammy Awards per Category" />
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -774,7 +840,7 @@ export default function SlammyAwardsContent({ data, type }) {
                   onClick={() => handleCatSort("name")}
                 >
                   <div className="flex items-center gap-1">
-                    <span>{isWrestler ? "Wrestler" : "Interpreter"}</span>
+                    <span>{catIsWrestler ? "Wrestler" : "Interpreter"}</span>
                     <span className="text-[10px] text-blue-500">
                       {catSortConfig.key === "name" ? (
                         catSortConfig.dir === "asc" ? "▲" : "▼"
@@ -824,7 +890,7 @@ export default function SlammyAwardsContent({ data, type }) {
 
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
               {sortedRankingCategory.map((item) => {
-                const uniqueId = `cat_${item.id}`;
+                const uniqueId = `cat_${catMode}_${item.id}`;
                 const isExpanded = expandedRow === uniqueId;
                 const isExpandable = item.breakdown && item.breakdown.length > 1;
                 const handleRowClick = () => {
@@ -859,7 +925,7 @@ export default function SlammyAwardsContent({ data, type }) {
 
                       <td className="px-4 py-3 font-semibold text-blue-600 dark:text-sky-400 border border-gray-200 dark:border-gray-800 text-sm text-left">
                         <Link
-                          href={`${entityUrl}/${item.id}`}
+                          href={`${catEntityUrl}/${item.id}`}
                           className="inline-flex items-center gap-2 hover:underline"
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -900,7 +966,7 @@ export default function SlammyAwardsContent({ data, type }) {
                         >
                           <div className="text-sm space-y-2 text-gray-700 dark:text-gray-300">
                             <p className="font-semibold mb-2 text-blue-600 dark:text-sky-400">
-                              {breakdownTitle}
+                              {catBreakdownTitle}
                             </p>
                             <ul className="space-y-1.5">
                               {item.breakdown?.map((bd, idx) => (
@@ -910,7 +976,7 @@ export default function SlammyAwardsContent({ data, type }) {
                                   </span>
                                   {bd.id ? (
                                     <Link
-                                      href={`${breakdownUrl}/${bd.id}`}
+                                      href={`${catBreakdownUrl}/${bd.id}`}
                                       className="text-blue-600 dark:text-sky-400 hover:underline"
                                       onClick={(e) => e.stopPropagation()}
                                     >
