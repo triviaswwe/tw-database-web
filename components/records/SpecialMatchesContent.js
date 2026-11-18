@@ -186,19 +186,12 @@ export default function SpecialMatchesContent({ data, subType }) {
               className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden"
             >
               <div className="bg-gray-100 dark:bg-zinc-950 px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider leading-tight">
-                    {match.title}
-                  </h2>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                 <div className="flex items-center gap-3 min-w-0">
                   {match.eventLogo && (
                     <Link
                       href={`/events/${match.eventId}`}
-                      className="text-blue-600 dark:text-sky-400 hover:underline font-medium"
                       className="shrink-0 flex items-center"
                     >
-                      {match.eventName}
                       <Image
                         src={match.eventLogo}
                         alt={match.eventName}
@@ -207,7 +200,6 @@ export default function SpecialMatchesContent({ data, subType }) {
                         className="h-9 w-auto max-w-[56px] object-contain drop-shadow-sm"
                       />
                     </Link>
-                  </p>
                   )}
                   <div className="min-w-0">
                     <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider leading-tight">
