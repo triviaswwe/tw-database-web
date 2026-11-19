@@ -4,6 +4,7 @@ import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
 import pool from "../../lib/db";
+import { parsePositiveInt } from "../../lib/validation";
 import { getPhrase, buildTopLine, wrestlerNameSql } from "../../lib/matchUtils";
 
 // Dominio base de Vercel Blob y Mapas de imágenes
@@ -38,15 +39,9 @@ const pleImageMap = {
 };
 
 export async function getServerSideProps({ params, res }) {
-  if (res) {
-    res.setHeader(
-      "Cache-Control",
-      "public, s-maxage=60, stale-while-revalidate=300"
-    );
-  }
   try {
-    const eventId = parseInt(params.id, 10);
-    if (isNaN(eventId)) return { notFound: true };
+    const eventId = parsePositiveInt(params?.id);
+    if (eventId === null) return { notFound: true };
 
     const [
       [[eventRow]],
@@ -220,9 +215,20 @@ export async function getServerSideProps({ params, res }) {
       scores:       Array.isArray(row.scores)       ? row.scores       : [],
     }));
 
+    if (res) {
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=60, stale-while-revalidate=300"
+      );
+    }
+
     return { props: { event, matches, nav } };
   } catch (err) {
     console.error("Error in events/[id] getServerSideProps:", err);
+    if (res) {
+      res.statusCode = 500;
+      res.setHeader("Cache-Control", "no-store");
+    }
     return { props: { error: true } };
   }
 }

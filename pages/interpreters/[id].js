@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import pool from "../../lib/db";
+import { parsePagination, parsePositiveInt } from "../../lib/validation";
 import FlagWithName from "../../components/FlagWithName";
 import MatchCard from "../../components/MatchCard";
 import MatchFilters from "../../components/MatchFilters";
@@ -24,15 +25,9 @@ import {
 } from "../../hooks/useQueryFilter";
 
 export async function getServerSideProps({ params, query, res }) {
-  if (res) {
-    res.setHeader(
-      "Cache-Control",
-      "public, s-maxage=60, stale-while-revalidate=300"
-    );
-  }
   try {
-    const interpreterId = parseInt(params.id, 10);
-    if (isNaN(interpreterId)) return { notFound: true };
+    const interpreterId = parsePositiveInt(params?.id);
+    if (interpreterId === null) return { notFound: true };
 
     const [[interpreterRow]] = await pool.query(
       `SELECT id, interpreter, nationality, status FROM interpreters WHERE id = ?`,
@@ -47,9 +42,10 @@ export async function getServerSideProps({ params, query, res }) {
       status: interpreterRow.status,
     };
 
-    const page = Math.max(1, parseInt(query.page) || 1);
-    const limit = Math.min(50, parseInt(query.limit) || 20);
-    const offset = (page - 1) * limit;
+    const { page, limit, offset } = parsePagination(query, {
+      defaultLimit: 20,
+      maxLimit: 50,
+    });
 
     const selectedWrestlers = parseMultiValueFilter(query.wrestler);
     const selectedShows = parseMultiValueFilter(query.filter);
@@ -462,6 +458,13 @@ export async function getServerSideProps({ params, query, res }) {
     const h2hMatches = buildH2hMatches(h2hRawMatches, interpreterId, true);
     const distinctions = await getEntityDistinctions(pool, interpreterId, true);
 
+    if (res) {
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=60, stale-while-revalidate=300"
+      );
+    }
+
     return {
       props: {
         interpreter,
@@ -496,6 +499,10 @@ export async function getServerSideProps({ params, query, res }) {
     };
   } catch (err) {
     console.error("Error in interpreters/[id] getServerSideProps:", err);
+    if (res) {
+      res.statusCode = 500;
+      res.setHeader("Cache-Control", "no-store");
+    }
     return { props: { error: true } };
   }
 }

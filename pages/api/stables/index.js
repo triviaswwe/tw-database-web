@@ -1,24 +1,25 @@
 // pages/api/stables/index.js
 
-import pool from '../../../lib/db';
-import { setCacheHeaders } from '../../../lib/db';
+import pool, { setCacheHeaders, setNoStoreHeaders } from '../../../lib/db';
+import {
+  firstString,
+  parsePagination,
+  rejectNonGet,
+  sanitizeSearchTerm,
+} from '../../../lib/validation';
+
+export const config = { api: { bodyParser: false } };
 
 export default async function handler(req, res) {
-  res.setHeader(
-    'Cache-Control',
-    'public, s-maxage=60, stale-while-revalidate=300'
-  );
-
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (rejectNonGet(req, res)) return;
 
   try {
-    const page   = Math.max(1, parseInt(req.query.page)  || 1);
-    const limit  = Math.min(100, parseInt(req.query.limit) || 33);
-    const offset = (page - 1) * limit;
-    const status = req.query.status || '';
-    const filter = req.query.filter || '';
+    const { page, limit, offset } = parsePagination(req.query, {
+      defaultLimit: 33,
+      maxLimit: 100,
+    });
+    const status = firstString(req.query.status, 32).trim();
+    const filter = sanitizeSearchTerm(req.query.filter, 80);
 
     const where  = [];
     const params = [];
@@ -56,6 +57,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ stables, total, page, totalPages: Math.ceil(total / limit) });
   } catch (err) {
     console.error('Error in /api/stables:', err);
+    setNoStoreHeaders(res);
     return res.status(500).json({ error: 'Database error' });
   }
 }

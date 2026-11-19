@@ -13,7 +13,7 @@ export async function getStaticProps() {
     return { props: { stipulations: rows }, revalidate: 60 };
   } catch (err) {
     console.error("Error in stipulations getStaticProps:", err);
-    return { props: { stipulations: [], error: true }, revalidate: 60 };
+    throw err;
   }
 }
 

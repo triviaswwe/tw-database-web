@@ -1,15 +1,21 @@
 // pages/api/events.js
 
-import pool from '../../lib/db';
+import pool, { setCacheHeaders, setNoStoreHeaders } from '../../lib/db';
+import {
+  firstString,
+  parsePagination,
+  parsePositiveInt,
+  rejectNonGet,
+  sanitizeSearchTerm,
+} from '../../lib/validation';
+
+export const config = { api: { bodyParser: false } };
 
 export default async function handler(req, res) {
-  res.setHeader(
-    'Cache-Control',
-    'public, s-maxage=60, stale-while-revalidate=300'
-  );
+  if (rejectNonGet(req, res)) return;
 
   try {
-    if (req.query.calendar === '1') {
+    if (firstString(req.query.calendar, 10) === '1') {
       const [[bounds]] = await pool.query(
         `SELECT
            MIN(YEAR(event_date))  AS minYear,
@@ -24,10 +30,17 @@ export default async function handler(req, res) {
       const minYear = bounds?.minYear || new Date().getUTCFullYear();
       const maxYear = bounds?.maxYear || new Date().getUTCFullYear();
 
-      let year = parseInt(req.query.year, 10);
-      let month = parseInt(req.query.month, 10);
+      let year = parsePositiveInt(req.query.year);
+      let month = parsePositiveInt(req.query.month);
 
-      if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+      if (
+        year === null ||
+        month === null ||
+        month < 1 ||
+        month > 12 ||
+        year < minYear ||
+        year > maxYear
+      ) {
         const curY = bounds?.curYear || new Date().getUTCFullYear();
         const curM = bounds?.curMonth || new Date().getUTCMonth() + 1;
         if (
@@ -57,15 +70,17 @@ export default async function handler(req, res) {
         [year, month]
       );
 
+      setCacheHeaders(res, 60);
       return res.status(200).json({ events: rows, year, month, minYear, maxYear });
     }
 
-    const page      = Math.max(1, parseInt(req.query.page)   || 1);
-    const limit     = Math.min(100, parseInt(req.query.limit) || 33);
-    const offset    = (page - 1) * limit;
-    const eventType = req.query.event_type || '';
-    const filter    = req.query.filter     || '';
-    const dateFilt  = req.query.date       || '';
+    const { page, limit, offset } = parsePagination(req.query, {
+      defaultLimit: 33,
+      maxLimit: 100,
+    });
+    const eventType = firstString(req.query.event_type, 32);
+    const filter    = sanitizeSearchTerm(req.query.filter, 80);
+    const dateFilt  = firstString(req.query.date, 16);
 
     const where  = [];
     const params = [];
@@ -142,9 +157,11 @@ export default async function handler(req, res) {
       [...params, limit, offset]
     );
 
-    res.status(200).json({ events: rows, totalPages, totalCount });
+    setCacheHeaders(res, 60);
+    return res.status(200).json({ events: rows, totalPages, totalCount });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    setNoStoreHeaders(res);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

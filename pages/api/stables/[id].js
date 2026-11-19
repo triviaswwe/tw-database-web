@@ -1,20 +1,16 @@
 // pages/api/stables/[id].js
 
-import pool from '../../../lib/db';
+import pool, { setCacheHeaders, setNoStoreHeaders } from '../../../lib/db';
+import { parsePositiveInt, rejectNonGet } from '../../../lib/validation';
+
+export const config = { api: { bodyParser: false } };
 
 export default async function handler(req, res) {
-  res.setHeader(
-    'Cache-Control',
-    'public, s-maxage=60, stale-while-revalidate=300'
-  );
+  if (rejectNonGet(req, res)) return;
 
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const { id } = req.query;
-  const stableId = parseInt(id, 10);
-  if (isNaN(stableId)) {
+  const stableId = parsePositiveInt(req.query.id);
+  if (stableId === null) {
+    setNoStoreHeaders(res);
     return res.status(400).json({ error: 'Invalid ID' });
   }
 
@@ -25,6 +21,7 @@ export default async function handler(req, res) {
       [stableId]
     );
     if (!stableRow) {
+      setNoStoreHeaders(res);
       return res.status(404).json({ error: 'Not found' });
     }
 
@@ -44,6 +41,7 @@ export default async function handler(req, res) {
       [stableId]
     );
 
+    setCacheHeaders(res, 60);
     return res.status(200).json({
       stable: {
         id: stableRow.id,
@@ -59,6 +57,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('Error in /api/stables/[id]:', err);
+    setNoStoreHeaders(res);
     return res.status(500).json({ error: 'Database error' });
   }
 }

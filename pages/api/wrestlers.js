@@ -1,22 +1,28 @@
 // pages/api/wrestlers.js
 
-import pool from '../../lib/db';
+import pool, { setCacheHeaders, setNoStoreHeaders } from '../../lib/db';
 import { wrestlerSearchSql } from '../../lib/matchUtils';
+import {
+  firstString,
+  parsePagination,
+  rejectNonGet,
+  sanitizeSearchTerm,
+} from '../../lib/validation';
+
+export const config = { api: { bodyParser: false } };
 
 export default async function handler(req, res) {
-  res.setHeader(
-    'Cache-Control',
-    'public, s-maxage=60, stale-while-revalidate=300'
-  );
+  if (rejectNonGet(req, res)) return;
 
   try {
-    const page   = Math.max(1, parseInt(req.query.page)  || 1);
-    const limit  = Math.min(33, parseInt(req.query.limit)|| 33);
-    const offset = (page - 1) * limit;
+    const { page, limit, offset } = parsePagination(req.query, {
+      defaultLimit: 33,
+      maxLimit: 33,
+    });
 
-    const brand = req.query.brand || ''; // valor exacto: 'RAW' | 'SmackDown' | 'NXT' | 'Alumni'
-    const group = req.query.group || ''; // 'active' | 'inactive'
-    const filter = req.query.filter || '';
+    const brand = firstString(req.query.brand, 32); // valor exacto: 'RAW' | 'SmackDown' | 'NXT' | 'Alumni'
+    const group = firstString(req.query.group, 16); // 'active' | 'inactive'
+    const filter = sanitizeSearchTerm(req.query.filter, 80);
 
     const where = [];
     const params = [];
@@ -58,7 +64,8 @@ export default async function handler(req, res) {
       [...params, limit, offset]
     );
 
-    res.status(200).json({
+    setCacheHeaders(res, 60);
+    return res.status(200).json({
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -66,6 +73,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    setNoStoreHeaders(res);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

@@ -1,17 +1,17 @@
 // pages/api/championships/[id]/tag-individual-stats.js
 
-import pool from '../../../../lib/db';
-import { setCacheHeaders } from '../../../../lib/db';
+import pool, { setCacheHeaders, setNoStoreHeaders } from '../../../../lib/db';
+import { parsePositiveInt, rejectNonGet } from '../../../../lib/validation';
+
+export const config = { api: { bodyParser: false } };
 
 export default async function handler(req, res) {
-  res.setHeader(
-    'Cache-Control',
-    'public, s-maxage=60, stale-while-revalidate=300'
-  );
+  if (rejectNonGet(req, res)) return;
 
-  const { id: championshipId } = req.query;
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  const championshipId = parsePositiveInt(req.query.id);
+  if (championshipId === null) {
+    setNoStoreHeaders(res);
+    return res.status(400).json({ error: 'Invalid ID' });
   }
 
   try {
@@ -116,6 +116,7 @@ export default async function handler(req, res) {
     return res.status(200).json(result);
   } catch (err) {
     console.error('Error in tag-individual-stats:', err);
+    setNoStoreHeaders(res);
     return res.status(500).json({ error: 'Database error' });
   }
 }

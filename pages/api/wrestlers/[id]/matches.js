@@ -1,25 +1,29 @@
 // pages/api/wrestlers/[id]/matches.js
 // OPTIMIZADO: Elimina N+1 queries → una sola query consolidada con JOINs + paginación
 
-import pool from '../../../../lib/db';
+import pool, { setCacheHeaders, setNoStoreHeaders } from '../../../../lib/db';
 import { wrestlerNameSql } from '../../../../lib/matchUtils';
+import {
+  parsePagination,
+  parsePositiveInt,
+  rejectNonGet,
+} from '../../../../lib/validation';
+
+export const config = { api: { bodyParser: false } };
 
 export default async function handler(req, res) {
-  res.setHeader(
-    'Cache-Control',
-    'public, s-maxage=60, stale-while-revalidate=300'
-  );
+  if (rejectNonGet(req, res)) return;
 
-  const { id, page: pageParam, limit: limitParam } = req.query;
-  const wrestlerId = parseInt(id, 10);
-
-  if (isNaN(wrestlerId)) {
+  const wrestlerId = parsePositiveInt(req.query.id);
+  if (wrestlerId === null) {
+    setNoStoreHeaders(res);
     return res.status(400).json({ error: 'Invalid wrestler ID' });
   }
 
-  const page   = Math.max(1, parseInt(pageParam)  || 1);
-  const limit  = Math.min(50, parseInt(limitParam) || 20);
-  const offset = (page - 1) * limit;
+  const { page, limit, offset } = parsePagination(req.query, {
+    defaultLimit: 20,
+    maxLimit: 50,
+  });
 
   try {
     // ─── Consultas paralelas: stats + total count ────────────────────────────
@@ -116,7 +120,8 @@ export default async function handler(req, res) {
       scores:           row.scores       || [],
     }));
 
-    res.status(200).json({
+    setCacheHeaders(res, 60);
+    return res.status(200).json({
       stats: {
         total:      statsRow?.total      || 0,
         wins:       statsRow?.wins       || 0,
@@ -135,6 +140,7 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Error loading matches:', error);
-    res.status(500).json({ error: 'Error loading matches' });
+    setNoStoreHeaders(res);
+    return res.status(500).json({ error: 'Error loading matches' });
   }
 }

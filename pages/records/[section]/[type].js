@@ -13,12 +13,6 @@ const VALID_SPECIAL_TYPES = ["royal-rumble", "elimination-chamber"];
 
 export async function getServerSideProps(context) {
   const { res, params } = context;
-  if (res) {
-    res.setHeader(
-      "Cache-Control",
-      "public, s-maxage=60, stale-while-revalidate=300"
-    );
-  }
 
   const { section, type } = params || {};
 
@@ -39,6 +33,13 @@ export async function getServerSideProps(context) {
   try {
     const data = await getSpecialMatchesData(pool, type);
 
+    if (res) {
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=60, stale-while-revalidate=300"
+      );
+    }
+
     return {
       props: {
         section,
@@ -48,6 +49,10 @@ export async function getServerSideProps(context) {
     };
   } catch (error) {
     console.error(`Error loading records for section=${section}, type=${type}:`, error);
+    if (res) {
+      res.statusCode = 500;
+      res.setHeader("Cache-Control", "no-store");
+    }
     return {
       props: {
         error: true,

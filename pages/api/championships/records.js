@@ -1,9 +1,10 @@
-import pool from '../../../lib/db';
+import pool, { setCacheHeaders, setNoStoreHeaders } from '../../../lib/db';
+import { rejectNonGet } from '../../../lib/validation';
+
+export const config = { api: { bodyParser: false } };
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (rejectNonGet(req, res)) return;
 
   try {
     const [reigns] = await pool.query(`
@@ -187,6 +188,7 @@ export default async function handler(req, res) {
       }
     }
 
+    setCacheHeaders(res, 300);
     res.status(200).json({
       tripleCrowns: tripleCrowns.sort((a, b) => new Date(a.achievedDate) - new Date(b.achievedDate)),
       grandSlams: grandSlams.sort((a, b) => new Date(a.achievedDate) - new Date(b.achievedDate)),
@@ -195,6 +197,7 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Error fetching milestones:', error);
+    setNoStoreHeaders(res);
     res.status(500).json({ error: 'Database error' });
   }
 }

@@ -6,37 +6,64 @@ import { useDebounce } from "./useDebounce";
 export const DEFAULT_RESULTS = ["WIN", "DRAW", "LOSS"];
 export const DEFAULT_FORMATS = ["1v1", "2v2", "3v3", "multiman"];
 
+const toSingleString = (v) => {
+  const raw = Array.isArray(v) ? v[0] : v;
+  return typeof raw === "string" ? raw : "";
+};
+
 export function parseResultFilter(resultParam) {
   if (resultParam === undefined || resultParam === null) {
     return [...DEFAULT_RESULTS];
   }
-  if (resultParam === "none" || resultParam === "") {
+  const raw = toSingleString(resultParam);
+  if (raw === "none" || raw === "") {
     return [];
   }
-  return resultParam
-    .split(",")
-    .map((s) => s.trim().toUpperCase())
-    .filter((s) => DEFAULT_RESULTS.includes(s));
+  return Array.from(
+    new Set(
+      raw
+        .split(",")
+        .map((s) => s.trim().toUpperCase())
+        .filter((s) => DEFAULT_RESULTS.includes(s))
+    )
+  );
 }
 
-export function parseMultiValueFilter(param) {
-  if (!param) return [];
-  return param
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+export function parseMultiValueFilter(
+  param,
+  { maxItems = 8, maxLength = 64 } = {}
+) {
+  const raw = toSingleString(param);
+  if (!raw) return [];
+  const seen = new Set();
+  const result = [];
+  for (const part of raw.split(",")) {
+    const cleaned = part.trim().replace(/%/g, "").slice(0, maxLength);
+    if (!cleaned) continue;
+    const key = cleaned.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(cleaned);
+    if (result.length >= maxItems) break;
+  }
+  return result;
 }
 
 export function parseFormatFilter(formatParam, oneParam) {
-  if (formatParam) {
-    if (formatParam === "none") return [];
-    return formatParam
-      .split(",")
-      .map((s) => s.trim().toLowerCase())
-      .filter((s) => DEFAULT_FORMATS.includes(s));
+  const rawFormat = toSingleString(formatParam);
+  if (rawFormat) {
+    if (rawFormat === "none") return [];
+    return Array.from(
+      new Set(
+        rawFormat
+          .split(",")
+          .map((s) => s.trim().toLowerCase())
+          .filter((s) => DEFAULT_FORMATS.includes(s))
+      )
+    );
   }
   // Compatibilidad con ?one=1
-  if (oneParam === "1") {
+  if (toSingleString(oneParam) === "1") {
     return ["1v1"];
   }
   return [...DEFAULT_FORMATS];

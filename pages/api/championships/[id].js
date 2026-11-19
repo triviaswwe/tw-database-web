@@ -1,18 +1,18 @@
 // pages/api/championships/[id].js
 
-import pool from '../../../lib/db';
-import { setCacheHeaders } from '../../../lib/db';
+import pool, { setCacheHeaders, setNoStoreHeaders } from '../../../lib/db';
+import { parsePositiveInt, rejectNonGet } from '../../../lib/validation';
+
+export const config = { api: { bodyParser: false } };
 
 export default async function handler(req, res) {
-  res.setHeader(
-    'Cache-Control',
-    'public, s-maxage=60, stale-while-revalidate=300'
-  );
+  if (rejectNonGet(req, res)) return;
 
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  const championshipId = parsePositiveInt(req.query.id);
+  if (championshipId === null) {
+    setNoStoreHeaders(res);
+    return res.status(400).json({ error: 'Invalid ID' });
   }
-  const { id: championshipId } = req.query;
 
   try {
     // 1) Datos básicos del campeonato
@@ -23,6 +23,7 @@ export default async function handler(req, res) {
       [championshipId]
     );
     if (!champRow) {
+      setNoStoreHeaders(res);
       return res.status(404).json({ error: 'Championship not found' });
     }
 
@@ -84,6 +85,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ champ: champRow, currentReign });
   } catch (err) {
     console.error('Error in /api/championships/[id]:', err);
+    setNoStoreHeaders(res);
     return res.status(500).json({ error: 'Database error' });
   }
 }

@@ -1,20 +1,19 @@
 // pages/api/championships/[id]/defenses.js
 
-import pool from '../../../../lib/db';
-import { setCacheHeaders } from '../../../../lib/db';
+import pool, { setCacheHeaders, setNoStoreHeaders } from '../../../../lib/db';
 import { wrestlerNameSql } from '../../../../lib/matchUtils';
+import { parsePositiveInt, rejectNonGet } from '../../../../lib/validation';
+
+export const config = { api: { bodyParser: false } };
 
 export default async function handler(req, res) {
-  res.setHeader(
-    'Cache-Control',
-    'public, s-maxage=60, stale-while-revalidate=300'
-  );
+  if (rejectNonGet(req, res)) return;
 
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  const championshipId = parsePositiveInt(req.query.id);
+  if (championshipId === null) {
+    setNoStoreHeaders(res);
+    return res.status(400).json({ error: 'Invalid ID' });
   }
-
-  const { id: championshipId } = req.query;
 
   try {
     /* ------------------------------------------------------------------ */
@@ -186,6 +185,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ summary, details });
   } catch (err) {
     console.error('Database error in /api/championships/[id]/defenses:', err);
+    setNoStoreHeaders(res);
     return res.status(500).json({ error: 'Database error' });
   }
 }

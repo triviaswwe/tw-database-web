@@ -1,21 +1,16 @@
 // pages/api/wrestlers/[id].js
 
-import pool from '../../../lib/db';
+import pool, { setCacheHeaders, setNoStoreHeaders } from '../../../lib/db';
+import { parsePositiveInt, rejectNonGet } from '../../../lib/validation';
+
+export const config = { api: { bodyParser: false } };
 
 export default async function handler(req, res) {
-  res.setHeader(
-    'Cache-Control',
-    'public, s-maxage=60, stale-while-revalidate=300'
-  );
+  if (rejectNonGet(req, res)) return;
 
-  const { method, query: { id } } = req;
-
-  if (method !== 'GET') {
-    res.setHeader('Allow', ['GET']);
-    return res.status(405).json({ message: `Method ${method} not allowed` });
-  }
-
-  if (!id || isNaN(Number(id))) {
+  const id = parsePositiveInt(req.query.id);
+  if (id === null) {
+    setNoStoreHeaders(res);
     return res.status(400).json({ message: 'Invalid wrestler id' });
   }
 
@@ -26,6 +21,7 @@ export default async function handler(req, res) {
     );
 
     if (rows.length === 0) {
+      setNoStoreHeaders(res);
       return res.status(404).json({ message: 'Wrestler not found' });
     }
 
@@ -39,9 +35,11 @@ export default async function handler(req, res) {
       [id]
     );
 
-    res.status(200).json({ ...wrestler, interpreters });
+    setCacheHeaders(res, 60);
+    return res.status(200).json({ ...wrestler, interpreters });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Internal Server Error' });
+    setNoStoreHeaders(res);
+    return res.status(500).json({ message: 'Internal Server Error' });
   }
 }

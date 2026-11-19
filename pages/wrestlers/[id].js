@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import pool from "../../lib/db";
+import { parsePagination, parsePositiveInt } from "../../lib/validation";
 import FlagWithName from "../../components/FlagWithName";
 import MatchCard from "../../components/MatchCard";
 import MatchFilters from "../../components/MatchFilters";
@@ -24,15 +25,9 @@ import {
 } from "../../hooks/useQueryFilter";
 
 export async function getServerSideProps({ params, query, res }) {
-  if (res) {
-    res.setHeader(
-      "Cache-Control",
-      "public, s-maxage=60, stale-while-revalidate=300"
-    );
-  }
   try {
-    const wrestlerId = parseInt(params.id, 10);
-    if (isNaN(wrestlerId)) return { notFound: true };
+    const wrestlerId = parsePositiveInt(params?.id);
+    if (wrestlerId === null) return { notFound: true };
 
     const [[wrestlerRow]] = await pool.query(
       `SELECT w.*, w.image_url FROM wrestlers w WHERE w.id = ?`,
@@ -51,9 +46,10 @@ export async function getServerSideProps({ params, query, res }) {
       image_url: wrestlerRow.image_url || null,
     };
 
-    const page = Math.max(1, parseInt(query.page) || 1);
-    const limit = Math.min(50, parseInt(query.limit) || 20);
-    const offset = (page - 1) * limit;
+    const { page, limit, offset } = parsePagination(query, {
+      defaultLimit: 20,
+      maxLimit: 50,
+    });
 
     const selectedWrestlers = parseMultiValueFilter(query.wrestler);
     const selectedShows = parseMultiValueFilter(query.filter);
@@ -465,6 +461,13 @@ export async function getServerSideProps({ params, query, res }) {
     const h2hMatches = buildH2hMatches(h2hRawMatches, wrestlerId, false);
     const distinctions = await getEntityDistinctions(pool, wrestlerId, false);
 
+    if (res) {
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=60, stale-while-revalidate=300"
+      );
+    }
+
     return {
       props: {
         wrestler,
@@ -499,6 +502,10 @@ export async function getServerSideProps({ params, query, res }) {
     };
   } catch (err) {
     console.error("Error in wrestlers/[id] getServerSideProps:", err);
+    if (res) {
+      res.statusCode = 500;
+      res.setHeader("Cache-Control", "no-store");
+    }
     return { props: { error: true } };
   }
 }

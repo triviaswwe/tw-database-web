@@ -5,17 +5,31 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { ChampionshipSubpageListSkeleton } from '../../../components/Skeletons';
 
-const fetcher = (url) => fetch(url).then((r) => r.json());
+const fetcher = (url) =>
+  fetch(url).then((r) => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  });
 
 export default function ChampionshipMatches() {
-  const { query } = useRouter();
+  const { query, isReady } = useRouter();
+  const validId =
+    typeof query.id === 'string' && /^\d+$/.test(query.id) ? query.id : null;
+  const encodedId = validId ? encodeURIComponent(validId) : null;
+
   const { data: matches, error } = useSWR(
-    query.id ? `/api/championships/${query.id}/matches` : null,
+    encodedId ? `/api/championships/${encodedId}/matches` : null,
     fetcher
   );
 
-  if (error) return <p>Error loading matches.</p>;
+  if (isReady && !validId) {
+    return <p className="p-6">Invalid championship ID.</p>;
+  }
+  if (error) return <p className="p-6">Error loading matches.</p>;
   if (!matches) return <ChampionshipSubpageListSkeleton title="Matches" />;
+  if (!Array.isArray(matches)) {
+    return <p className="p-6">Error loading matches.</p>;
+  }
 
   return (
     <div className="p-6 space-y-4">

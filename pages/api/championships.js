@@ -1,15 +1,12 @@
 // pages/api/championships.js
 
-import { query } from '../../lib/db';
-import { setCacheHeaders } from '../../lib/db';
+import { query, setCacheHeaders, setNoStoreHeaders } from '../../lib/db';
+import { rejectNonGet } from '../../lib/validation';
+
+export const config = { api: { bodyParser: false } };
 
 export default async function handler(req, res) {
-  res.setHeader(
-    'Cache-Control',
-    'public, s-maxage=60, stale-while-revalidate=300'
-  );
-
-  if (req.method !== 'GET') return res.status(405).end();
+  if (rejectNonGet(req, res)) return;
 
   try {
     const [championships, images] = await Promise.all([
@@ -46,6 +43,7 @@ export default async function handler(req, res) {
     res.status(200).json(rows);
   } catch (err) {
     console.error('Error in /api/championships:', err);
+    setNoStoreHeaders(res);
     res.status(500).json({ error: 'Database error' });
   }
 }

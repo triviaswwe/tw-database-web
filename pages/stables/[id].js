@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import pool from "../../lib/db";
+import { parsePagination, parsePositiveInt } from "../../lib/validation";
 import FlagWithName from "../../components/FlagWithName";
 import MatchCard from "../../components/MatchCard";
 import MatchFilters from "../../components/MatchFilters";
@@ -22,15 +23,9 @@ import {
 } from "../../hooks/useQueryFilter";
 
 export async function getServerSideProps({ params, query, res }) {
-  if (res) {
-    res.setHeader(
-      "Cache-Control",
-      "public, s-maxage=60, stale-while-revalidate=300"
-    );
-  }
   try {
-    const stableId = parseInt(params.id, 10);
-    if (isNaN(stableId)) return { notFound: true };
+    const stableId = parsePositiveInt(params?.id);
+    if (stableId === null) return { notFound: true };
 
     const [[stableRow]] = await pool.query(
       `SELECT t.*, t.image_url FROM tag_teams t WHERE t.id = ?`,
@@ -47,9 +42,10 @@ export async function getServerSideProps({ params, query, res }) {
       image_url: stableRow.image_url || null,
     };
 
-    const page = Math.max(1, parseInt(query.page) || 1);
-    const limit = Math.min(50, parseInt(query.limit) || 20);
-    const offset = (page - 1) * limit;
+    const { page, limit, offset } = parsePagination(query, {
+      defaultLimit: 20,
+      maxLimit: 50,
+    });
 
     const selectedWrestlers = parseMultiValueFilter(query.wrestler);
     const selectedShows = parseMultiValueFilter(query.filter);
@@ -277,6 +273,13 @@ export async function getServerSideProps({ params, query, res }) {
       scores: row.scores || [],
     }));
 
+    if (res) {
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=60, stale-while-revalidate=300"
+      );
+    }
+
     return {
       props: {
         stable,
@@ -306,6 +309,10 @@ export async function getServerSideProps({ params, query, res }) {
     };
   } catch (err) {
     console.error("Error in stables/[id] getServerSideProps:", err);
+    if (res) {
+      res.statusCode = 500;
+      res.setHeader("Cache-Control", "no-store");
+    }
     return { props: { error: true } };
   }
 }
