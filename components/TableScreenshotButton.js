@@ -137,12 +137,17 @@ export default function TableScreenshotButton({
         target.classList.contains("border") &&
         target.classList.contains("overflow-hidden");
 
+      const liveTableEl = target.querySelector("table");
       const origWidth = target.offsetWidth;
+      const liveTableWidth = liveTableEl
+        ? Math.max(liveTableEl.scrollWidth, liveTableEl.offsetWidth)
+        : target.scrollWidth;
       const padAndBorder = hasCardBorder ? 2 : 32;
 
+      let finalWidth = Math.ceil(Math.max(origWidth, liveTableWidth + padAndBorder) + 4);
+
       offscreen = document.createElement("div");
-      offscreen.style.cssText =
-        "position:absolute;left:-9999px;top:0;width:max-content;height:auto;overflow:visible;pointer-events:none;z-index:-9999;-webkit-text-size-adjust:100%;text-size-adjust:100%;";
+      offscreen.style.cssText = `position:fixed;left:-100000px;top:0;width:${finalWidth}px;height:auto;overflow:visible;pointer-events:none;z-index:-9999;-webkit-text-size-adjust:100%;text-size-adjust:100%;`;
 
       const clone = target.cloneNode(true);
       clone.setAttribute("data-capturing", "true");
@@ -151,9 +156,10 @@ export default function TableScreenshotButton({
       if (!hasCardBorder) {
         clone.style.padding = "16px";
       }
-      clone.style.width = "max-content";
-      clone.style.minWidth = `${origWidth}px`;
-      clone.style.maxWidth = "none";
+      clone.style.width = `${finalWidth}px`;
+      clone.style.minWidth = `${finalWidth}px`;
+      clone.style.maxWidth = `${finalWidth}px`;
+      clone.style.inlineSize = `${finalWidth}px`;
       clone.style.height = "auto";
 
       offscreen.appendChild(clone);
@@ -184,31 +190,32 @@ export default function TableScreenshotButton({
       );
 
       const cloneTableEl = clone.querySelector("table");
-      const tableWidth = cloneTableEl
-        ? Math.max(
+      for (let pass = 0; pass < 2 && cloneTableEl; pass++) {
+        const tableWidth = Math.ceil(
+          Math.max(
             cloneTableEl.scrollWidth,
             cloneTableEl.offsetWidth,
             cloneTableEl.getBoundingClientRect().width
           )
-        : 0;
+        );
+        if (tableWidth + padAndBorder > finalWidth) {
+          finalWidth = tableWidth + padAndBorder + 4;
+          offscreen.style.width = `${finalWidth}px`;
+          clone.style.width = `${finalWidth}px`;
+          clone.style.minWidth = `${finalWidth}px`;
+          clone.style.maxWidth = `${finalWidth}px`;
+          clone.style.inlineSize = `${finalWidth}px`;
+        } else {
+          break;
+        }
+      }
 
-      const finalWidth =
-        Math.ceil(
-          Math.max(
-            origWidth,
-            clone.scrollWidth,
-            clone.offsetWidth,
-            clone.getBoundingClientRect().width,
-            tableWidth ? tableWidth + padAndBorder : 0
-          )
-        ) + 2;
-
-      offscreen.style.width = `${finalWidth}px`;
-      clone.style.width = `${finalWidth}px`;
-      clone.style.minWidth = `${finalWidth}px`;
-      clone.style.maxWidth = `${finalWidth}px`;
-      clone.style.inlineSize = `${finalWidth}px`;
-
+      clone.querySelectorAll("tr").forEach((tr) => {
+        const h = tr.getBoundingClientRect().height;
+        if (h > 0) {
+          tr.style.height = `${Math.ceil(h)}px`;
+        }
+      });
       await new Promise((resolve) => requestAnimationFrame(resolve));
 
       const cloneRect = clone.getBoundingClientRect();
@@ -227,7 +234,7 @@ export default function TableScreenshotButton({
             clone.offsetHeight,
             lastChildBottom
           )
-        ) + 4;
+        ) + 6;
 
       const bgColor = isDarkMode ? "#09090b" : "#ffffff";
 
@@ -325,6 +332,8 @@ export default function TableScreenshotButton({
       setPreviewData({
         url: dataUrl,
         fileName: finalFileName,
+        width: finalWidth,
+        height: finalHeight,
       });
     } catch (err) {
       console.error("Error taking table screenshot:", err);
@@ -378,7 +387,7 @@ export default function TableScreenshotButton({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden overscroll-contain"
+            className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-lg shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden overscroll-contain"
           >
             <div className="px-4 py-3 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
               <span className="font-semibold text-sm text-gray-800 dark:text-white truncate">
@@ -394,12 +403,18 @@ export default function TableScreenshotButton({
               </button>
             </div>
 
-            <div className="p-4 overflow-y-auto flex-1 flex items-center justify-center bg-gray-100 dark:bg-zinc-950 overscroll-contain">
-              <img
-                src={previewData.url}
-                alt="Screenshot preview"
-                className="max-h-[65vh] w-auto object-contain rounded shadow"
-              />
+            <div className="overflow-auto flex-1 bg-gray-100 dark:bg-zinc-950 overscroll-contain">
+              <div className="min-w-full min-h-full w-max flex items-center justify-center p-3 sm:p-4">
+                <img
+                  src={previewData.url}
+                  alt="Screenshot preview"
+                  style={{
+                    width: previewData.width ? `${previewData.width}px` : undefined,
+                    maxWidth: "none",
+                  }}
+                  className="h-auto block rounded shadow"
+                />
+              </div>
             </div>
 
             <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-t border-gray-200 dark:border-zinc-800 flex items-center justify-end gap-2">

@@ -33,7 +33,7 @@ const tableColumns = [
   { label: "Event", key: "event" },
   { label: "Reign #", key: "reign_number" },
   { label: "Days Held", key: "days_held" },
-  { label: "Notes", key: "notes", widthClass: "w-[25%] min-w-[180px] max-w-[260px] md:max-w-none" },
+  { label: "Notes", key: "notes", widthClass: "w-[25%] min-w-[180px] max-w-[260px] md:max-w-[340px]" },
 ];
 
 export default function ChampionshipsPage() {
@@ -363,7 +363,7 @@ export default function ChampionshipsPage() {
             {r.lost_date === null ? daysHeldRaw : daysHeldRaw.replace("+", "")}
           </td>
         )}
-        <td className="border px-2 py-1 text-[12px] break-words max-w-[260px] md:max-w-none">
+        <td className="border px-2 py-1 text-[12px] break-words max-w-[260px] md:max-w-[340px]">
           {r.notes || "—"}
           {sel !== 2 && sel !== 8 && r.id === longestReignId && (
             <span className="ml-1">
