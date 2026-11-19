@@ -8,7 +8,10 @@ import RecordsNav from "../../components/records/RecordsNav";
 import GeneralRecordsContent from "../../components/records/GeneralRecordsContent";
 import SlammyAwardsContent from "../../components/records/SlammyAwardsContent";
 import DistinctionsContent from "../../components/records/DistinctionsContent";
-import { getGeneralRecordsData } from "../../lib/records/getGeneralRecordsData";
+import {
+  getGeneralRecordsData,
+  fetchSharedGeneralRecordsData,
+} from "../../lib/records/getGeneralRecordsData";
 import { getSlammyData } from "../../lib/records/getSlammyData";
 import { getDistinctionsData } from "../../lib/records/getDistinctionsData";
 
@@ -16,12 +19,6 @@ const MAIN_SECTIONS = ["general", "slammy-awards", "distinctions"];
 
 export async function getServerSideProps(context) {
   const { res, params } = context;
-  if (res) {
-    res.setHeader(
-      "Cache-Control",
-      "public, s-maxage=60, stale-while-revalidate=300"
-    );
-  }
 
   const { section } = params || {};
 
@@ -67,9 +64,10 @@ export async function getServerSideProps(context) {
     let interpreter = null;
 
     if (section === "general") {
+      const sharedGeneralPromise = fetchSharedGeneralRecordsData(pool);
       [wrestler, interpreter] = await Promise.all([
-        getGeneralRecordsData(pool, "wrestler"),
-        getGeneralRecordsData(pool, "interpreter"),
+        getGeneralRecordsData(pool, "wrestler", sharedGeneralPromise),
+        getGeneralRecordsData(pool, "interpreter", sharedGeneralPromise),
       ]);
     } else if (section === "slammy-awards") {
       [wrestler, interpreter] = await Promise.all([
@@ -83,6 +81,13 @@ export async function getServerSideProps(context) {
       ]);
     }
 
+    if (res) {
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=60, stale-while-revalidate=300"
+      );
+    }
+
     return {
       props: {
         section,
@@ -91,6 +96,10 @@ export async function getServerSideProps(context) {
     };
   } catch (error) {
     console.error(`Error loading records for section=${section}:`, error);
+    if (res) {
+      res.statusCode = 500;
+      res.setHeader("Cache-Control", "no-store");
+    }
     return {
       props: {
         error: true,

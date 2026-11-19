@@ -106,7 +106,13 @@ function renderRichText(text, entities, isWrestler, wrestlerToInterpreter = null
   );
 }
 
-function SlammyAwardCell({ award, isWrestler, lookupEntities = [], royalRumblesByYear = {} }) {
+function SlammyAwardCell({
+  award,
+  isWrestler,
+  lookupEntities = [],
+  royalRumblesByYear = {},
+  baseWrestlerToInterpreter = null,
+}) {
   if (!award) {
     return (
       <span className="text-gray-400 dark:text-gray-600 select-none font-mono">
@@ -119,7 +125,13 @@ function SlammyAwardCell({ award, isWrestler, lookupEntities = [], royalRumblesB
   const mainEntity = isWrestler ? award.wrestler : award.interpreter;
   const extraEntities = isWrestler ? award.extra_wrestlers : award.extra_interpreters;
   const categoryName = (award.category_name || "").toLowerCase();
-  const wrestlerToInterpreter = award.wrestler_to_interpreter || null;
+  const wrestlerToInterpreter =
+    !isWrestler && (baseWrestlerToInterpreter || award.wrestler_to_interpreter)
+      ? {
+          ...(baseWrestlerToInterpreter || {}),
+          ...(award.wrestler_to_interpreter || {}),
+        }
+      : null;
 
   // Pattern 1: Single individual entity award (Superstar of the Year, Rookie of the Year, NXT Superstar, Most Matches)
   const isIndividualCategory =
@@ -565,6 +577,9 @@ export default function SlammyAwardsContent({ data }) {
                           isWrestler={matrixIsWrestler}
                           lookupEntities={lookupEntities}
                           royalRumblesByYear={royalRumblesByYear}
+                          baseWrestlerToInterpreter={
+                            interpreterData.baseWrestlerToInterpreter || null
+                          }
                         />
                       </td>
                     );
