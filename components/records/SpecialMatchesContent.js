@@ -37,6 +37,8 @@ function renderSortArrow(sortState, colKey, defaultDesc = true) {
   );
 }
 
+const PAGE_SIZE = 10;
+
 export default function SpecialMatchesContent({ data, subType }) {
   const { years = [], matches = [], cumulative = {} } = data || {};
 
@@ -51,14 +53,18 @@ export default function SpecialMatchesContent({ data, subType }) {
   const [tableModes, setTableModes] = useState({});
   const [selectedYear, setSelectedYear] = useState(initialYear);
   const [cumSort, setCumSort] = useState({ key: "rank", dir: "asc" });
+  const [cumPage, setCumPage] = useState(1);
   const [expandedRow, setExpandedRow] = useState(null);
 
   const getMode = (tableKey) => tableModes[tableKey] || globalMode;
-  const setTableMode = (tableKey, mode) =>
+  const setTableMode = (tableKey, mode) => {
     setTableModes((prev) => ({ ...prev, [tableKey]: mode }));
+    if (tableKey === "cumulative") setCumPage(1);
+  };
   const handleGlobalModeChange = (mode) => {
     setGlobalMode(mode);
     setTableModes({});
+    setCumPage(1);
   };
 
   const cumMode = getMode("cumulative");
@@ -75,6 +81,7 @@ export default function SpecialMatchesContent({ data, subType }) {
 
   useEffect(() => {
     setCumSort({ key: "rank", dir: "asc" });
+    setCumPage(1);
     setExpandedRow(null);
   }, [subType, cumMode]);
 
@@ -96,6 +103,7 @@ export default function SpecialMatchesContent({ data, subType }) {
       const defaultDir = key === "rank" || key === "name" ? "asc" : "desc";
       return { key, dir: defaultDir };
     });
+    setCumPage(1);
   };
 
   const sortedCumulative = useMemo(() => {
@@ -124,6 +132,13 @@ export default function SpecialMatchesContent({ data, subType }) {
     subType === "elimination-chamber"
       ? "All-Time Elimination Chamber Statistics"
       : "All-Time Royal Rumble Statistics";
+
+  const totalCumPages = Math.max(1, Math.ceil(sortedCumulative.length / PAGE_SIZE));
+  const safeCumPage = Math.min(cumPage, totalCumPages);
+  const pagedCumulative = sortedCumulative.slice(
+    (safeCumPage - 1) * PAGE_SIZE,
+    safeCumPage * PAGE_SIZE
+  );
 
   const toggleExpand = (key) =>
     setExpandedRow((prev) => (prev === key ? null : key));
@@ -473,7 +488,7 @@ export default function SpecialMatchesContent({ data, subType }) {
             </thead>
 
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800 text-sm">
-              {sortedCumulative.map((item) => {
+              {pagedCumulative.map((item) => {
                 const uniqueId = `cum_${subType}_${cumMode}_${item.id}`;
                 const isExpanded = expandedRow === uniqueId;
                 const isExpandable =
@@ -573,6 +588,49 @@ export default function SpecialMatchesContent({ data, subType }) {
             </tbody>
           </table>
         </div>
+
+        {totalCumPages > 1 && (
+          <div className="no-screenshot px-4 py-2.5 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-zinc-950 flex justify-center items-center space-x-2">
+            <button
+              type="button"
+              onClick={() => setCumPage(Math.max(1, safeCumPage - 1))}
+              disabled={safeCumPage === 1}
+              className={`px-3 py-1 rounded text-sm transition-colors ${
+                safeCumPage === 1
+                  ? "bg-gray-300 text-gray-800 dark:bg-gray-900 dark:text-white cursor-not-allowed opacity-50"
+                  : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700 cursor-pointer"
+              }`}
+            >
+              &lt;
+            </button>
+            {Array.from({ length: totalCumPages }, (_, idx) => idx + 1).map((pageNum) => (
+              <button
+                key={pageNum}
+                type="button"
+                onClick={() => setCumPage(pageNum)}
+                className={`px-3 py-1 rounded text-sm transition-colors ${
+                  safeCumPage === pageNum
+                    ? "bg-blue-600 text-white shadow cursor-pointer"
+                    : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700 cursor-pointer"
+                }`}
+              >
+                {pageNum}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setCumPage(Math.min(totalCumPages, safeCumPage + 1))}
+              disabled={safeCumPage === totalCumPages}
+              className={`px-3 py-1 rounded text-sm transition-colors ${
+                safeCumPage === totalCumPages
+                  ? "bg-gray-300 text-gray-800 dark:bg-gray-900 dark:text-white cursor-not-allowed opacity-50"
+                  : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700 cursor-pointer"
+              }`}
+            >
+              &gt;
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
