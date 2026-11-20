@@ -15,6 +15,8 @@ const SHOW_LOGOS = {
   nxt: `${BLOB_BASE_URL}/nxt.png`,
 };
 
+const PAGE_SIZE = 10;
+
 const CATEGORIES = [
   { type: "main", label: "Maincard championships" },
   { type: "mid", label: "Midcard championships" },
@@ -30,14 +32,24 @@ export default function GeneralRecordsContent({ data }) {
 
   const [globalMode, setGlobalMode] = useState("wrestler");
   const [tableModes, setTableModes] = useState({});
+  const [tablePages, setTablePages] = useState({});
   const [expandedRow, setExpandedRow] = useState(null);
 
   const getMode = (tableKey) => tableModes[tableKey] || globalMode;
-  const setTableMode = (tableKey, mode) =>
+  const getTablePage = (tableKey, totalItems) => {
+    const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+    return Math.min(tablePages[tableKey] || 1, totalPages);
+  };
+  const setTablePage = (tableKey, page) =>
+    setTablePages((prev) => ({ ...prev, [tableKey]: page }));
+  const setTableMode = (tableKey, mode) => {
     setTableModes((prev) => ({ ...prev, [tableKey]: mode }));
+    setTablePage(tableKey, 1);
+  };
   const handleGlobalModeChange = (mode) => {
     setGlobalMode(mode);
     setTableModes({});
+    setTablePages({});
   };
 
   const getTableCtx = (tableKey) => {
@@ -165,6 +177,7 @@ export default function GeneralRecordsContent({ data }) {
       }
       return { key, dir: key === "name" || key === "rank" ? "asc" : "desc" };
     });
+    setTablePage("totalChampionships", 1);
   };
 
   const sortedPleAppearances = useMemo(() => {
@@ -244,6 +257,7 @@ export default function GeneralRecordsContent({ data }) {
             : "desc",
       };
     });
+    setTablePage("pleAppearances", 1);
   };
 
   const championships = tcCtx.modeData?.championships || wrestlerData?.championships || [];
@@ -270,6 +284,57 @@ export default function GeneralRecordsContent({ data }) {
   const toggleExpand = (key) =>
     setExpandedRow((prev) => (prev === key ? null : key));
 
+  const renderPaginationFooter = (tableKey, totalItems) => {
+    const totalPages = Math.ceil(totalItems / PAGE_SIZE);
+    if (totalPages <= 1) return null;
+
+    const currentPage = getTablePage(tableKey, totalItems);
+    const base = "px-3 py-1 rounded text-sm transition-colors";
+    const active = "bg-blue-600 text-white shadow cursor-pointer";
+    const normal =
+      "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700 cursor-pointer";
+    const disabled =
+      "bg-gray-300 text-gray-800 dark:bg-gray-900 dark:text-white cursor-not-allowed opacity-50";
+
+    const numberButtons = [];
+    for (let i = 1; i <= totalPages; i++) {
+      numberButtons.push(
+        <button
+          key={i}
+          type="button"
+          onClick={() => setTablePage(tableKey, i)}
+          className={`${base} ${currentPage === i ? active : normal}`}
+        >
+          {i}
+        </button>
+      );
+    }
+
+    return (
+      <div className="no-screenshot px-4 py-2.5 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-zinc-950 flex justify-center items-center space-x-2">
+        <button
+          type="button"
+          onClick={() => setTablePage(tableKey, Math.max(1, currentPage - 1))}
+          disabled={currentPage === 1}
+          className={`${base} ${currentPage === 1 ? disabled : normal}`}
+        >
+          &lt;
+        </button>
+        {numberButtons}
+        <button
+          type="button"
+          onClick={() =>
+            setTablePage(tableKey, Math.min(totalPages, currentPage + 1))
+          }
+          disabled={currentPage === totalPages}
+          className={`${base} ${currentPage === totalPages ? disabled : normal}`}
+        >
+          &gt;
+        </button>
+      </div>
+    );
+  };
+
   const renderTable = (
     title,
     dataArr,
@@ -282,110 +347,119 @@ export default function GeneralRecordsContent({ data }) {
     onRowClick = null,
     screenshotTitle = null,
     tableKey = null,
-  ) => (
-    <div data-screenshot-target="true" className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden h-fit min-w-0">
-      <div className="bg-gray-100 dark:bg-zinc-950 px-3.5 py-3 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-1.5">
-        <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-          {title}
-        </h2>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {tableKey && (
-            <EntitySwitch
-              viewMode={getMode(tableKey)}
-              onChange={(m) => setTableMode(tableKey, m)}
-            />
-          )}
-          <TableScreenshotButton title={screenshotTitle || (typeof title === "string" ? title : "table")} />
+  ) => {
+    const pageKey = tableKey || (typeof title === "string" ? title : "table");
+    const currentPage = getTablePage(pageKey, dataArr.length);
+    const startIdx = (currentPage - 1) * PAGE_SIZE;
+    const paginatedArr = dataArr.slice(startIdx, startIdx + PAGE_SIZE);
+
+    return (
+      <div data-screenshot-target="true" className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded shadow-md overflow-hidden h-fit min-w-0">
+        <div className="bg-gray-100 dark:bg-zinc-950 px-3.5 py-3 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-1.5">
+          <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+            {title}
+          </h2>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {tableKey && (
+              <EntitySwitch
+                viewMode={getMode(tableKey)}
+                onChange={(m) => setTableMode(tableKey, m)}
+              />
+            )}
+            <TableScreenshotButton title={screenshotTitle || (typeof title === "string" ? title : "table")} />
+          </div>
         </div>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-gray-50 dark:bg-zinc-900 text-gray-500 dark:text-gray-400 text-sm">
-              <th className="px-4 py-2 w-12 text-center">#</th>
-              {columns.map((col, i) => (
-                <th
-                  key={i}
-                  className={`px-4 py-2 whitespace-nowrap ${col.onSort ? "cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors select-none" : ""}`}
-                  onClick={col.onSort ? col.onSort : undefined}
-                >
-                  <div
-                    className={`flex items-center gap-1 ${col.align === "right" ? "justify-end" : ""}`}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50 dark:bg-zinc-900 text-gray-500 dark:text-gray-400 text-sm">
+                <th className="px-4 py-2 w-12 text-center">#</th>
+                {columns.map((col, i) => (
+                  <th
+                    key={i}
+                    className={`px-4 py-2 whitespace-nowrap ${col.onSort ? "cursor-pointer hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors select-none" : ""}`}
+                    onClick={col.onSort ? col.onSort : undefined}
                   >
-                    {col.label}
-                    {col.sortDir && (
-                      <span className="text-[10px] text-blue-500">▼</span>
-                    )}
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-            {dataArr.map((item, idx) => {
-              const uniqueId = `${expandPrefix}_${tableKey ? getMode(tableKey) : ""}_${item.id || item.entityId}`;
-              const isExpanded = expandPrefix && expandedRow === uniqueId;
-              const isExpandable = !!expandPrefix && isRowExpandable(item);
-
-              const handleRowClick = () => {
-                if (isExpandable) toggleExpand(uniqueId);
-                else if (onRowClick) onRowClick(item);
-              };
-
-              return (
-                <React.Fragment key={idx}>
-                  <tr
-                    className={`hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors ${isExpandable || onRowClick ? "cursor-pointer" : ""}`}
-                    onClick={handleRowClick}
-                    title={
-                      isExpandable
-                        ? "Click to view breakdown"
-                        : onRowClick
-                          ? "Click to view profile"
-                          : ""
-                    }
-                  >
-                    <td className="px-4 py-3 text-center font-semibold text-gray-500 dark:text-gray-400">
-                      {isExpandable ? (
-                        <span className="flex items-center justify-center gap-1">
-                          <span
-                            className={`text-[10px] transition-transform ${isExpanded ? "rotate-90 text-blue-500" : ""}`}
-                          >
-                            ▶
-                          </span>
-                          {idx + 1}
-                        </span>
-                      ) : (
-                        idx + 1
+                    <div
+                      className={`flex items-center gap-1 ${col.align === "right" ? "justify-end" : ""}`}
+                    >
+                      {col.label}
+                      {col.sortDir && (
+                        <span className="text-[10px] text-blue-500">▼</span>
                       )}
-                    </td>
-                    {renderRow(item)}
-                  </tr>
-                  {isExpanded && renderExpanded && (
-                    <tr className="bg-gray-50 dark:bg-zinc-950/50">
-                      <td
-                        colSpan={columns.length + 1}
-                        className="px-4 py-4 border-b border-gray-200 dark:border-gray-800"
-                      >
-                        <div className="text-sm space-y-2 text-gray-700 dark:text-gray-300">
-                          <p className="font-semibold mb-2 text-blue-600 dark:text-sky-400">
-                            {expandTitle}
-                          </p>
-                          <ul className="space-y-1.5">
-                            {renderExpanded(item)}
-                          </ul>
-                        </div>
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+              {paginatedArr.map((item, idx) => {
+                const rankNumber = startIdx + idx + 1;
+                const uniqueId = `${expandPrefix}_${tableKey ? getMode(tableKey) : ""}_${item.id || item.entityId}`;
+                const isExpanded = expandPrefix && expandedRow === uniqueId;
+                const isExpandable = !!expandPrefix && isRowExpandable(item);
+
+                const handleRowClick = () => {
+                  if (isExpandable) toggleExpand(uniqueId);
+                  else if (onRowClick) onRowClick(item);
+                };
+
+                return (
+                  <React.Fragment key={item.id ?? `${pageKey}_${rankNumber}`}>
+                    <tr
+                      className={`hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors ${isExpandable || onRowClick ? "cursor-pointer" : ""}`}
+                      onClick={handleRowClick}
+                      title={
+                        isExpandable
+                          ? "Click to view breakdown"
+                          : onRowClick
+                            ? "Click to view profile"
+                            : ""
+                      }
+                    >
+                      <td className="px-4 py-3 text-center font-semibold text-gray-500 dark:text-gray-400">
+                        {isExpandable ? (
+                          <span className="flex items-center justify-center gap-1">
+                            <span
+                              className={`text-[10px] transition-transform ${isExpanded ? "rotate-90 text-blue-500" : ""}`}
+                            >
+                              ▶
+                            </span>
+                            {rankNumber}
+                          </span>
+                        ) : (
+                          rankNumber
+                        )}
                       </td>
+                      {renderRow(item)}
                     </tr>
-                  )}
-                </React.Fragment>
-              );
-            })}
-          </tbody>
-        </table>
+                    {isExpanded && renderExpanded && (
+                      <tr className="bg-gray-50 dark:bg-zinc-950/50">
+                        <td
+                          colSpan={columns.length + 1}
+                          className="px-4 py-4 border-b border-gray-200 dark:border-gray-800"
+                        >
+                          <div className="text-sm space-y-2 text-gray-700 dark:text-gray-300">
+                            <p className="font-semibold mb-2 text-blue-600 dark:text-sky-400">
+                              {expandTitle}
+                            </p>
+                            <ul className="space-y-1.5">
+                              {renderExpanded(item)}
+                            </ul>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {renderPaginationFooter(pageKey, dataArr.length)}
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderMatchDetail = (m, indexNumber, isBreaker = false) => {
     const resultColor =
@@ -506,22 +580,28 @@ export default function GeneralRecordsContent({ data }) {
         {
           label: "Matches",
           align: "right",
-          onSort: () =>
-            setShowSorts((prev) => ({ ...prev, [showKey]: "total_matches" })),
+          onSort: () => {
+            setShowSorts((prev) => ({ ...prev, [showKey]: "total_matches" }));
+            setTablePage(tableKey, 1);
+          },
           sortDir: sortKey === "total_matches" ? "desc" : null,
         },
         {
           label: "Wins",
           align: "right",
-          onSort: () =>
-            setShowSorts((prev) => ({ ...prev, [showKey]: "wins" })),
+          onSort: () => {
+            setShowSorts((prev) => ({ ...prev, [showKey]: "wins" }));
+            setTablePage(tableKey, 1);
+          },
           sortDir: sortKey === "wins" ? "desc" : null,
         },
         {
           label: "Win %",
           align: "right",
-          onSort: () =>
-            setShowSorts((prev) => ({ ...prev, [showKey]: "win_percentage" })),
+          onSort: () => {
+            setShowSorts((prev) => ({ ...prev, [showKey]: "win_percentage" }));
+            setTablePage(tableKey, 1);
+          },
           sortDir: sortKey === "win_percentage" ? "desc" : null,
         },
       ],
@@ -581,6 +661,20 @@ export default function GeneralRecordsContent({ data }) {
       tableKey,
     );
   };
+
+  const tcPage = getTablePage("totalChampionships", sortedTotalChampionships.length);
+  const tcStartIdx = (tcPage - 1) * PAGE_SIZE;
+  const paginatedTotalChampionships = sortedTotalChampionships.slice(
+    tcStartIdx,
+    tcStartIdx + PAGE_SIZE,
+  );
+
+  const plePage = getTablePage("pleAppearances", sortedPleAppearances.length);
+  const pleStartIdx = (plePage - 1) * PAGE_SIZE;
+  const paginatedPleAppearances = sortedPleAppearances.slice(
+    pleStartIdx,
+    pleStartIdx + PAGE_SIZE,
+  );
 
   return (
     <>
@@ -660,14 +754,19 @@ export default function GeneralRecordsContent({ data }) {
               {
                 label: "Wins",
                 align: "right",
-                onSort: () => setTopSort({ key: "wins", dir: "desc" }),
+                onSort: () => {
+                  setTopSort({ key: "wins", dir: "desc" });
+                  setTablePage("topStats", 1);
+                },
                 sortDir: topSort.key === "wins" ? "desc" : null,
               },
               {
                 label: "Win %",
                 align: "right",
-                onSort: () =>
-                  setTopSort({ key: "win_percentage", dir: "desc" }),
+                onSort: () => {
+                  setTopSort({ key: "win_percentage", dir: "desc" });
+                  setTablePage("topStats", 1);
+                },
                 sortDir: topSort.key === "win_percentage" ? "desc" : null,
               },
             ],
@@ -718,13 +817,19 @@ export default function GeneralRecordsContent({ data }) {
             {
               label: "Matches",
               align: "right",
-              onSort: () => setUndefSort({ key: "count", dir: "desc" }),
+              onSort: () => {
+                setUndefSort({ key: "count", dir: "desc" });
+                setTablePage("undef", 1);
+              },
               sortDir: undefSort.key === "count" ? "desc" : null,
             },
             {
               label: "Days",
               align: "right",
-              onSort: () => setUndefSort({ key: "days", dir: "desc" }),
+              onSort: () => {
+                setUndefSort({ key: "days", dir: "desc" });
+                setTablePage("undef", 1);
+              },
               sortDir: undefSort.key === "days" ? "desc" : null,
             },
           ],
@@ -855,7 +960,10 @@ export default function GeneralRecordsContent({ data }) {
             {
               label: "Days",
               align: "right",
-              onSort: () => setLrSort({ key: "days_held", dir: "desc" }),
+              onSort: () => {
+                setLrSort({ key: "days_held", dir: "desc" });
+                setTablePage("longestReigns", 1);
+              },
               sortDir: lrSort.key === "days_held" ? "desc" : null,
             },
           ],
@@ -918,7 +1026,10 @@ export default function GeneralRecordsContent({ data }) {
             {
               label: "Defenses",
               align: "right",
-              onSort: () => setMdSort({ key: "defenses_count", dir: "desc" }),
+              onSort: () => {
+                setMdSort({ key: "defenses_count", dir: "desc" });
+                setTablePage("mostDefenses", 1);
+              },
               sortDir: mdSort.key === "defenses_count" ? "desc" : null,
             },
           ],
@@ -1124,7 +1235,7 @@ export default function GeneralRecordsContent({ data }) {
             </thead>
 
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-              {sortedTotalChampionships.map((item) => (
+              {paginatedTotalChampionships.map((item) => (
                 <tr
                   key={item.id}
                   className="hover:bg-gray-50 dark:hover:bg-zinc-800/60 transition-colors"
@@ -1183,6 +1294,10 @@ export default function GeneralRecordsContent({ data }) {
             </tbody>
           </table>
         </div>
+        {renderPaginationFooter(
+          "totalChampionships",
+          sortedTotalChampionships.length,
+        )}
       </div>
 
       {/* Most Appearances at PLEs Table (Full Width) */}
@@ -1347,7 +1462,7 @@ export default function GeneralRecordsContent({ data }) {
             </thead>
 
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-              {sortedPleAppearances.map((item) => {
+              {paginatedPleAppearances.map((item) => {
                 const uniqueId = `ple_${pleCtx.mode}_${item.id}`;
                 const isExpanded = expandedRow === uniqueId;
                 const isExpandable =
@@ -1516,6 +1631,7 @@ export default function GeneralRecordsContent({ data }) {
             </tbody>
           </table>
         </div>
+        {renderPaginationFooter("pleAppearances", sortedPleAppearances.length)}
       </div>
     </>
   );
