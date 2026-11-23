@@ -38,7 +38,7 @@ export default async function handler(req, res) {
 
     if (filter) {
       where.push(wrestlerSearchSql("w.id", "w.wrestler"));
-      const p = `%${filter.toLowerCase()}%`; params.push(p, p, p, p, p);
+      params.push(`%${filter.toLowerCase()}%`);
     }
 
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';

@@ -104,7 +104,7 @@ export async function getServerSideProps({ params, query, res }) {
       extraClauses.push(`AND (${conditions})`);
       selectedWrestlers.forEach((w) => {
         const p = `%${w.toLowerCase()}%`;
-        extraParams.push(wrestlerId, p, p, p, p, p);
+        extraParams.push(wrestlerId, p);
       });
     }
 
