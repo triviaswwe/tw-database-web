@@ -71,7 +71,10 @@ export default function ChampionshipsPage() {
 
   const defenses = defensesData?.details || [];
   const defenseSummary = defensesData?.summary || [];
-  const tagIndividualStats = tagIndStats || [];
+  const tagIndividualStats = useMemo(
+    () => (Array.isArray(tagIndStats) ? tagIndStats : tagIndStats?.wrestlers || []),
+    [tagIndStats],
+  );
 
   const selectedChamp = useMemo(
     () => (Array.isArray(championsList) ? championsList.find((c) => c.id === sel) : null),
@@ -232,6 +235,31 @@ export default function ChampionshipsPage() {
 
     return arr;
   }, [fighterStats, interpreterSort, sel]);
+
+  const tagInterpreterStats = useMemo(() => {
+    if (sel !== 5 || Array.isArray(tagIndStats) || !Array.isArray(tagIndStats?.interpreters)) {
+      return [];
+    }
+    return [...tagIndStats.interpreters].sort((a, b) => {
+      let valA, valB;
+      if (interpreterSort.key === "Interpreter") {
+        valA = (a.interpreterName || "").toLowerCase();
+        valB = (b.interpreterName || "").toLowerCase();
+      } else if (interpreterSort.key === "Reigns") {
+        valA = a.reignCount;
+        valB = b.reignCount;
+      } else if (interpreterSort.key === "Successful defenses") {
+        valA = a.defenses;
+        valB = b.defenses;
+      } else {
+        valA = a.totalDays;
+        valB = b.totalDays;
+      }
+      if (valA < valB) return interpreterSort.dir === "asc" ? -1 : 1;
+      if (valA > valB) return interpreterSort.dir === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [sel, tagIndStats, interpreterSort]);
 
   // Booleano dinámico: revisa si AL MENOS UN intérprete usó más de un luchador distinto
   const hasMultipleWrestlersPerInterpreter = useMemo(() => {
@@ -937,6 +965,94 @@ export default function ChampionshipsPage() {
                                         ) : (
                                           "—"
                                         )}
+                                      </td>
+                                      <td className="border px-2 py-1 text-center">{row.reignCount}</td>
+                                      <td className="border px-2 py-1 text-center">{row.defenses}</td>
+                                      <td className="border px-2 py-1 text-center">{row.totalDaysLabel}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+
+                        {sel === 5 && tagInterpreterStats.length > 0 && (
+                          <div data-screenshot-target="true" className="mb-8">
+                            {renderScreenshotCover(
+                              "Total days with the title — By Individual Interpreter",
+                              `Updated as of ${todayString}.`,
+                            )}
+                            <div className="no-screenshot flex items-center justify-between mb-2">
+                              <h4 className="text-lg font-semibold">By Individual Interpreter</h4>
+                              <TableScreenshotButton
+                                title={`${champTitle} - By Individual Interpreter`}
+                              />
+                            </div>
+                            <div className="overflow-x-auto no-scrollbar">
+                              <table className="table-auto w-full border-collapse text-xs md:text-sm md:min-w-[600px]">
+                                <thead>
+                                  <tr className="bg-gray-100 dark:bg-gray-700">
+                                    {[
+                                      "#,none",
+                                      "Interpreter,Interpreter",
+                                      "Champion(s),none",
+                                      "Reigns,Reigns",
+                                      "Successful defenses,Successful defenses",
+                                      "Total days,Total days",
+                                    ].map((headerInfo) => {
+                                      const [label, sortKey] = headerInfo.split(",");
+                                      return (
+                                        <th
+                                          key={label}
+                                          onClick={() =>
+                                            sortKey !== "none" && handleInterpreterSort(sortKey)
+                                          }
+                                          className={`border px-2 py-1 text-center select-none ${
+                                            sortKey !== "none" ? "cursor-pointer" : ""
+                                          } ${label.startsWith("Champion") ? "md:whitespace-nowrap" : ""}`}
+                                        >
+                                          {label}
+                                          {sortKey !== "none" && renderInterpreterSortIcon(sortKey)}
+                                        </th>
+                                      );
+                                    })}
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                  {tagInterpreterStats.map((row, idx) => (
+                                    <tr
+                                      key={row.interpreterId}
+                                      className={
+                                        row.isCurrent
+                                          ? "bg-yellow-100 dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                          : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                                      }
+                                    >
+                                      <td className="border px-2 py-1 text-center">{idx + 1}</td>
+                                      <td className="border px-2 py-1 text-left font-semibold">
+                                        <Link
+                                          href={`/interpreters/${row.interpreterId}`}
+                                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400"
+                                        >
+                                          <FlagWithName
+                                            code={row.interpreterCountry}
+                                            name={row.interpreterName}
+                                          />
+                                        </Link>
+                                      </td>
+                                      <td className="border px-2 py-1 text-left md:whitespace-nowrap">
+                                        {row.champions.map((c, cIdx) => (
+                                          <React.Fragment key={c.id}>
+                                            <Link
+                                              href={`/wrestlers/${c.id}`}
+                                              className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-semibold"
+                                            >
+                                              <FlagWithName code={c.country} name={c.name} breakOnSpace />
+                                            </Link>
+                                            {cIdx < row.champions.length - 1 && <br />}
+                                          </React.Fragment>
+                                        ))}
                                       </td>
                                       <td className="border px-2 py-1 text-center">{row.reignCount}</td>
                                       <td className="border px-2 py-1 text-center">{row.defenses}</td>

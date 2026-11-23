@@ -3,6 +3,7 @@ import useSWR from 'swr';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ChampionshipRecordsSkeleton } from './Skeletons';
+import TableScreenshotButton from './TableScreenshotButton';
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
@@ -41,8 +42,8 @@ function RecordCard({ record, type, isPotential }) {
   const sortedIcons = [...allTitles].sort((a, b) => a.championship_id - b.championship_id);
   
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4 bg-white dark:bg-gray-800 shadow-sm relative">
-      <div className="relative flex flex-col sm:flex-row sm:items-center justify-between cursor-pointer pr-8 sm:pr-10" onClick={() => setIsOpen(!isOpen)}>
+    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4 last:mb-0 bg-white dark:bg-gray-800 shadow-sm relative">
+      <div className="relative flex flex-col sm:flex-row sm:items-center justify-between cursor-pointer pr-8 sm:pr-10 [[data-capturing=true]_&]:!pr-0" onClick={() => setIsOpen(!isOpen)}>
         
         {/* Bloque del Luchador (Izquierda) */}
         <div className="flex items-center gap-4 w-full sm:w-auto">
@@ -137,7 +138,7 @@ function RecordCard({ record, type, isPotential }) {
         </div>
 
         {/* Chevron Absoluto */}
-        <button className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center text-gray-500 focus:outline-none w-8 h-full">
+        <button type="button" className="no-screenshot absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center text-gray-500 focus:outline-none w-8 h-full">
           {isOpen ? '▲' : '▼'}
         </button>
       </div>
@@ -202,18 +203,28 @@ export default function ChampionshipRecords() {
       <div className="w-full flex-1">
         {activeTab === 'grand_slam' && (
           <div className="w-full flex-1">
-            <h3 className="text-xl font-semibold mb-4 text-blue-700 dark:text-blue-400">Grand Slam Champions</h3>
-            {data.grandSlams.length === 0 ? (
-              <p className="text-gray-500 italic">No Grand Slam champions yet.</p>
-            ) : (
-              data.grandSlams.map((r, i) => (
-                <RecordCard key={`${r.wrestlerId}-${r.times}`} record={r} type="Grand Slam" isPotential={false} />
-              ))
-            )}
+            <div data-screenshot-target="true" className="w-full">
+              <div className="flex items-center justify-between gap-2 mb-4">
+                <h3 className="text-xl font-semibold text-blue-700 dark:text-blue-400">Grand Slam Champions</h3>
+                {data.grandSlams.length > 0 && (
+                  <TableScreenshotButton title="Grand Slam Champions" />
+                )}
+              </div>
+              {data.grandSlams.length === 0 ? (
+                <p className="text-gray-500 italic">No Grand Slam champions yet.</p>
+              ) : (
+                data.grandSlams.map((r, i) => (
+                  <RecordCard key={`${r.wrestlerId}-${r.times}`} record={r} type="Grand Slam" isPotential={false} />
+                ))
+              )}
+            </div>
             
             {data.potentialGrandSlams.length > 0 && (
-              <div className="mt-8 w-full flex-1">
-                <h4 className="text-lg font-semibold mb-3 text-gray-600 dark:text-gray-400">Potential Grand Slam Champions</h4>
+              <div data-screenshot-target="true" className="mt-8 w-full flex-1">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <h4 className="text-lg font-semibold text-gray-600 dark:text-gray-400">Potential Grand Slam Champions</h4>
+                  <TableScreenshotButton title="Potential Grand Slam Champions" />
+                </div>
                 {data.potentialGrandSlams.map(r => (
                   <RecordCard key={r.wrestlerId} record={r} type="Grand Slam" isPotential={true} />
                 ))}
@@ -224,18 +235,28 @@ export default function ChampionshipRecords() {
 
         {activeTab === 'triple_crown' && (
           <div className="w-full flex-1">
-            <h3 className="text-xl font-semibold mb-4 text-blue-700 dark:text-blue-400">Triple Crown Champions</h3>
-            {data.tripleCrowns.length === 0 ? (
-              <p className="text-gray-500 italic">No Triple Crown champions yet.</p>
-            ) : (
-              data.tripleCrowns.map((r, i) => (
-                <RecordCard key={`${r.wrestlerId}-${r.times}`} record={r} type="Triple Crown" isPotential={false} />
-              ))
-            )}
+            <div data-screenshot-target="true" className="w-full">
+              <div className="flex items-center justify-between gap-2 mb-4">
+                <h3 className="text-xl font-semibold text-blue-700 dark:text-blue-400">Triple Crown Champions</h3>
+                {data.tripleCrowns.length > 0 && (
+                  <TableScreenshotButton title="Triple Crown Champions" />
+                )}
+              </div>
+              {data.tripleCrowns.length === 0 ? (
+                <p className="text-gray-500 italic">No Triple Crown champions yet.</p>
+              ) : (
+                data.tripleCrowns.map((r, i) => (
+                  <RecordCard key={`${r.wrestlerId}-${r.times}`} record={r} type="Triple Crown" isPotential={false} />
+                ))
+              )}
+            </div>
 
             {data.potentialTripleCrowns.length > 0 && (
-              <div className="mt-8 w-full flex-1">
-                <h4 className="text-lg font-semibold mb-3 text-gray-600 dark:text-gray-400">Potential Triple Crown Champions</h4>
+              <div data-screenshot-target="true" className="mt-8 w-full flex-1">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <h4 className="text-lg font-semibold text-gray-600 dark:text-gray-400">Potential Triple Crown Champions</h4>
+                  <TableScreenshotButton title="Potential Triple Crown Champions" />
+                </div>
                 {data.potentialTripleCrowns.map(r => (
                   <RecordCard key={r.wrestlerId} record={r} type="Triple Crown" isPotential={true} />
                 ))}

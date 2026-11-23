@@ -68,12 +68,14 @@ export default async function handler(req, res) {
        AND cr.championship_id = ?
       JOIN wrestlers w   ON w.id = rm.wrestler_id
       LEFT JOIN interpreters i ON i.id = rm.interpreter_id
+      ORDER BY rm.start_date ASC, rm.reign_id ASC
       `,
       [championshipId]
     );
 
-    // 3) Acumular stats por luchador usando el cálculo exacto de la base de datos
+    // 3) Acumular stats por luchador y por intérprete usando el cálculo exacto de la base de datos
     const byWrestler = new Map();
+    const byInterpreter = new Map();
 
     for (const mr of memberRows) {
       const {
@@ -105,15 +107,48 @@ export default async function handler(req, res) {
       o.defenses   += defs;
       o.totalDays  += days;
       if (!end_date) o.isCurrent = true;
+
+      if (interpreter_id) {
+        if (!byInterpreter.has(interpreter_id)) {
+          byInterpreter.set(interpreter_id, {
+            interpreterId:      interpreter_id,
+            interpreterName:    interpreterName || null,
+            interpreterCountry: interpreterCountry || null,
+            champions:          [],
+            reignIds:           new Set(),
+            reignCount:         0,
+            defenses:           0,
+            totalDays:          0,
+            isCurrent:          false,
+          });
+        }
+
+        const io = byInterpreter.get(interpreter_id);
+        if (!io.champions.some((c) => c.id === wrestler_id)) {
+          io.champions.push({ id: wrestler_id, name: wrestlerName, country });
+        }
+        if (!io.reignIds.has(reign_id)) {
+          io.reignIds.add(reign_id);
+          io.reignCount += 1;
+        }
+        io.defenses  += defs;
+        io.totalDays += days;
+        if (!end_date) io.isCurrent = true;
+      }
     }
 
-    const result = Array.from(byWrestler.values()).map((o) => ({
+    const wrestlers = Array.from(byWrestler.values()).map((o) => ({
+      ...o,
+      totalDaysLabel: o.isCurrent ? `${o.totalDays}+` : `${o.totalDays}`,
+    }));
+
+    const interpreters = Array.from(byInterpreter.values()).map(({ reignIds, ...o }) => ({
       ...o,
       totalDaysLabel: o.isCurrent ? `${o.totalDays}+` : `${o.totalDays}`,
     }));
 
     setCacheHeaders(res, 120);
-    return res.status(200).json(result);
+    return res.status(200).json({ wrestlers, interpreters });
   } catch (err) {
     console.error('Error in tag-individual-stats:', err);
     setNoStoreHeaders(res);
