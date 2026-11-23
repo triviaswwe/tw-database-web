@@ -1,4 +1,4 @@
-// pages/championships.js
+// components/ChampionshipReignsView.js
 // Refactorizado: lógica extraída a hooks/useChampionshipSort y hooks/useChampionshipStats
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -7,12 +7,12 @@ import useSWR from "swr";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
-import { BeltButtonsSkeleton, ChampionshipReignDetailSkeleton } from "../../components/Skeletons";
-import FlagWithName from "../../components/FlagWithName";
-import TableScreenshotButton from "../../components/TableScreenshotButton";
-import { useChampionshipSort } from "../../hooks/useChampionshipSort";
-import { useChampionshipStats } from "../../hooks/useChampionshipStats";
-import { formatEnglishDate } from "../../hooks/useChampionshipHelpers";
+import { BeltButtonsSkeleton, ChampionshipReignDetailSkeleton } from "./Skeletons";
+import FlagWithName from "./FlagWithName";
+import TableScreenshotButton from "./TableScreenshotButton";
+import { useChampionshipSort } from "../hooks/useChampionshipSort";
+import { useChampionshipStats } from "../hooks/useChampionshipStats";
+import { formatEnglishDate, slugifyChampionship } from "../hooks/useChampionshipHelpers";
 
 const fetcher = (url) => fetch(url).then((r) => r.json());
 
@@ -36,8 +36,12 @@ const tableColumns = [
   { label: "Notes", key: "notes", widthClass: "w-[25%] min-w-[180px] max-w-[260px] md:max-w-[340px]" },
 ];
 
-export default function ChampionshipsPage() {
-  const [sel, setSel] = useState(null);
+export default function ChampionshipReignsView({
+  selectedId = null,
+  initialTitleName = null,
+  error = false,
+}) {
+  const sel = selectedId;
   const [interpreterSort, setInterpreterSort] = useState({ key: "Total days", dir: "desc" });
 
   // ─── Datos desde API ──────────────────────────────────────────────────────
@@ -81,7 +85,17 @@ export default function ChampionshipsPage() {
     [championsList, sel],
   );
   const champTitle =
-    selectedChamp?.title_name || champ?.champ?.title_name || champ?.title_name || "Championship";
+    selectedChamp?.title_name ||
+    champ?.champ?.title_name ||
+    champ?.title_name ||
+    initialTitleName ||
+    "Championship";
+  const pageTitle = sel
+    ? `${initialTitleName || champTitle} — Championship Reigns — Trivias WWE`
+    : "Championship Reigns — Trivias WWE";
+  const pageDescription = sel
+    ? `Championship reigns, defenses, and statistics for the ${initialTitleName || champTitle} in Trivias WWE.`
+    : "History of championships, reigns, and statistics for the Trivias WWE Championship.";
   const champImage = selectedChamp?.image_url || null;
 
   const renderScreenshotCover = (subtitle, extraNote) => (
@@ -404,13 +418,21 @@ export default function ChampionshipsPage() {
   }
 
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [routeLoading, setRouteLoading] = useState(null);
 
   useEffect(() => {
     const handleStart = (url) => {
-      if (url !== router.asPath) setLoading(true);
+      if (url === router.asPath) return;
+      const cleanUrl = url.split("?")[0].split("#")[0];
+      if (cleanUrl === "/championships/championship-reigns") {
+        setRouteLoading(null);
+      } else if (cleanUrl.startsWith("/championships/championship-reigns/")) {
+        setRouteLoading("detail");
+      } else {
+        setRouteLoading("full");
+      }
     };
-    const handleComplete = () => setLoading(false);
+    const handleComplete = () => setRouteLoading(null);
 
     router.events.on("routeChangeStart", handleStart);
     router.events.on("routeChangeComplete", handleComplete);
@@ -433,10 +455,10 @@ export default function ChampionshipsPage() {
   return (
     <>
       <Head>
-        <title>Championship Reigns — Trivias WWE</title>
+        <title>{pageTitle}</title>
         <meta
           name="description"
-          content="History of championships, reigns, and statistics for the Trivias WWE Championship."
+          content={pageDescription}
         />
       </Head>
 
@@ -469,7 +491,7 @@ export default function ChampionshipsPage() {
             </Link>
           </div>
 
-          {loading ? (
+          {routeLoading === "full" ? (
             <div className="space-y-4">
               <BeltButtonsSkeleton />
               <ChampionshipReignDetailSkeleton />
@@ -483,12 +505,12 @@ export default function ChampionshipsPage() {
                   championsList.map((c) => {
                     const isSelected = sel === c.id;
                     return (
-                      <button
+                      <Link
                         key={c.id}
-                        type="button"
-                        onClick={() => setSel(c.id)}
+                        href={`/championships/championship-reigns/${slugifyChampionship(c.title_name)}`}
                         title={c.title_name}
                         aria-label={c.title_name}
+                        aria-current={isSelected ? "page" : undefined}
                         className={`group relative p-2.5 rounded-xl transition-all duration-200 flex items-center justify-center cursor-pointer ${
                           isSelected
                             ? "bg-blue-50 dark:bg-blue-950/40 ring-2 ring-blue-500 shadow-md scale-105"
@@ -510,14 +532,25 @@ export default function ChampionshipsPage() {
                             {c.title_name}
                           </span>
                         )}
-                      </button>
+                      </Link>
                     );
                   })
                 )}
               </div>
 
-              {sel && (
-                <div className="space-y-4">
+              {error ? (
+                <div className="p-8 text-center bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <h2 className="text-xl font-bold mb-2 text-red-600 dark:text-red-400">
+                    Error loading championship
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">
+                    There was a problem connecting to the database.
+                  </p>
+                </div>
+              ) : routeLoading === "detail" ? (
+                <ChampionshipReignDetailSkeleton />
+              ) : sel ? (
+                <div key={sel} className="space-y-4">
                   {!champ || !reignsArr.length ? (
                     <ChampionshipReignDetailSkeleton />
                   ) : (
@@ -1335,7 +1368,7 @@ export default function ChampionshipsPage() {
                     </>
                   )}
                 </div>
-              )}
+              ) : null}
           </div>
         )}
       </div>

@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 import FlagWithName from "../FlagWithName";
 import TableScreenshotButton from "../TableScreenshotButton";
 import EntitySwitch from "./EntitySwitch";
+import { getChampionshipHref } from "../../hooks/useChampionshipHelpers";
 
 const BLOB_BASE_URL = "https://ljejfdquofuxccca.public.blob.vercel-storage.com";
 
@@ -982,20 +983,27 @@ export default function GeneralRecordsContent({ data }) {
                 )}
               </td>
               <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                <div className="flex items-center gap-2" title={r.title_name}>
-                  {r.image_url && (
-                    <Image
-                      src={r.image_url}
-                      alt={r.title_name}
-                      width={32}
-                      height={32}
-                      className="object-contain w-8 h-8"
-                    />
-                  )}
-                  <span className="hidden sm:inline">
-                    {(r.title_name || "").replace(" Championship", "")}
-                  </span>
-                </div>
+                {r.title_name ? (
+                  <Link
+                    href={getChampionshipHref(r.title_name)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-2 w-fit text-blue-600 dark:text-sky-400"
+                    title={r.title_name}
+                  >
+                    {r.image_url && (
+                      <Image
+                        src={r.image_url}
+                        alt={r.title_name}
+                        width={32}
+                        height={32}
+                        className="object-contain w-8 h-8"
+                      />
+                    )}
+                    <span className="hidden sm:inline">
+                      {r.title_name.replace(" Championship", "")}
+                    </span>
+                  </Link>
+                ) : null}
               </td>
               <td className="px-4 py-3 text-right font-bold text-gray-800 dark:text-gray-200 font-mono text-base">
                 {r.days_held_label}
@@ -1050,20 +1058,27 @@ export default function GeneralRecordsContent({ data }) {
                 )}
               </td>
               <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                <div className="flex items-center gap-2" title={r.title_name}>
-                  {r.image_url && (
-                    <Image
-                      src={r.image_url}
-                      alt={r.title_name}
-                      width={32}
-                      height={32}
-                      className="object-contain w-8 h-8"
-                    />
-                  )}
-                  <span className="hidden sm:inline">
-                    {(r.title_name || "").replace(" Championship", "")}
-                  </span>
-                </div>
+                {r.title_name ? (
+                  <Link
+                    href={getChampionshipHref(r.title_name)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-2 w-fit text-blue-600 dark:text-sky-400"
+                    title={r.title_name}
+                  >
+                    {r.image_url && (
+                      <Image
+                        src={r.image_url}
+                        alt={r.title_name}
+                        width={32}
+                        height={32}
+                        className="object-contain w-8 h-8"
+                      />
+                    )}
+                    <span className="hidden sm:inline">
+                      {r.title_name.replace(" Championship", "")}
+                    </span>
+                  </Link>
+                ) : null}
               </td>
               <td className="px-4 py-3 text-right font-bold text-gray-800 dark:text-white">
                 {r.defenses_count}

@@ -5,6 +5,7 @@ import Image from "next/image";
 import FlagWithName from "../FlagWithName";
 import TableScreenshotButton from "../TableScreenshotButton";
 import EntitySwitch from "./EntitySwitch";
+import { getChampionshipHref } from "../../hooks/useChampionshipHelpers";
 
 function EntityLink({ entity, isWrestler }) {
   if (!entity || !entity.id) {
@@ -218,7 +219,19 @@ export default function SpecialMatchesContent({ data, subType }) {
                   )}
                   <div className="min-w-0">
                     <h2 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider leading-tight">
-                      {match.title}
+                      {match.championshipName ? (
+                        <>
+                          <Link
+                            href={getChampionshipHref(match.championshipName)}
+                            className="text-blue-600 dark:text-sky-400"
+                          >
+                            {match.championshipName}
+                          </Link>{" "}
+                          Chamber Match
+                        </>
+                      ) : (
+                        match.title
+                      )}
                     </h2>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       <Link

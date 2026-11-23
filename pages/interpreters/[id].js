@@ -11,6 +11,7 @@ import MatchCard from "../../components/MatchCard";
 import MatchFilters from "../../components/MatchFilters";
 import { formatDateDDMMYYYY, buildH2hMatches, computeH2hRecords, wrestlerNameSql, wrestlerSearchSql } from "../../lib/matchUtils";
 import { getEntityDistinctions } from "../../lib/records/getDistinctionsData";
+import { getChampionshipHref } from "../../hooks/useChampionshipHelpers";
 import React, { useState, useMemo } from "react";
 import {
   useQueryToggle,
@@ -876,7 +877,14 @@ export default function InterpreterDetail({
                                 <Image src={r.title_image} alt={r.title_name} width={48} height={48} className="w-12 h-12 object-contain shrink-0" />
                               )}
                               <div>
-                                {r.title_name}{r.times > 1 && <>&nbsp;<span className="text-xs text-gray-500 font-normal whitespace-nowrap">({r.times}x)</span></>}
+                                <Link
+                                  href={getChampionshipHref(r.title_name)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-blue-600 dark:text-sky-400"
+                                >
+                                  {r.title_name}
+                                </Link>
+                                {r.times > 1 && <>&nbsp;<span className="text-xs text-gray-500 font-normal whitespace-nowrap">({r.times}x)</span></>}
                               </div>
                             </div>
                           </td>

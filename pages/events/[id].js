@@ -6,6 +6,7 @@ import Link from "next/link";
 import pool from "../../lib/db";
 import { parsePositiveInt } from "../../lib/validation";
 import { getPhrase, buildTopLine, wrestlerNameSql } from "../../lib/matchUtils";
+import { getChampionshipHref } from "../../hooks/useChampionshipHelpers";
 
 // Dominio base de Vercel Blob y Mapas de imágenes
 const BLOB_BASE_URL = 'https://ljejfdquofuxccca.public.blob.vercel-storage.com';
@@ -357,6 +358,7 @@ export default function EventDetail({ error, event, matches, nav }) {
                 const isOpener    = idx === 0;
                 const isMainEvent = idx === matches.length - 1;
                 const topLine     = buildTopLine(match);
+                const isSpecialStip = match.match_type_id && match.match_type_id !== 1;
                 const participants = match.participants;
 
                 if (participants.length === 0) {
@@ -406,7 +408,21 @@ export default function EventDetail({ error, event, matches, nav }) {
                       <p className="font-semibold text-lg mb-1">{isOpener ? "Opener:" : "Main Event:"}</p>
                     )}
                     {topLine && (
-                      <strong className="mt-1 italic text-gray-700 dark:text-gray-300 block mb-2">{topLine}</strong>
+                      <strong className="mt-1 italic text-gray-700 dark:text-gray-300 block mb-2">
+                        {match.championship_name ? (
+                          <>
+                            <Link
+                              href={getChampionshipHref(match.championship_name)}
+                              className="text-blue-600 dark:text-sky-300"
+                            >
+                              {match.championship_name}
+                            </Link>
+                            {isSpecialStip ? ` ${match.match_type_name} Match` : ""}
+                          </>
+                        ) : (
+                          topLine
+                        )}
+                      </strong>
                     )}
                     <p>
                       {isMultiMan && !hasScore ? (

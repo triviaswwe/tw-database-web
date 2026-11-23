@@ -1,11 +1,12 @@
-// pages/events.js
+// components/EventsView.js
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import Head from "next/head";
 import Image from "next/image";
+import { useRouter } from "next/router";
 import { ChevronDown, Camera, Download, X } from "lucide-react";
-import { EventGridSkeleton, CalendarSkeleton } from "../components/Skeletons";
+import { EventGridSkeleton, CalendarSkeleton } from "./Skeletons";
 
 const EVENTS_PER_PAGE = 33;
 
@@ -13,8 +14,8 @@ const EVENTS_PER_PAGE = 33;
 const BLOB_BASE_URL = "https://ljejfdquofuxccca.public.blob.vercel-storage.com";
 
 const mainTabOptions = [
-  { label: "Classic view", value: "classic" },
-  { label: "Calendar view", value: "calendar" },
+  { label: "Classic view", value: "classic", href: "/events/classic-view" },
+  { label: "Calendar view", value: "calendar", href: "/events/calendar-view" },
 ];
 
 const eventTypeOptions = [
@@ -98,8 +99,32 @@ export function buildCalendarCells(year, month) {
   });
 }
 
-export default function EventsPage({ isDark }) {
-  const [activeTab, setActiveTab] = useState("classic");
+export function formatCalendarSlug(year, month) {
+  const monthName = MONTH_NAMES[month - 1]?.toLowerCase();
+  if (!monthName || !year) return "";
+  return `${monthName}-${year}`;
+}
+
+export function parseCalendarSlug(slug) {
+  if (typeof slug !== "string") return null;
+  const match = slug.trim().toLowerCase().match(/^([a-z]+)-(\d{4})$/);
+  if (!match) return null;
+  const monthIndex = MONTH_NAMES.findIndex(
+    (m) => m.toLowerCase() === match[1],
+  );
+  if (monthIndex === -1) return null;
+  const year = parseInt(match[2], 10);
+  if (!Number.isInteger(year) || year < 1900 || year > 2100) return null;
+  return { year, month: monthIndex + 1 };
+}
+
+export default function EventsView({
+  activeTab = "classic",
+  initialYear = null,
+  initialMonth = null,
+  isDark,
+}) {
+  const router = useRouter();
 
   // Estado Classic view
   const [events, setEvents] = useState([]);
@@ -113,20 +138,20 @@ export default function EventsPage({ isDark }) {
 
   // Estado Calendar view
   const [calEvents, setCalEvents] = useState([]);
-  const [calYear, setCalYear] = useState(null);
-  const [calMonth, setCalMonth] = useState(null);
+  const [calYear, setCalYear] = useState(initialYear);
+  const [calMonth, setCalMonth] = useState(initialMonth);
   const [yearBounds, setYearBounds] = useState({
     min: 2020,
     max: new Date().getUTCFullYear(),
   });
   const [calLoading, setCalLoading] = useState(false);
-  const [calInitialized, setCalInitialized] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [previewData, setPreviewData] = useState(null);
   const [enableCurrentDay, setEnableCurrentDay] = useState(false);
   const dropdownRef = useRef(null);
   const calendarRef = useRef(null);
+  const lastFetchedCalendarKeyRef = useRef(null);
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -171,6 +196,7 @@ export default function EventsPage({ isDark }) {
 
   // Fetch de eventos con tipo + nombre + date (Classic view)
   useEffect(() => {
+    if (activeTab !== "classic") return;
     async function fetchEvents() {
       setLoading(true);
       try {
@@ -194,59 +220,112 @@ export default function EventsPage({ isDark }) {
       }
     }
     fetchEvents();
-  }, [page, eventType, debouncedFilter, dateFilter]);
+  }, [activeTab, page, eventType, debouncedFilter, dateFilter]);
 
-  async function fetchCalendarEvents(targetYear, targetMonth) {
-    setCalLoading(true);
-    try {
-      const params = new URLSearchParams({ calendar: "1" });
-      if (targetYear && targetMonth) {
-        params.append("year", targetYear);
-        params.append("month", targetMonth);
+  const routeCalendar = useMemo(() => {
+    if (activeTab !== "calendar") return null;
+    const seg = Array.isArray(router.query.monthYear)
+      ? router.query.monthYear[0]
+      : null;
+    if (seg) {
+      const parsed = parseCalendarSlug(seg);
+      if (parsed) {
+        return { ...parsed, slug: seg.trim().toLowerCase() };
       }
-      const res = await fetch(`/api/events?${params.toString()}`);
-      const data = await res.json();
-      setCalEvents(data.events || []);
-      if (data.year) setCalYear(data.year);
-      if (data.month) setCalMonth(data.month);
-      if (data.minYear && data.maxYear) {
-        setYearBounds({ min: data.minYear, max: data.maxYear });
-      }
-    } catch (e) {
-      console.error(e);
-      setCalEvents([]);
-    } finally {
-      setCalLoading(false);
     }
-  }
+    if (initialYear && initialMonth) {
+      return {
+        year: initialYear,
+        month: initialMonth,
+        slug: formatCalendarSlug(initialYear, initialMonth),
+      };
+    }
+    return { year: null, month: null, slug: null };
+  }, [activeTab, router.query.monthYear, initialYear, initialMonth]);
 
   useEffect(() => {
-    if (activeTab === "calendar" && !calInitialized) {
-      setCalInitialized(true);
-      fetchCalendarEvents();
-    }
-  }, [activeTab, calInitialized]);
+    if (activeTab !== "calendar") return;
+    const targetYear = routeCalendar?.year ?? null;
+    const targetMonth = routeCalendar?.month ?? null;
+    const targetKey =
+      targetYear && targetMonth ? `${targetYear}-${targetMonth}` : "default";
 
-  const handleMonthChange = (newYear, newMonth) => {
-    setCalYear(newYear);
-    setCalMonth(newMonth);
-    setOpenDropdown(null);
-    fetchCalendarEvents(newYear, newMonth);
-  };
+    if (lastFetchedCalendarKeyRef.current === targetKey) return;
 
-  const stepMonth = (delta) => {
-    if (!calYear || !calMonth) return;
-    let nextMonth = calMonth + delta;
-    let nextYear = calYear;
-    if (nextMonth < 1) {
-      nextMonth = 12;
-      nextYear -= 1;
-    } else if (nextMonth > 12) {
-      nextMonth = 1;
-      nextYear += 1;
+    let cancelled = false;
+    if (targetYear && targetMonth) {
+      setCalYear(targetYear);
+      setCalMonth(targetMonth);
     }
-    handleMonthChange(nextYear, nextMonth);
-  };
+
+    async function loadCalendar() {
+      setCalLoading(true);
+      try {
+        const params = new URLSearchParams({ calendar: "1" });
+        if (targetYear && targetMonth) {
+          params.append("year", targetYear);
+          params.append("month", targetMonth);
+        }
+        const res = await fetch(`/api/events?${params.toString()}`);
+        const data = await res.json();
+        if (cancelled) return;
+
+        setCalEvents(data.events || []);
+        if (data.minYear && data.maxYear) {
+          setYearBounds({ min: data.minYear, max: data.maxYear });
+        }
+
+        const resolvedYear = data.year || targetYear;
+        const resolvedMonth = data.month || targetMonth;
+        if (resolvedYear) setCalYear(resolvedYear);
+        if (resolvedMonth) setCalMonth(resolvedMonth);
+
+        if (resolvedYear && resolvedMonth) {
+          lastFetchedCalendarKeyRef.current = `${resolvedYear}-${resolvedMonth}`;
+          const resolvedSlug = formatCalendarSlug(resolvedYear, resolvedMonth);
+          if (resolvedSlug && routeCalendar?.slug !== resolvedSlug) {
+            router.replace(`/events/calendar-view/${resolvedSlug}`, undefined, {
+              shallow: true,
+            });
+          }
+        }
+      } catch (e) {
+        console.error(e);
+        if (!cancelled) setCalEvents([]);
+      } finally {
+        if (!cancelled) setCalLoading(false);
+      }
+    }
+
+    loadCalendar();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, routeCalendar?.year, routeCalendar?.month, routeCalendar?.slug]);
+
+  const prevTarget = useMemo(() => {
+    if (!calYear || !calMonth) return null;
+    let m = calMonth - 1;
+    let y = calYear;
+    if (m < 1) {
+      m = 12;
+      y -= 1;
+    }
+    if (y < yearBounds.min) return null;
+    return { year: y, month: m };
+  }, [calYear, calMonth, yearBounds.min]);
+
+  const nextTarget = useMemo(() => {
+    if (!calYear || !calMonth) return null;
+    let m = calMonth + 1;
+    let y = calYear;
+    if (m > 12) {
+      m = 1;
+      y += 1;
+    }
+    if (y > yearBounds.max) return null;
+    return { year: y, month: m };
+  }, [calYear, calMonth, yearBounds.max]);
 
   const yearsList = useMemo(() => {
     const min = Math.min(yearBounds.min, calYear || yearBounds.min);
@@ -398,10 +477,19 @@ export default function EventsPage({ isDark }) {
     closePreview();
   };
 
+  const displayYear = calYear || routeCalendar?.year;
+  const displayMonth = calMonth || routeCalendar?.month;
+  const pageTitle =
+    activeTab === "calendar"
+      ? displayYear && displayMonth
+        ? `${MONTH_NAMES[displayMonth - 1]} ${displayYear} — Calendar View — Events — Trivias WWE`
+        : "Calendar View — Events — Trivias WWE"
+      : "Events — Trivias WWE";
+
   return (
     <>
       <Head>
-        <title>Events — Trivias WWE</title>
+        <title>{pageTitle}</title>
         <meta
           name="description"
           content="Historial de eventos del Campeonato de Trivias WWE. Filtrá por tipo, fecha y nombre."
@@ -412,10 +500,11 @@ export default function EventsPage({ isDark }) {
 
         {/* Pestañas principales */}
         <div className="mb-6 flex gap-2 border-b border-gray-300 dark:border-gray-700">
-          {mainTabOptions.map(({ label, value }) => (
-            <button
+          {mainTabOptions.map(({ label, value, href }) => (
+            <Link
               key={value}
-              onClick={() => setActiveTab(value)}
+              href={href}
+              aria-current={activeTab === value ? "page" : undefined}
               className={`px-4 py-2 font-semibold border-b-2 -mb-px transition-colors ${
                 activeTab === value
                   ? "border-blue-600 text-blue-600 dark:text-sky-300 dark:border-sky-300"
@@ -423,7 +512,7 @@ export default function EventsPage({ isDark }) {
               }`}
             >
               {label}
-            </button>
+            </Link>
           ))}
         </div>
 
@@ -562,14 +651,26 @@ export default function EventsPage({ isDark }) {
               ref={dropdownRef}
               className="mb-6 relative flex items-center justify-center gap-1 sm:gap-2"
             >
-              <button
-                type="button"
-                onClick={() => stepMonth(-1)}
-                aria-label="Previous month"
-                className="p-2 sm:px-3 sm:py-2 rounded font-semibold text-xs sm:text-sm bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-800 transition-colors select-none shrink-0"
-              >
-                &lt;
-              </button>
+              {prevTarget ? (
+                <Link
+                  href={`/events/calendar-view/${formatCalendarSlug(prevTarget.year, prevTarget.month)}`}
+                  shallow
+                  onClick={() => setOpenDropdown(null)}
+                  aria-label="Previous month"
+                  className="p-2 sm:px-3 sm:py-2 rounded font-semibold text-xs sm:text-sm bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-800 transition-colors select-none shrink-0"
+                >
+                  &lt;
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  aria-label="Previous month"
+                  className="p-2 sm:px-3 sm:py-2 rounded font-semibold text-xs sm:text-sm bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white opacity-50 cursor-not-allowed transition-colors select-none shrink-0"
+                >
+                  &lt;
+                </button>
+              )}
 
               {calYear && calMonth && (
                 <div className="flex items-center gap-1 sm:gap-2 shrink-0">
@@ -601,18 +702,19 @@ export default function EventsPage({ isDark }) {
                           const mVal = idx + 1;
                           const isSelected = calMonth === mVal;
                           return (
-                            <button
+                            <Link
                               key={name}
-                              type="button"
-                              onClick={() => handleMonthChange(calYear, mVal)}
-                              className={`w-full text-left px-2.5 py-1.5 rounded transition-colors ${
+                              href={`/events/calendar-view/${formatCalendarSlug(calYear, mVal)}`}
+                              shallow
+                              onClick={() => setOpenDropdown(null)}
+                              className={`block w-full text-left px-2.5 py-1.5 rounded transition-colors ${
                                 isSelected
                                   ? "bg-blue-600 text-white font-semibold"
                                   : "text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-zinc-800"
                               }`}
                             >
                               {name}
-                            </button>
+                            </Link>
                           );
                         })}
                       </div>
@@ -642,18 +744,19 @@ export default function EventsPage({ isDark }) {
                         {yearsList.map((y) => {
                           const isSelected = calYear === y;
                           return (
-                            <button
+                            <Link
                               key={y}
-                              type="button"
-                              onClick={() => handleMonthChange(y, calMonth)}
-                              className={`w-full text-left px-2.5 py-1.5 rounded transition-colors ${
+                              href={`/events/calendar-view/${formatCalendarSlug(y, calMonth)}`}
+                              shallow
+                              onClick={() => setOpenDropdown(null)}
+                              className={`block w-full text-left px-2.5 py-1.5 rounded transition-colors ${
                                 isSelected
                                   ? "bg-blue-600 text-white font-semibold"
                                   : "text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-zinc-800"
                               }`}
                             >
                               {y}
-                            </button>
+                            </Link>
                           );
                         })}
                       </div>
@@ -662,14 +765,26 @@ export default function EventsPage({ isDark }) {
                 </div>
               )}
 
-              <button
-                type="button"
-                onClick={() => stepMonth(1)}
-                aria-label="Next month"
-                className="p-2 sm:px-3 sm:py-2 rounded font-semibold text-xs sm:text-sm bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-800 transition-colors select-none shrink-0"
-              >
-                &gt;
-              </button>
+              {nextTarget ? (
+                <Link
+                  href={`/events/calendar-view/${formatCalendarSlug(nextTarget.year, nextTarget.month)}`}
+                  shallow
+                  onClick={() => setOpenDropdown(null)}
+                  aria-label="Next month"
+                  className="p-2 sm:px-3 sm:py-2 rounded font-semibold text-xs sm:text-sm bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-800 transition-colors select-none shrink-0"
+                >
+                  &gt;
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  aria-label="Next month"
+                  className="p-2 sm:px-3 sm:py-2 rounded font-semibold text-xs sm:text-sm bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-white opacity-50 cursor-not-allowed transition-colors select-none shrink-0"
+                >
+                  &gt;
+                </button>
+              )}
 
               <div className="sm:absolute sm:right-0 shrink-0">
                 <button

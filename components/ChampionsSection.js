@@ -1,6 +1,7 @@
 // components/ChampionsSection.js
 import Image from "next/image";
 import Link from "next/link";
+import { getChampionshipHref } from "../hooks/useChampionshipHelpers";
 
 function getChampionLabel(title, isTagTeam) {
   return title.replace(/Championship/i, isTagTeam ? "Champions" : "Champion");
@@ -97,9 +98,13 @@ export default function ChampionsSection({ champions }) {
                 )}
 
                 <div className="absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/85 to-transparent p-3">
-                  <p className="text-xs uppercase tracking-wider text-white font-semibold">
+                  <Link
+                    href={getChampionshipHref(c.championship)}
+                    className="block text-xs uppercase tracking-wider text-white font-semibold"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {label}
-                  </p>
+                  </Link>
 
                   {hasTeamName && (
                     <Link

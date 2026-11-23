@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ChampionshipRecordsSkeleton } from './Skeletons';
 import TableScreenshotButton from './TableScreenshotButton';
+import { getChampionshipHref } from '../hooks/useChampionshipHelpers';
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
@@ -148,7 +149,14 @@ function RecordCard({ record, type, isPotential }) {
           <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
             {record.titles.map(t => (
               <li key={t.championship_id} className="flex justify-between items-start sm:items-center gap-2">
-                <span className="font-medium flex-1">{t.title_name}</span>
+                <span className="font-medium flex-1">
+                  <Link
+                    href={getChampionshipHref(t.title_name)}
+                    className="text-blue-600 dark:text-sky-400"
+                  >
+                    {t.title_name}
+                  </Link>
+                </span>
                 <span className="text-right whitespace-nowrap">{formatDate(t.won_date)}</span>
               </li>
             ))}

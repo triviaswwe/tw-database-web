@@ -46,3 +46,23 @@ export function getOrdinalWord(num) {
   };
   return ord[num] || `${num}th`;
 }
+
+/**
+ * Genera un slug URL-safe a partir del nombre del campeonato.
+ */
+export function slugifyChampionship(titleName = "") {
+  return String(titleName)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Construye la ruta directa a la página de reinados de un campeonato.
+ */
+export function getChampionshipHref(titleName) {
+  const slug = slugifyChampionship(titleName);
+  return slug ? `/championships/championship-reigns/${slug}` : "/championships/championship-reigns";
+}

@@ -9,6 +9,7 @@
 
 import Link from "next/link";
 import { formatDateDDMMYYYY, getPhrase, buildTopLine, buildTeamsMap, buildScoreMap } from "../lib/matchUtils";
+import { getChampionshipHref } from "../hooks/useChampionshipHelpers";
 
 export default function MatchCard({ match, currentId, idType = "wrestler", number }) {
   const { teamsMap, allTeamNumbers, mainTeam, rivalTeams } = buildTeamsMap(
@@ -18,6 +19,7 @@ export default function MatchCard({ match, currentId, idType = "wrestler", numbe
   const scoreMap       = buildScoreMap(match.scores);
   const mainTeamNumber = match.team_number.toString();
   const topLine        = buildTopLine(match);
+  const isSpecialStip  = match.match_type_id && match.match_type_id !== 1;
   const isMultiMan     = allTeamNumbers.length > 4;
   const hasScore       = Object.keys(scoreMap).length > 0;
 
@@ -67,7 +69,19 @@ export default function MatchCard({ match, currentId, idType = "wrestler", numbe
       {/* Campeonato / estipulación */}
       {topLine && (
         <strong className="mt-1 italic text-gray-700 dark:text-gray-300">
-          {topLine}
+          {match.championship_name ? (
+            <>
+              <Link
+                href={getChampionshipHref(match.championship_name)}
+                className="text-blue-600 dark:text-sky-300"
+              >
+                {match.championship_name}
+              </Link>
+              {isSpecialStip ? ` ${match.match_type_name} Match` : ""}
+            </>
+          ) : (
+            topLine
+          )}
         </strong>
       )}
 

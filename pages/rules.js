@@ -1,5 +1,7 @@
 import Head from "next/head";
 import Image from "next/image";
+import Link from "next/link";
+import { getChampionshipHref } from "../hooks/useChampionshipHelpers";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
@@ -49,7 +51,19 @@ export default function Rules() {
       icon: <FileText className="w-5 h-5 text-indigo-500" />,
       content: (
         <p className="text-base text-gray-700 dark:text-gray-300">
-          El Campeonato de Trivias de WWE es una competencia emocionante que se lleva a cabo en tres marcas: Undisputed WWE Championship (para SmackDown), World Heavyweight Championship (para RAW) y NXT Championship (para NXT). Las preguntas giran en torno a la historia de la WWE, incluyendo luchadores, eventos históricos, movimientos especiales, títulos y campeonatos, entre otros temas relevantes.
+          El Campeonato de Trivias de WWE es una competencia emocionante que se lleva a cabo en tres marcas:{" "}
+          <Link href={getChampionshipHref("Undisputed WWE Championship")} className="font-semibold text-blue-600 dark:text-sky-400">
+            Undisputed WWE Championship
+          </Link>{" "}
+          (para SmackDown),{" "}
+          <Link href={getChampionshipHref("World Heavyweight Championship")} className="font-semibold text-blue-600 dark:text-sky-400">
+            World Heavyweight Championship
+          </Link>{" "}
+          (para RAW) y{" "}
+          <Link href={getChampionshipHref("NXT Championship")} className="font-semibold text-blue-600 dark:text-sky-400">
+            NXT Championship
+          </Link>{" "}
+          (para NXT). Las preguntas giran en torno a la historia de la WWE, incluyendo luchadores, eventos históricos, movimientos especiales, títulos y campeonatos, entre otros temas relevantes.
         </p>
       )
     },
