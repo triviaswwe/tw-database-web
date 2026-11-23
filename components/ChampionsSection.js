@@ -45,7 +45,7 @@ export default function ChampionsSection({ champions }) {
                             alt=""
                             fill
                             className="object-cover z-0"
-                            sizes="(max-width: 768px) 50vw, 25vw"
+                            sizes="(max-width: 768px) 25vw, 160px"
                           />
                         )}
                         <Image
@@ -53,7 +53,7 @@ export default function ChampionsSection({ champions }) {
                           alt={w.name || "Champion"}
                           fill
                           className="object-cover z-10"
-                          sizes="(max-width: 768px) 50vw, 25vw"
+                          sizes="(max-width: 768px) 25vw, 160px"
                         />
                         {c.plate && (
                           <Image
@@ -61,7 +61,7 @@ export default function ChampionsSection({ champions }) {
                             alt=""
                             fill
                             className="object-cover z-20 pointer-events-none"
-                            sizes="(max-width: 768px) 50vw, 25vw"
+                            sizes="(max-width: 768px) 25vw, 160px"
                           />
                         )}
                       </div>
@@ -75,7 +75,7 @@ export default function ChampionsSection({ champions }) {
                         alt=""
                         fill
                         className="object-cover z-0"
-                        sizes="(max-width: 768px) 50vw, 25vw"
+                        sizes="(max-width: 768px) 50vw, 320px"
                       />
                     )}
                     <Image
@@ -83,7 +83,7 @@ export default function ChampionsSection({ champions }) {
                       alt={c.wrestlers[0]?.name || "Champion"}
                       fill
                       className="object-cover z-10 transition-transform duration-500 hover:scale-105"
-                      sizes="(max-width: 768px) 50vw, 25vw"
+                      sizes="(max-width: 768px) 50vw, 320px"
                     />
                     {c.plate && (
                       <Image
@@ -91,7 +91,7 @@ export default function ChampionsSection({ champions }) {
                         alt=""
                         fill
                         className="object-cover z-20 pointer-events-none"
-                        sizes="(max-width: 768px) 50vw, 25vw"
+                        sizes="(max-width: 768px) 50vw, 320px"
                       />
                     )}
                   </>

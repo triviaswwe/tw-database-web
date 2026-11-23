@@ -796,7 +796,7 @@ export default function WrestlerDetail({
                   src={wrestler.image_url}
                   alt={wrestler.wrestler}
                   fill
-                  sizes="(max-width: 768px) 100vw, 50vw"
+                  sizes="(max-width: 768px) 100vw, 512px"
                   className="object-cover rounded"
                 />
                 <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-white to-transparent dark:from-zinc-950 rounded-b" />

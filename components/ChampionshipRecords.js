@@ -109,6 +109,7 @@ function RecordCard({ record, type, isPotential }) {
                         src={options[0].title_image || '/belt-placeholder.png'} 
                         alt={options[0].title_name} 
                         fill
+                        sizes="48px"
                         className="object-contain"
                         style={{ clipPath: 'polygon(0 0, 50% 0, 50% 100%, 0 100%)' }}
                       />
@@ -116,6 +117,7 @@ function RecordCard({ record, type, isPotential }) {
                         src={options[1].title_image || '/belt-placeholder.png'} 
                         alt={options[1].title_name} 
                         fill
+                        sizes="48px"
                         className="object-contain"
                         style={{ clipPath: 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)' }}
                       />

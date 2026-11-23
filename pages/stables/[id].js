@@ -463,7 +463,7 @@ export default function StableDetail({
                   src={stable.image_url}
                   alt={stable.name}
                   fill
-                  sizes="(max-width: 768px) 100vw, 50vw"
+                  sizes="(max-width: 768px) 100vw, 512px"
                   className="object-contain rounded"
                 />
               </div>

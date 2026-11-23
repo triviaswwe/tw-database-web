@@ -18,6 +18,11 @@ const cspDirectives = [
 const nextConfig = {
   poweredByHeader: false,
   images: {
+    formats: ['image/webp'],
+    qualities: [75],
+    minimumCacheTTL: 2678400, // 31 days
+    imageSizes: [64, 128, 256],
+    deviceSizes: [640, 1080],
     remotePatterns: [
       {
         protocol: 'https',
