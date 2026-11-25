@@ -21,6 +21,15 @@ export async function getServerSideProps(context) {
   const { res, params } = context;
 
   const { section } = params || {};
+  const rawYear = context.query?.year;
+  const parsedYear =
+    typeof rawYear === "string" && /^\d{4}$/.test(rawYear)
+      ? parseInt(rawYear, 10)
+      : null;
+  const validYear =
+    parsedYear !== null && parsedYear >= 2000 && parsedYear <= 2100
+      ? parsedYear
+      : null;
 
   // Legacy redirects
   if (section === "wrestler" || section === "interpreter") {
@@ -62,13 +71,18 @@ export async function getServerSideProps(context) {
   try {
     let wrestler = null;
     let interpreter = null;
+    let years = null;
 
     if (section === "general") {
-      const sharedGeneralPromise = fetchSharedGeneralRecordsData(pool);
-      [wrestler, interpreter] = await Promise.all([
-        getGeneralRecordsData(pool, "wrestler", sharedGeneralPromise),
-        getGeneralRecordsData(pool, "interpreter", sharedGeneralPromise),
+      const sharedGeneralPromise = fetchSharedGeneralRecordsData(pool, validYear);
+      const [sharedGeneral, wData, iData] = await Promise.all([
+        sharedGeneralPromise,
+        getGeneralRecordsData(pool, "wrestler", sharedGeneralPromise, validYear),
+        getGeneralRecordsData(pool, "interpreter", sharedGeneralPromise, validYear),
       ]);
+      wrestler = wData;
+      interpreter = iData;
+      years = sharedGeneral.availableYears || [];
     } else if (section === "slammy-awards") {
       [wrestler, interpreter] = await Promise.all([
         getSlammyData(pool, "wrestler"),
@@ -88,10 +102,16 @@ export async function getServerSideProps(context) {
       );
     }
 
+    const payload =
+      section === "general"
+        ? { wrestler, interpreter, years }
+        : { wrestler, interpreter };
+
     return {
       props: {
         section,
-        data: JSON.parse(JSON.stringify({ wrestler, interpreter })),
+        selectedYear: validYear ? String(validYear) : "all",
+        data: JSON.parse(JSON.stringify(payload)),
       },
     };
   } catch (error) {
@@ -104,14 +124,16 @@ export async function getServerSideProps(context) {
       props: {
         error: true,
         section,
+        selectedYear: validYear ? String(validYear) : "all",
       },
     };
   }
 }
 
-export default function RecordsSectionPage({ error, section, data }) {
+export default function RecordsSectionPage({ error, section, data, selectedYear = "all" }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [generalMode, setGeneralMode] = useState("wrestler");
 
   useEffect(() => {
     const handleStart = (url) => {
@@ -138,7 +160,9 @@ export default function RecordsSectionPage({ error, section, data }) {
             ? "Slammy Awards — Trivias WWE"
             : section === "distinctions"
               ? "Other Distinctions — Trivias WWE"
-              : "Hall of Records — Trivias WWE"}
+              : selectedYear !== "all"
+                ? `Hall of Records (${selectedYear}) — Trivias WWE`
+                : "Hall of Records — Trivias WWE"}
         </title>
         <meta
           name="description"
@@ -172,7 +196,14 @@ export default function RecordsSectionPage({ error, section, data }) {
             <RecordsContentSkeleton />
           ) : (
             <>
-              {section === "general" && <GeneralRecordsContent data={data} />}
+              {section === "general" && (
+                <GeneralRecordsContent
+                  data={data}
+                  selectedYear={selectedYear}
+                  globalMode={generalMode}
+                  onGlobalModeChange={setGeneralMode}
+                />
+              )}
               {section === "slammy-awards" && <SlammyAwardsContent data={data} />}
               {section === "distinctions" && <DistinctionsContent data={data} />}
             </>

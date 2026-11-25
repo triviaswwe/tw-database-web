@@ -26,15 +26,27 @@ const CATEGORIES = [
   { type: "special", label: "Special championships" },
 ];
 
-export default function GeneralRecordsContent({ data }) {
+export default function GeneralRecordsContent({
+  data,
+  selectedYear = "all",
+  globalMode: controlledGlobalMode,
+  onGlobalModeChange,
+}) {
   const router = useRouter();
   const wrestlerData = data?.wrestler || data || {};
   const interpreterData = data?.interpreter || data || {};
+  const years = data?.years || [];
 
-  const [globalMode, setGlobalMode] = useState("wrestler");
+  const [internalGlobalMode, setInternalGlobalMode] = useState("wrestler");
+  const globalMode = controlledGlobalMode ?? internalGlobalMode;
   const [tableModes, setTableModes] = useState({});
   const [tablePages, setTablePages] = useState({});
   const [expandedRow, setExpandedRow] = useState(null);
+
+  useEffect(() => {
+    setTablePages({});
+    setExpandedRow(null);
+  }, [selectedYear]);
 
   const getMode = (tableKey) => tableModes[tableKey] || globalMode;
   const getTablePage = (tableKey, totalItems) => {
@@ -48,9 +60,16 @@ export default function GeneralRecordsContent({ data }) {
     setTablePage(tableKey, 1);
   };
   const handleGlobalModeChange = (mode) => {
-    setGlobalMode(mode);
+    if (onGlobalModeChange) onGlobalModeChange(mode);
+    else setInternalGlobalMode(mode);
     setTableModes({});
     setTablePages({});
+  };
+  const handleYearChange = (yr) => {
+    if (yr === selectedYear) return;
+    router.push(
+      yr === "all" ? "/records/general" : `/records/general?year=${yr}`
+    );
   };
 
   const getTableCtx = (tableKey) => {
@@ -350,6 +369,9 @@ export default function GeneralRecordsContent({ data }) {
     tableKey = null,
   ) => {
     const pageKey = tableKey || (typeof title === "string" ? title : "table");
+    const baseScreenshotTitle = screenshotTitle || (typeof title === "string" ? title : "table");
+    const resolvedScreenshotTitle =
+      selectedYear !== "all" ? `${baseScreenshotTitle} ${selectedYear}` : baseScreenshotTitle;
     const currentPage = getTablePage(pageKey, dataArr.length);
     const startIdx = (currentPage - 1) * PAGE_SIZE;
     const paginatedArr = dataArr.slice(startIdx, startIdx + PAGE_SIZE);
@@ -367,7 +389,7 @@ export default function GeneralRecordsContent({ data }) {
                 onChange={(m) => setTableMode(tableKey, m)}
               />
             )}
-            <TableScreenshotButton title={screenshotTitle || (typeof title === "string" ? title : "table")} />
+            <TableScreenshotButton title={resolvedScreenshotTitle} />
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -454,6 +476,16 @@ export default function GeneralRecordsContent({ data }) {
                   </React.Fragment>
                 );
               })}
+              {paginatedArr.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={columns.length + 1}
+                    className="px-4 py-8 text-center text-gray-500 dark:text-gray-400"
+                  >
+                    No records found{selectedYear !== "all" ? ` for ${selectedYear}` : ""}.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -679,8 +711,39 @@ export default function GeneralRecordsContent({ data }) {
 
   return (
     <>
-      {/* Global View Switch Bar */}
-      <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded p-4 shadow-sm flex flex-wrap items-center justify-end gap-3 mb-6">
+      {/* Year & Global View Filter Bar */}
+      <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded p-4 shadow-sm flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mr-1">
+            Year:
+          </span>
+          <button
+            type="button"
+            onClick={() => handleYearChange("all")}
+            className={`px-3 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
+              selectedYear === "all"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-gray-300 dark:hover:bg-zinc-700"
+            }`}
+          >
+            All
+          </button>
+          {years.map((yr) => (
+            <button
+              key={yr}
+              type="button"
+              onClick={() => handleYearChange(String(yr))}
+              className={`px-3 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
+                selectedYear === String(yr)
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-gray-300 dark:hover:bg-zinc-700"
+              }`}
+            >
+              {yr}
+            </button>
+          ))}
+        </div>
+
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
             View:
@@ -844,7 +907,7 @@ export default function GeneralRecordsContent({ data }) {
               <td className="px-4 py-3 text-right font-bold">{s.count}</td>
               <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400 font-mono text-sm">
                 {s.days}
-                {!s.streakBreaker ? "+" : ""}
+                {!s.streakBreaker && s.isOngoing !== false ? "+" : ""}
               </td>
             </>
           ),
@@ -1118,7 +1181,13 @@ export default function GeneralRecordsContent({ data }) {
               viewMode={tcCtx.mode}
               onChange={(m) => setTableMode("totalChampionships", m)}
             />
-            <TableScreenshotButton title="Total Championships" />
+            <TableScreenshotButton
+              title={
+                selectedYear !== "all"
+                  ? `Total Championships ${selectedYear}`
+                  : "Total Championships"
+              }
+            />
           </div>
         </div>
 
@@ -1326,7 +1395,13 @@ export default function GeneralRecordsContent({ data }) {
               viewMode={pleCtx.mode}
               onChange={(m) => setTableMode("pleAppearances", m)}
             />
-            <TableScreenshotButton title="Most Appearances at PLEs" />
+            <TableScreenshotButton
+              title={
+                selectedYear !== "all"
+                  ? `Most Appearances at PLEs ${selectedYear}`
+                  : "Most Appearances at PLEs"
+              }
+            />
           </div>
         </div>
 
